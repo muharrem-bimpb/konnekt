@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e" id="theme-color-meta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Konnekt">
+<meta name="description" content="Konnekt — Ehrenamt, Nachbarschaft, Zusammenhalt">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<title>Konnekt</title>
+<style>
+/* ── Theme tokens ── */
+:root[data-theme="dark"] {
+  --bg:        #0a0f1e;
+  --card:      #111827;
+  --card2:     #1a2235;
+  --border:    #1e2d45;
+  --accent:    #3b82f6;
+  --accent2:   #06b6d4;
+  --green:     #10b981;
+  --neon:      #00ff88;
+  --purple:    #8b5cf6;
+  --orange:    #f59e0b;
+  --pink:      #ec4899;
+  --red:       #ef4444;
+  --text:      #f1f5f9;
+  --muted:     #475569;
+  --dim:       #94a3b8;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.35);
+  --shadow:    0 4px 20px rgba(0,0,0,.45);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,.6);
+  --safe-top:  env(safe-area-inset-top, 0px);
+  --safe-bot:  env(safe-area-inset-bottom, 0px);
+}
+:root[data-theme="light"] {
+  --bg:        #f0f4f8;
+  --card:      #ffffff;
+  --card2:     #f8faff;
+  --border:    #e2e8f0;
+  --accent:    #00c853;
+  --accent2:   #00e676;
+  --green:     #00c853;
+  --neon:      #00ff88;
+  --purple:    #7c3aed;
+  --orange:    #d97706;
+  --pink:      #db2777;
+  --red:       #dc2626;
+  --text:      #1a2235;
+  --muted:     #6b7280;
+  --dim:       #9ca3af;
+  --shadow-sm: 0 2px 8px rgba(0,200,80,.08), 0 1px 3px rgba(0,0,0,.06);
+  --shadow:    0 4px 24px rgba(0,200,80,.1), 0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 40px rgba(0,200,80,.15), 0 4px 16px rgba(0,0,0,.1);
+  --safe-top:  env(safe-area-inset-top, 0px);
+  --safe-bot:  env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100dvh; display: flex; flex-direction: column;
+  padding-bottom: calc(64px + var(--safe-bot));
+  overflow-x: hidden;
+  transition: background .25s, color .25s;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ── Screen system ── */
+.screen { display: none; flex-direction: column; min-height: calc(100dvh - 64px - var(--safe-bot)); }
+.screen.active { display: flex; }
+.scroll-body { flex: 1; overflow-y: auto; padding: 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
+
+/* ── Auth screen ── */
+#screen-auth {
+  background: var(--bg);
+  min-height: 100dvh; align-items: center; justify-content: center; padding: 2rem;
+}
+[data-theme="dark"] #screen-auth { background: linear-gradient(160deg, #0a0f1e 0%, #0f1f3d 50%, #0a0f1e 100%); }
+#screen-auth.active { display: flex; flex-direction: column; }
+.auth-logo { font-size: 3rem; margin-bottom: .5rem; }
+.auth-title {
+  font-size: 2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.auth-sub { font-size: .88rem; color: var(--dim); margin-bottom: 2rem; text-align: center; line-height: 1.5; }
+.auth-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: .75rem; }
+.auth-tabs { display: flex; background: var(--card2); border-radius: 12px; padding: 4px; margin-bottom: .5rem; border: 1px solid var(--border); }
+.auth-tab {
+  flex: 1; padding: .6rem; text-align: center; font-size: .85rem; font-weight: 600;
+  border-radius: 9px; cursor: pointer; color: var(--dim); transition: all .2s;
+}
+.auth-tab.active { background: var(--accent); color: white; }
+.field-group { display: flex; flex-direction: column; gap: .4rem; }
+.field-label { font-size: .73rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+input.field, select.field {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+  padding: .8rem 1rem; color: var(--text); font-size: .95rem; outline: none;
+  transition: border-color .2s, box-shadow .2s; width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+input.field:focus, select.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb,59,130,246),.15); }
+.btn-primary {
+  background: var(--accent); color: white; border: none; border-radius: 12px;
+  padding: .9rem; font-size: .95rem; font-weight: 700; transition: all .2s;
+  box-shadow: 0 4px 14px rgba(0,0,0,.2);
+}
+.btn-primary:active { transform: scale(.97); }
+.btn-secondary {
+  background: var(--card2); color: var(--dim); border: 1px solid var(--border);
+  border-radius: 12px; padding: .8rem; font-size: .88rem; font-weight: 600; transition: all .2s;
+  box-shadow: var(--shadow-sm);
+}
+.btn-secondary:active { transform: scale(.97); }
+.auth-error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #f87171; border-radius: 8px; padding: .6rem .85rem; font-size: .82rem; display: none; }
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,15,30,.92); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .75rem 1rem;
+  padding-top: calc(.75rem + var(--safe-top));
+  box-shadow: var(--shadow-sm);
+  transition: background .25s;
+}
+[data-theme="light"] .topbar { background: rgba(255,255,255,.92); }
+.topbar-brand { font-weight: 800; font-size: 1.1rem; letter-spacing: -.01em; }
+.topbar-brand span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.topbar-right { display: flex; align-items: center; gap: .5rem; }
+.points-badge {
+  background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3);
+  border-radius: 99px; padding: .25rem .7rem; font-size: .75rem; font-weight: 700; color: var(--orange);
+  display: flex; align-items: center; gap: .3rem; box-shadow: var(--shadow-sm);
+}
+.avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); color: white; border: 2px solid var(--accent);
+  font-size: .82rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--card2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; transition: all .2s; box-shadow: var(--shadow-sm);
+}
+.theme-toggle:active { transform: scale(.9); }
+
+/* ── Neon accent line ── */
+.neon-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon), transparent);
+  opacity: .6;
+  border-radius: 99px;
+  margin: .1rem 0;
+}
+
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: var(--card); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding-bottom: var(--safe-bot);
+  box-shadow: 0 -4px 20px rgba(0,0,0,.15);
+  transition: background .25s;
+}
+[data-theme="dark"] .bottom-nav { background: rgba(10,15,30,.95); }
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: .6rem .4rem; cursor: pointer; transition: color .2s;
+  color: var(--muted); border: none; background: none; position: relative;
+}
+.nav-item.active { color: var(--accent); }
+.nav-item.active::after {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 2px; background: var(--accent); border-radius: 0 0 4px 4px;
+}
+.nav-item .nav-icon { font-size: 1.3rem; line-height: 1; }
+.nav-item .nav-label { font-size: .62rem; font-weight: 600; letter-spacing: .02em; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  overflow: hidden; box-shadow: var(--shadow);
+  transition: background .25s, border-color .25s;
+}
+.card-body { padding: 1rem; }
+.section-title {
+  font-size: .73rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  margin-bottom: .75rem; display: flex; align-items: center; gap: .4rem;
+}
+.section-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+/* ── Challenge widget ── */
+.challenge-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 1.1rem; margin-bottom: 1rem; box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+}
+.challenge-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--neon), var(--accent2));
+}
+.challenge-month { font-size: .68rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
+.challenge-title { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
+.challenge-sub { font-size: .78rem; color: var(--dim); margin-bottom: .85rem; }
+.progress-bar-wrap { background: var(--card2); border-radius: 99px; height: 10px; margin-bottom: .35rem; overflow: hidden; border: 1px solid var(--border); }
+.progress-bar-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--neon));
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 8px rgba(0,255,136,.4);
+}
+.progress-label { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
+.challenge-milestones { display: flex; gap: .4rem; margin-top: .75rem; flex-wrap: wrap; }
+.milestone-chip {
+  font-size: .68rem; padding: .2rem .55rem; border-radius: 99px; font-weight: 600;
+  border: 1px solid var(--border); color: var(--muted); background: var(--card2);
+}
+.milestone-chip.done { border-color: var(--neon); color: var(--neon); background: rgba(0,255,136,.07); }
+
+/* ── Hero stats ── */
+.hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1rem; }
+.hero-stat {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+  padding: .75rem; text-align: center; box-shadow: var(--shadow-sm);
+  transition: background .25s;
+}
+.hero-stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.hero-stat-lbl { font-size: .65rem; color: var(--muted); margin-top: .2rem; }
+
+/* ── Event cards ── */
+.event-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+  margin-bottom: .85rem; overflow: hidden; box-shadow: var(--shadow);
+  transition: transform .15s, box-shadow .15s, background .25s;
+}
+.event-card:active { transform: scale(.99); }
+.event-img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--card2); }
+.event-img-placeholder { width: 100%; height: 150px; background: linear-gradient(135deg, var(--card2), var(--border)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+.event-body { padding: .9rem; }
+.event-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; margin-bottom: .6rem; }
+.event-cat { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: .2rem .55rem; border-radius: 99px; }
+.cat-volunteer   { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.cat-social      { background: rgba(139,92,246,.12); color: var(--purple); border: 1px solid rgba(139,92,246,.25); }
+.cat-environment { background: rgba(6,182,212,.12); color: var(--accent2); border: 1px solid rgba(6,182,212,.25); }
+.cat-outdoor     { background: rgba(59,130,246,.12); color: var(--accent); border: 1px solid rgba(59,130,246,.25); }
+.cat-senior      { background: rgba(236,72,153,.12); color: var(--pink); border: 1px solid rgba(236,72,153,.25); }
+.cat-health      { background: rgba(239,68,68,.1); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+.cat-education   { background: rgba(245,158,11,.1); color: var(--orange); border: 1px solid rgba(245,158,11,.25); }
+.cat-children    { background: rgba(245,158,11,.1); color: var(--orange); border: 1px solid rgba(245,158,11,.25); }
+.cat-sport       { background: rgba(59,130,246,.12); color: var(--accent); border: 1px solid rgba(59,130,246,.25); }
+.cat-seasonal    { background: rgba(236,72,153,.08); color: var(--pink); border: 1px solid rgba(236,72,153,.2); }
+.cat-other       { background: rgba(148,163,184,.1); color: var(--dim); border: 1px solid var(--border); }
+.event-pts { font-size: .78rem; font-weight: 700; color: var(--orange); display: flex; align-items: center; gap: .25rem; }
+.event-title { font-size: .98rem; font-weight: 700; margin-bottom: .35rem; line-height: 1.3; }
+.event-meta { font-size: .75rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
+.event-meta span { display: flex; align-items: center; gap: .2rem; }
+.event-actions { display: flex; gap: .5rem; }
+.btn-join {
+  flex: 1; background: var(--accent); color: white; border: none; border-radius: 10px;
+  padding: .65rem; font-size: .83rem; font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2); transition: all .15s;
+}
+.btn-join:active { transform: scale(.97); }
+.btn-join.joined { background: var(--card2); color: var(--green); border: 1px solid rgba(16,185,129,.3); box-shadow: none; }
+
+/* ── Coupon cards ── */
+.coupon-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 1rem; margin-bottom: .75rem; display: flex; align-items: center; gap: 1rem;
+  box-shadow: var(--shadow); transition: background .25s;
+}
+.coupon-icon { font-size: 2rem; flex-shrink: 0; }
+.coupon-body { flex: 1; min-width: 0; }
+.coupon-biz { font-size: .7rem; color: var(--accent); font-weight: 600; margin-bottom: .15rem; }
+.coupon-title { font-size: .88rem; font-weight: 700; margin-bottom: .25rem; }
+.coupon-cost { font-size: .78rem; color: var(--orange); font-weight: 700; }
+.btn-redeem {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white;
+  border: none; border-radius: 10px; padding: .55rem 1rem; font-size: .8rem; font-weight: 700;
+  white-space: nowrap; flex-shrink: 0; box-shadow: 0 3px 10px rgba(0,0,0,.2);
+}
+.btn-redeem:disabled { opacity: .4; box-shadow: none; }
+
+/* ── Feed ── */
+.feed-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: .9rem; margin-bottom: .6rem; box-shadow: var(--shadow-sm);
+  transition: background .25s;
+}
+.feed-type { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .4rem; }
+.feed-content { font-size: .88rem; line-height: 1.5; }
+.feed-meta { font-size: .72rem; color: var(--muted); margin-top: .4rem; }
+
+/* ── Nahbar tab ── */
+.nahbar-hero {
+  background: linear-gradient(135deg, rgba(139,92,246,.12), rgba(236,72,153,.08));
+  border: 1px solid rgba(139,92,246,.2); border-radius: 18px;
+  padding: 1.2rem; text-align: center; margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.nahbar-hero h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: .4rem; }
+.nahbar-hero p { font-size: .82rem; color: var(--dim); line-height: 1.5; }
+
+.person-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: .9rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .85rem;
+  box-shadow: var(--shadow-sm); transition: background .25s;
+}
+.person-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--accent); color: white; display: flex; align-items: center;
+  justify-content: center; font-weight: 700; font-size: .95rem; flex-shrink: 0;
+  overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.person-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.person-info { flex: 1; min-width: 0; }
+.person-name { font-size: .9rem; font-weight: 700; }
+.person-bio { font-size: .72rem; color: var(--dim); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person-badges { display: flex; gap: .35rem; margin-top: .35rem; flex-wrap: wrap; }
+.badge { font-size: .62rem; padding: .15rem .45rem; border-radius: 99px; font-weight: 600; }
+.badge-senior { background: rgba(236,72,153,.12); color: var(--pink); }
+.badge-vol { background: rgba(16,185,129,.12); color: var(--green); }
+.badge-ngo { background: rgba(59,130,246,.12); color: var(--accent); }
+.btn-connect {
+  background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3);
+  color: var(--accent); border-radius: 8px; padding: .45rem .85rem;
+  font-size: .78rem; font-weight: 600; white-space: nowrap;
+}
+
+/* ── Zeitbank ── */
+.zeitbank-tabs { display: flex; background: var(--card2); border-radius: 10px; padding: 3px; margin-bottom: .75rem; border: 1px solid var(--border); }
+.zb-tab { flex: 1; padding: .45rem; text-align: center; font-size: .78rem; font-weight: 600; border-radius: 8px; color: var(--dim); cursor: pointer; transition: all .2s; }
+.zb-tab.active { background: var(--accent); color: white; }
+.zb-card {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+  padding: .8rem; margin-bottom: .55rem; box-shadow: var(--shadow-sm);
+}
+.zb-skill { font-size: .9rem; font-weight: 700; margin-bottom: .2rem; }
+.zb-desc { font-size: .76rem; color: var(--dim); line-height: 1.4; }
+.zb-meta { font-size: .68rem; color: var(--muted); margin-top: .35rem; display: flex; align-items: center; gap: .4rem; }
+.zb-offer-tag { background: rgba(0,255,136,.1); color: var(--neon); border: 1px solid rgba(0,255,136,.25); border-radius: 99px; padding: .1rem .45rem; font-size: .65rem; font-weight: 700; }
+.zb-req-tag { background: rgba(236,72,153,.1); color: var(--pink); border: 1px solid rgba(236,72,153,.25); border-radius: 99px; padding: .1rem .45rem; font-size: .65rem; font-weight: 700; }
+
+/* ── SOS button ── */
+.sos-card {
+  background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.25);
+  border-radius: 14px; padding: .9rem 1rem; margin-bottom: .75rem;
+  display: flex; align-items: center; gap: .85rem; box-shadow: var(--shadow-sm);
+}
+.sos-card .sos-icon { font-size: 1.6rem; flex-shrink: 0; }
+.sos-card .sos-info { flex: 1; }
+.sos-card .sos-title { font-size: .88rem; font-weight: 700; color: var(--red); margin-bottom: .15rem; }
+.sos-card .sos-sub { font-size: .72rem; color: var(--dim); }
+.btn-sos {
+  background: var(--red); color: white; border: none; border-radius: 10px;
+  padding: .55rem 1rem; font-size: .82rem; font-weight: 700; flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(239,68,68,.35); white-space: nowrap;
+}
+.btn-sos:active { transform: scale(.95); }
+
+/* ── Activity cards ── */
+.activity-card {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+  padding: .9rem; margin-bottom: .5rem; display: flex; align-items: flex-start; gap: .75rem;
+  box-shadow: var(--shadow-sm);
+}
+.act-icon { font-size: 1.5rem; flex-shrink: 0; }
+.act-title { font-size: .88rem; font-weight: 700; margin-bottom: .2rem; }
+.act-desc { font-size: .76rem; color: var(--dim); line-height: 1.4; }
+
+/* ── Profile ── */
+.profile-header {
+  text-align: center; padding: 1.5rem 1rem 1rem;
+  background: linear-gradient(180deg, var(--card2) 0%, transparent 100%);
+  border-radius: 18px; margin-bottom: 1rem; box-shadow: var(--shadow-sm);
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--accent); color: white; display: flex; align-items: center;
+  justify-content: center; font-size: 1.5rem; font-weight: 800;
+  margin: 0 auto .75rem; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,.25), 0 0 0 3px var(--accent);
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-name { font-size: 1.2rem; font-weight: 800; }
+.profile-city { font-size: .8rem; color: var(--dim); margin-top: .2rem; }
+.profile-bio { font-size: .78rem; color: var(--muted); margin-top: .3rem; line-height: 1.4; }
+.profile-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; margin: 1rem 0; }
+.pstat { text-align: center; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: .75rem .5rem; box-shadow: var(--shadow-sm); }
+.pstat-num { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+.pstat-lbl { font-size: .65rem; color: var(--muted); }
+
+/* ── Streak badge ── */
+.streak-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(239,68,68,.1));
+  border: 1px solid rgba(245,158,11,.3); border-radius: 99px;
+  padding: .3rem .85rem; font-size: .78rem; font-weight: 700; color: var(--orange);
+  margin-top: .5rem;
+}
+
+/* ── Points history ── */
+.tx-item { display: flex; align-items: center; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+.tx-reason { font-size: .82rem; color: var(--dim); }
+.tx-delta { font-size: .88rem; font-weight: 700; }
+.tx-plus { color: var(--green); }
+.tx-minus { color: #f87171; }
+
+/* ── Deed log ── */
+.deed-form { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .85rem; }
+.deed-cats { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .3rem; }
+.deed-cat {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 99px;
+  padding: .3rem .75rem; font-size: .75rem; color: var(--dim); cursor: pointer;
+  transition: all .15s;
+}
+.deed-cat.active { border-color: var(--green); color: var(--green); background: rgba(16,185,129,.08); }
+textarea.ta {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+  padding: .75rem; color: var(--text); font-family: inherit; font-size: .88rem;
+  resize: none; outline: none; min-height: 72px; transition: border-color .2s;
+}
+textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: calc(80px + var(--safe-bot)); left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; padding: .7rem 1.4rem; border-radius: 99px;
+  font-size: .85rem; font-weight: 700; z-index: 999; opacity: 0;
+  transition: opacity .3s, transform .3s; white-space: nowrap;
+  pointer-events: none; box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+/* ── Filter pills ── */
+.filter-row { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: none; margin-bottom: .85rem; }
+.filter-row::-webkit-scrollbar { display: none; }
+.fpill {
+  flex-shrink: 0; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 99px; padding: .35rem .85rem; font-size: .75rem; color: var(--dim);
+  cursor: pointer; transition: all .2s; white-space: nowrap; box-shadow: var(--shadow-sm);
+}
+.fpill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,80,.06); }
+[data-theme="dark"] .fpill.active { background: rgba(59,130,246,.08); }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; right: 1.2rem; bottom: calc(80px + var(--safe-bot) + .75rem);
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: white; border: none;
+  font-size: 1.4rem; z-index: 90; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3), 0 0 0 3px rgba(var(--accent-rgb,59,130,246),.2);
+  transition: transform .15s;
+}
+.fab:active { transform: scale(.93); }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6); align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border); border-radius: 24px 24px 0 0;
+  width: 100%; max-width: 600px; padding: 1.5rem 1.2rem;
+  padding-bottom: calc(1.5rem + var(--safe-bot));
+  max-height: 90dvh; overflow-y: auto;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.4);
+}
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 1rem; }
+.modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: space-between; }
+.modal-close { background: var(--card2); border: none; color: var(--dim); border-radius: 8px; padding: .35rem .65rem; font-size: .85rem; }
+.modal .field-group { margin-bottom: .65rem; }
+
+/* ── QR display ── */
+.qr-box { background: white; border-radius: 12px; padding: 1rem; text-align: center; margin: 1rem 0; box-shadow: var(--shadow-sm); }
+.qr-code { font-size: .75rem; font-family: monospace; color: #1a1a2e; word-break: break-all; margin-top: .5rem; }
+
+/* ── Leaderboard ── */
+.lb-item { display: flex; align-items: center; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+.lb-rank { font-size: 1.1rem; font-weight: 800; min-width: 2rem; text-align: center; }
+.lb-name { flex: 1; font-size: .9rem; font-weight: 600; }
+.lb-pts { font-size: .85rem; font-weight: 700; color: var(--orange); }
+.lb-bar { height: 4px; background: linear-gradient(90deg, var(--accent), var(--neon)); border-radius: 99px; margin-top: .25rem; transition: width .8s; }
+
+/* ── Impact mini-bars ── */
+.impact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .85rem; }
+.impact-item { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: .75rem; box-shadow: var(--shadow-sm); }
+.impact-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.impact-lbl { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+
+.empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 2rem 1rem; }
+.loading { text-align: center; color: var(--muted); padding: 2rem; }
+</style>
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══ -->
+<div class="screen active" id="screen-auth">
+  <div class="auth-logo">🌐</div>
+  <div class="auth-title">Konnekt</div>
+  <div class="auth-sub">Ehrenamt. Nachbarschaft. Zusammenhalt.<br>Besser als Instagram — weil es der Welt nützt.</div>
+
+  <div class="auth-form">
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="setAuthMode('login')">Anmelden</div>
+      <div class="auth-tab" onclick="setAuthMode('register')">Registrieren</div>
+    </div>
+    <div id="auth-register-fields" style="display:none;flex-direction:column;gap:.65rem">
+      <div class="field-group">
+        <div class="field-label">Anzeigename</div>
+        <input class="field" id="reg-name" type="text" placeholder="Wie sollen andere dich nennen?">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Username</div>
+        <input class="field" id="reg-username" type="text" placeholder="username" autocorrect="off">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Stadt</div>
+        <input class="field" id="reg-city" type="text" placeholder="Bern, Zürich, Basel…">
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">E-Mail</div>
+      <input class="field" id="auth-email" type="email" placeholder="deine@email.com" autocomplete="email">
+    </div>
+    <div class="field-group">
+      <div class="field-label">Passwort</div>
+      <input class="field" id="auth-pw" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Anmelden</button>
+    <button class="btn-secondary" onclick="demoLogin()">✨ Demo ohne Account</button>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" style="display:none;flex-direction:column;min-height:100dvh">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-brand">🌐 <span>Konnekt</span></div>
+    <div class="topbar-right">
+      <div class="points-badge">⭐ <span id="hdr-points">0</span></div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Theme wechseln">🌙</button>
+      <button class="avatar-btn" id="avatar-btn" onclick="goProfile()">?</button>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div class="screen active" id="screen-feed">
+    <div class="scroll-body">
+      <!-- Community Challenge -->
+      <div class="challenge-card" id="challenge-card" style="display:none">
+        <div class="challenge-month" id="challenge-month">April 2026</div>
+        <div class="challenge-title" id="challenge-title">Bern verbindet sich</div>
+        <div class="challenge-sub" id="challenge-sub">Gemeinsam 500 gute Taten bis Ende April</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="challenge-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-label">
+          <span id="challenge-progress-txt">0 Taten</span>
+          <span id="challenge-goal-txt">Ziel: 500</span>
+        </div>
+        <div class="challenge-milestones" id="challenge-milestones"></div>
+      </div>
+
+      <!-- Platform stats -->
+      <div class="section-title"><span class="section-dot"></span> Bern im Überblick</div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num" id="stat-users" style="color:var(--accent)">–</div><div class="hero-stat-lbl">Mitglieder</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" id="stat-deeds" style="color:var(--green)">–</div><div class="hero-stat-lbl">Gute Taten</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" id="stat-events" style="color:var(--orange)">–</div><div class="hero-stat-lbl">Events</div></div>
+      </div>
+
+      <div class="impact-grid">
+        <div class="impact-item"><div class="impact-num" id="stat-visits" style="color:var(--pink)">–</div><div class="impact-lbl">Senioren-Besuche</div></div>
+        <div class="impact-item"><div class="impact-num" id="stat-pts" style="color:var(--neon)">–</div><div class="impact-lbl">Punkte vergeben</div></div>
+      </div>
+      <div class="neon-line" style="margin-bottom:.85rem"></div>
+
+      <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> Aktuelle Aktivitäten</div>
+      <div id="feed-list"><div class="loading">Lade Feed…</div></div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-volunteer">
+    <div class="scroll-body">
+      <div class="filter-row" id="event-filters">
+        <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
+        <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
+        <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
+        <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
+        <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
+        <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
+      </div>
+      <div id="events-list"><div class="loading">Lade Events…</div></div>
+    </div>
+    <button class="fab" onclick="openCreateEvent()" title="Event erstellen">+</button>
+  </div>
+
+  <div class="screen" id="screen-coupons">
+    <div class="scroll-body">
+      <div style="background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(0,255,136,.05));border:1px solid rgba(245,158,11,.2);border-radius:16px;padding:1rem;margin-bottom:1rem;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-size:.8rem;color:var(--dim)">Deine Punkte</div>
+        <div style="font-size:2.5rem;font-weight:800;color:var(--orange)" id="coupon-pts">–</div>
+        <div style="font-size:.72rem;color:var(--muted)">Durch Ehrenamt & gute Taten verdient</div>
+      </div>
+      <div class="neon-line" style="margin-bottom:.85rem"></div>
+      <div class="filter-row" id="coupon-filters">
+        <div class="fpill active" onclick="filterCoupons('',this)">Alle</div>
+        <div class="fpill" onclick="filterCoupons('food',this)">🍞 Essen</div>
+        <div class="fpill" onclick="filterCoupons('sport',this)">🏃 Sport</div>
+        <div class="fpill" onclick="filterCoupons('culture',this)">🎭 Kultur</div>
+      </div>
+      <div id="coupons-list"><div class="loading">Lade Coupons…</div></div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-nahbar">
+    <div class="scroll-body">
+      <div class="nahbar-hero">
+        <h2>Kein Nachbar allein 💛</h2>
+        <p>Verbinde dich mit Menschen in deiner Nähe. Besuche Senioren. Tausche Fähigkeiten. Hinterlasse Gutes.</p>
+      </div>
+
+      <!-- SOS / Notfall Button -->
+      <div class="sos-card">
+        <div class="sos-icon">🆘</div>
+        <div class="sos-info">
+          <div class="sos-title">Notfall-Alarm</div>
+          <div class="sos-sub">Benachrichtige Nachbarn in deiner Umgebung sofort</div>
+        </div>
+        <button class="btn-sos" onclick="triggerSOS()">SOS</button>
+      </div>
+
+      <!-- Gute Tat eintragen -->
+      <div class="card" style="margin-bottom:.85rem">
+        <div class="card-body">
+          <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Gute Tat eintragen → +25 Punkte</div>
+          <div class="deed-form">
+            <div class="deed-cats" id="deed-cats">
+              <div class="deed-cat active" data-cat="neighbor">👋 Nachbar</div>
+              <div class="deed-cat" data-cat="senior">💛 Senior</div>
+              <div class="deed-cat" data-cat="volunteer">🌱 Ehrenamt</div>
+              <div class="deed-cat" data-cat="environment">🌿 Umwelt</div>
+              <div class="deed-cat" data-cat="children">👶 Kinder</div>
+            </div>
+            <textarea class="ta" id="deed-input" placeholder="Was hast du getan? (z.B. Einkauf für Nachbarin, Müll gesammelt, …)"></textarea>
+            <button class="btn-primary" style="background:var(--green)" onclick="logDeed()">✓ Eintragen (+25 Punkte)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zeitbank -->
+      <div class="section-title"><span class="section-dot" style="background:var(--neon)"></span> Zeitbank — Fähigkeiten tauschen</div>
+      <div class="zeitbank-tabs">
+        <div class="zb-tab active" onclick="loadZeitbank('offer',this)">Ich biete an</div>
+        <div class="zb-tab" onclick="loadZeitbank('request',this)">Ich suche</div>
+      </div>
+      <div id="zeitbank-list"><div class="loading">Lade…</div></div>
+      <button class="btn-secondary" style="width:100%;margin-bottom:1rem" onclick="openModal('modal-zeitbank')">+ Eigenes Angebot / Gesuch</button>
+
+      <!-- Aktivitäten -->
+      <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Aktivitätsvorschläge</div>
+      <div id="activities-list"><div class="loading">Lade…</div></div>
+
+      <!-- Senioren -->
+      <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--pink)"></span> Senioren suchen Besuch</div>
+      <div id="seniors-list"><div class="loading">Lade…</div></div>
+
+      <!-- Nearby -->
+      <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> In deiner Nähe</div>
+      <div id="nearby-list"><div class="loading">Lade…</div></div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-profile">
+    <div class="scroll-body">
+      <div class="profile-header">
+        <div class="profile-avatar" id="prof-avatar-wrap">
+          <span id="prof-avatar-initial">?</span>
+        </div>
+        <div class="profile-name" id="prof-name">–</div>
+        <div class="profile-city" id="prof-city">–</div>
+        <div class="profile-bio" id="prof-bio"></div>
+        <div id="prof-streak" style="margin-top:.5rem"></div>
+      </div>
+      <div class="profile-stats">
+        <div class="pstat"><div class="pstat-num" id="prof-pts">0</div><div class="pstat-lbl">Punkte</div></div>
+        <div class="pstat"><div class="pstat-num" id="prof-hours" style="color:var(--green)">0</div><div class="pstat-lbl">Stunden</div></div>
+        <div class="pstat"><div class="pstat-num" id="prof-deeds" style="color:var(--purple)">0</div><div class="pstat-lbl">Gute Taten</div></div>
+      </div>
+
+      <div class="section-title"><span class="section-dot" style="background:var(--orange)"></span> Punkte-Verlauf</div>
+      <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
+
+      <div style="margin-top:1.2rem">
+        <div class="section-title"><span class="section-dot" style="background:var(--accent)"></span> Rangliste Bern</div>
+        <div id="leaderboard-list"><div class="loading">Lade…</div></div>
+      </div>
+
+      <button class="btn-secondary" style="width:100%;margin-top:1.2rem" onclick="logout()">Abmelden</button>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchScreen('feed',this)">
+      <span class="nav-icon">🏠</span><span class="nav-label">Feed</span>
+    </button>
+    <button class="nav-item" onclick="switchScreen('volunteer',this)">
+      <span class="nav-icon">🌱</span><span class="nav-label">Events</span>
+    </button>
+    <button class="nav-item" onclick="switchScreen('coupons',this)">
+      <span class="nav-icon">🎟️</span><span class="nav-label">Coupons</span>
+    </button>
+    <button class="nav-item" onclick="switchScreen('nahbar',this)">
+      <span class="nav-icon">💛</span><span class="nav-label">Nahbar</span>
+    </button>
+    <button class="nav-item" onclick="switchScreen('profile',this)">
+      <span class="nav-icon">👤</span><span class="nav-label">Profil</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Create Event Modal -->
+<div class="modal-overlay" id="modal-create-event">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Event erstellen <button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Titel</div>
+      <input class="field" id="ev-title" type="text" placeholder="Was findet statt?">
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Kategorie</div>
+      <select class="field" id="ev-cat">
+        <option value="volunteer">🌱 Ehrenamt</option>
+        <option value="social">👥 Sozial</option>
+        <option value="environment">🌿 Umwelt</option>
+        <option value="senior">💛 Senioren</option>
+        <option value="health">❤️ Gesundheit</option>
+        <option value="education">📚 Bildung</option>
+        <option value="sport">🏃 Sport</option>
+        <option value="other">🎉 Anderes</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Beschreibung</div>
+      <textarea class="ta" id="ev-desc" placeholder="Worum geht es?" rows="3"></textarea>
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Startzeit</div>
+      <input class="field" id="ev-start" type="datetime-local">
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Punkte-Belohnung</div>
+      <input class="field" id="ev-pts" type="number" value="50" min="10" max="500">
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Adresse</div>
+      <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Stadt">
+    </div>
+    <button class="btn-primary" onclick="createEvent()">Event erstellen</button>
+  </div>
+</div>
+
+<!-- QR Redeem Modal -->
+<div class="modal-overlay" id="modal-qr">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Coupon eingelöst! <button class="modal-close" onclick="closeModal('modal-qr')">✕</button></div>
+    <div style="text-align:center">
+      <div style="font-size:3rem;margin:.5rem 0">🎟️</div>
+      <div id="qr-coupon-title" style="font-size:1rem;font-weight:700;margin-bottom:.5rem">–</div>
+      <div class="qr-box">
+        <div style="font-size:.8rem;color:#475569;margin-bottom:.3rem">Einlösecode</div>
+        <div id="qr-code-display" class="qr-code" style="font-size:1.2rem;font-weight:800;color:#1a1a2e;letter-spacing:.1em">–</div>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted)">Zeige diesen Code beim Geschäft vor.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SOS Modal -->
+<div class="modal-overlay" id="modal-sos">
+  <div class="modal" style="border-top:3px solid var(--red)">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--red)">🆘 Notfall-Alarm <button class="modal-close" onclick="closeModal('modal-sos')">✕</button></div>
+    <div style="text-align:center;margin-bottom:1.2rem">
+      <div style="font-size:.88rem;color:var(--dim);line-height:1.5">
+        Deine Nachbarn in Bern werden benachrichtigt, dass du Hilfe brauchst.<br>
+        <strong style="color:var(--text)">Bitte nur in echten Notlagen verwenden.</strong>
+      </div>
+    </div>
+    <div class="field-group" style="margin-bottom:.85rem">
+      <div class="field-label">Was ist passiert?</div>
+      <select class="field" id="sos-type">
+        <option value="medical">🏥 Medizinischer Notfall</option>
+        <option value="safety">🔒 Sicherheitsproblem</option>
+        <option value="help">🙋 Ich brauche allgemeine Hilfe</option>
+        <option value="senior">💛 Senior braucht Unterstützung</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:1rem">
+      <div class="field-label">Beschreibung (optional)</div>
+      <textarea class="ta" id="sos-desc" placeholder="Was genau passiert ist…" rows="2"></textarea>
+    </div>
+    <button class="btn-primary" style="background:var(--red);box-shadow:0 4px 14px rgba(239,68,68,.4)" onclick="sendSOS()">
+      🆘 Alarm abschicken
+    </button>
+    <div style="margin-top:.75rem;text-align:center;font-size:.75rem;color:var(--muted)">
+      Notruf: <a href="tel:112" style="color:var(--red);font-weight:700">112</a> ·
+      Polizei: <a href="tel:117" style="color:var(--red);font-weight:700">117</a> ·
+      Sanität: <a href="tel:144" style="color:var(--red);font-weight:700">144</a>
+    </div>
+  </div>
+</div>
+
+<!-- Zeitbank Modal -->
+<div class="modal-overlay" id="modal-zeitbank">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Zeitbank Eintrag <button class="modal-close" onclick="closeModal('modal-zeitbank')">✕</button></div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Typ</div>
+      <select class="field" id="zb-type">
+        <option value="offer">Ich biete an</option>
+        <option value="request">Ich suche / brauche</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Fähigkeit / Gesuch</div>
+      <input class="field" id="zb-skill" type="text" placeholder="z.B. Deutsch-Nachhilfe, Fahrrad reparieren…">
+    </div>
+    <div class="field-group" style="margin-bottom:.85rem">
+      <div class="field-label">Beschreibung</div>
+      <textarea class="ta" id="zb-desc" placeholder="Mehr Details…" rows="3"></textarea>
+    </div>
+    <button class="btn-primary" onclick="submitZeitbank()">Eintrag speichern</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const API = '';
+let token = localStorage.getItem('konnekt_token') || '';
+let currentUser = null;
+let currentEventFilter = '';
+let currentCouponFilter = '';
+let currentZbType = 'offer';
+let deedCategory = 'neighbor';
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+const savedTheme = localStorage.getItem('konnekt_theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+updateThemeUI(savedTheme);
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('konnekt_theme', next);
+  updateThemeUI(next);
+}
+
+function updateThemeUI(theme) {
+  const btn = document.getElementById('theme-btn');
+  if (!btn) return;
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  const meta = document.getElementById('theme-color-meta');
+  if (meta) meta.content = theme === 'dark' ? '#0a0f1e' : '#f0f4f8';
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function setAuthMode(mode) {
+  const isReg = mode === 'register';
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0)!==isReg));
+  document.getElementById('auth-register-fields').style.display = isReg ? 'flex' : 'none';
+  document.getElementById('auth-submit-btn').textContent = isReg ? 'Registrieren' : 'Anmelden';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pw    = document.getElementById('auth-pw').value;
+  const isReg = document.getElementById('auth-submit-btn').textContent === 'Registrieren';
+  document.getElementById('auth-error').style.display = 'none';
+  if (!email || !pw) { showAuthError('E-Mail und Passwort eingeben.'); return; }
+  try {
+    let res;
+    if (isReg) {
+      res = await apiFetch('/api/auth/register', 'POST', {
+        email, password: pw,
+        username: document.getElementById('reg-username').value.trim() || email.split('@')[0],
+        display_name: document.getElementById('reg-name').value.trim(),
+        city: document.getElementById('reg-city').value.trim()
+      });
+    } else {
+      res = await apiFetch('/api/auth/login', 'POST', {email, password: pw});
+    }
+    token = res.token;
+    localStorage.setItem('konnekt_token', token);
+    await loadApp();
+    showManualInstallBar();
+  } catch(e) {
+    showAuthError(e.message || 'Fehler beim Anmelden.');
+  }
+}
+
+async function demoLogin() {
+  // Use the pre-seeded demo token (1-year expiry, no password needed)
+  token = 'demo-token-konnekt-2026';
+  localStorage.setItem('konnekt_token', token);
+  try {
+    await loadApp();
+    showManualInstallBar();
+  } catch(e) {
+    token = '';
+    localStorage.removeItem('konnekt_token');
+    showAuthError('Demo nicht verfügbar — bitte registriere dich kurz.');
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = '';
+}
+
+function logout() {
+  localStorage.removeItem('konnekt_token');
+  token = ''; currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('screen-auth').style.display = 'flex';
+}
+
+// ── App init ──────────────────────────────────────────────────────────────
+async function loadApp() {
+  document.getElementById('screen-auth').style.display = 'none';
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+  try {
+    currentUser = await apiFetch('/api/auth/me');
+    updateUserUI();
+    loadFeed();
+    loadEvents();
+    loadPlatformStats();
+    loadChallenge();
+  } catch(e) { logout(); }
+}
+
+function updateUserUI() {
+  if (!currentUser) return;
+  const initial = (currentUser.display_name||'?')[0].toUpperCase();
+  document.getElementById('hdr-points').textContent = (currentUser.points_balance||0).toLocaleString();
+
+  // Avatar with photo if available
+  const avatarBtn = document.getElementById('avatar-btn');
+  if (currentUser.avatar_url) {
+    avatarBtn.innerHTML = `<img src="${currentUser.avatar_url}" alt="${initial}" onerror="this.parentElement.textContent='${initial}'">`;
+  } else {
+    avatarBtn.textContent = initial;
+  }
+
+  // Profile
+  const profWrap = document.getElementById('prof-avatar-wrap');
+  if (currentUser.avatar_url) {
+    profWrap.innerHTML = `<img src="${currentUser.avatar_url}" alt="${initial}" onerror="this.innerHTML='<span>${initial}</span>'">`;
+  } else {
+    profWrap.innerHTML = `<span id="prof-avatar-initial">${initial}</span>`;
+  }
+  document.getElementById('prof-name').textContent = currentUser.display_name || currentUser.username;
+  document.getElementById('prof-city').textContent = currentUser.city ? '📍 ' + currentUser.city : '';
+  document.getElementById('prof-bio').textContent = currentUser.bio || '';
+  document.getElementById('prof-pts').textContent = currentUser.points_balance || 0;
+  document.getElementById('prof-hours').textContent = currentUser.volunteer_hours || 0;
+
+  // Streak
+  const streakEl = document.getElementById('prof-streak');
+  const hours = currentUser.volunteer_hours || 0;
+  if (hours > 0) {
+    streakEl.innerHTML = `<span class="streak-badge">🔥 ${hours} Ehrenamtsstunden</span>`;
+  }
+}
+
+// ── Screen switching ──────────────────────────────────────────────────────
+function switchScreen(name, btn) {
+  document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name==='volunteer') loadEvents();
+  if (name==='coupons') { loadCoupons(); updateCouponPts(); }
+  if (name==='nahbar') { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
+  if (name==='profile') { loadProfile(); loadLeaderboard(); }
+}
+
+function goProfile() { switchScreen('profile', document.querySelectorAll('.nav-item')[4]); }
+
+// ── Challenge ─────────────────────────────────────────────────────────────
+async function loadChallenge() {
+  try {
+    const ch = await apiFetch('/api/challenge');
+    document.getElementById('challenge-card').style.display = '';
+    document.getElementById('challenge-month').textContent = ch.month;
+    document.getElementById('challenge-title').textContent = ch.title;
+    document.getElementById('challenge-sub').textContent = ch.subtitle;
+    const pct = Math.min(100, Math.round((ch.progress / ch.goal) * 100));
+    document.getElementById('challenge-bar').style.width = pct + '%';
+    document.getElementById('challenge-progress-txt').textContent = ch.progress + ' Taten';
+    document.getElementById('challenge-goal-txt').textContent = 'Ziel: ' + ch.goal;
+    document.getElementById('challenge-milestones').innerHTML = ch.milestones.map(m =>
+      `<span class="milestone-chip ${m.done?'done':''}">${m.label}</span>`
+    ).join('');
+  } catch {}
+}
+
+// ── Feed ──────────────────────────────────────────────────────────────────
+async function loadFeed() {
+  const city = currentUser?.city || '';
+  const items = await apiFetch(`/api/feed?city=${encodeURIComponent(city)}`);
+  const list = document.getElementById('feed-list');
+  if (!items.length) { list.innerHTML = '<div class="empty">Noch keine Aktivitäten.</div>'; return; }
+  list.innerHTML = items.map(item => {
+    const isEvent = item.type === 'event';
+    return `<div class="feed-item">
+      <div class="feed-type">${isEvent ? '🌱 Event' : '💛 Gute Tat'}</div>
+      <div class="feed-content">${esc(item.content||'')}</div>
+      <div class="feed-meta">${isEvent
+        ? '📍 ' + esc(item.city||'') + ' · ⭐ +' + (item.points_reward||50) + ' Punkte'
+        : '📍 ' + esc(item.city||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadPlatformStats() {
+  const s = await apiFetch('/api/stats');
+  document.getElementById('stat-users').textContent = s.users || 0;
+  document.getElementById('stat-deeds').textContent = s.good_deeds || 0;
+  document.getElementById('stat-events').textContent = s.active_events || 0;
+  document.getElementById('stat-visits').textContent = s.senior_visits_completed || 0;
+  const pts = s.total_points_earned || 0;
+  document.getElementById('stat-pts').textContent = pts >= 1000 ? Math.round(pts/100)/10 + 'k' : pts;
+}
+
+// ── Events ────────────────────────────────────────────────────────────────
+async function loadEvents() {
+  const city = currentUser?.city || '';
+  const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${currentEventFilter?'&category='+currentEventFilter:''}`;
+  const events = await apiFetch(url);
+  const list = document.getElementById('events-list');
+  if (!events.length) { list.innerHTML = '<div class="empty">Keine Events gefunden.</div>'; return; }
+  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',other:'🎉'};
+  list.innerHTML = events.map(ev => {
+    const dt = new Date(ev.starts_at);
+    const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const imgHtml = ev.image_url
+      ? `<img class="event-img" src="${esc(ev.image_url)}" alt="${esc(ev.title)}" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="event-img-placeholder">${CAT_EMOJI[ev.category]||'🌱'}</div>`;
+    return `<div class="event-card">
+      ${imgHtml}
+      <div class="event-body">
+        <div class="event-header">
+          <span class="event-cat cat-${ev.category||'other'}">${catLabel(ev.category)}</span>
+          <span class="event-pts">⭐ +${ev.points_reward}</span>
+        </div>
+        <div class="event-title">${esc(ev.title)}</div>
+        <div class="event-meta">
+          <span>📅 ${dateStr} ${timeStr}</span>
+          <span>📍 ${esc(ev.city||ev.address||'')}</span>
+          <span>👤 ${ev.participants_count||0}${ev.max_participants>0?' / '+ev.max_participants:''}</span>
+        </div>
+        <div class="event-actions">
+          <button class="btn-join" onclick="registerEvent(${ev.id}, this)">Mitmachen</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterEvents(cat, el) {
+  currentEventFilter = cat;
+  document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  loadEvents();
+}
+
+async function registerEvent(id, btn) {
+  try {
+    await apiFetch(`/api/events/${id}/register`, 'POST');
+    btn.textContent = '✓ Angemeldet';
+    btn.classList.add('joined');
+    showToast('✓ Angemeldet! +10 Punkte');
+    await refreshPoints();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+function openCreateEvent() { openModal('modal-create-event'); }
+
+async function createEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const starts_at = document.getElementById('ev-start').value;
+  if (!title || !starts_at) { showToast('Titel und Datum erforderlich'); return; }
+  try {
+    await apiFetch('/api/events', 'POST', {
+      title,
+      description: document.getElementById('ev-desc').value.trim(),
+      category: document.getElementById('ev-cat').value,
+      starts_at,
+      points_reward: parseInt(document.getElementById('ev-pts').value)||50,
+      address: document.getElementById('ev-addr').value.trim(),
+      city: currentUser?.city || ''
+    });
+    closeModal('modal-create-event');
+    showToast('✓ Event erstellt! +20 Punkte');
+    loadEvents();
+    await refreshPoints();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+// ── Coupons ───────────────────────────────────────────────────────────────
+async function loadCoupons() {
+  const city = currentUser?.city || '';
+  const url = `/api/coupons?city=${encodeURIComponent(city)}${currentCouponFilter?'&category='+currentCouponFilter:''}`;
+  const coupons = await apiFetch(url);
+  const pts = currentUser?.points_balance || 0;
+  const list = document.getElementById('coupons-list');
+  const ICONS = {food:'🍞',sport:'🏃',culture:'🎭',other:'🎟️'};
+  if (!coupons.length) { list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return; }
+  list.innerHTML = coupons.map(c => `
+    <div class="coupon-card">
+      <div class="coupon-icon">${ICONS[c.category]||'🎟️'}</div>
+      <div class="coupon-body">
+        <div class="coupon-biz">${esc(c.business_name||'')}</div>
+        <div class="coupon-title">${esc(c.title)}</div>
+        <div class="coupon-cost">⭐ ${c.points_cost} Punkte ${pts < c.points_cost ? '<span style="color:var(--muted);font-weight:400">· nicht genug</span>' : ''}</div>
+      </div>
+      <button class="btn-redeem" ${pts < c.points_cost ? 'disabled' : ''} onclick="redeemCoupon(${c.id},'${esc(c.title)}')">
+        Einlösen
+      </button>
+    </div>`).join('');
+}
+
+function filterCoupons(cat, el) {
+  currentCouponFilter = cat;
+  document.querySelectorAll('#coupon-filters .fpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  loadCoupons();
+}
+
+async function redeemCoupon(id, title) {
+  try {
+    const r = await apiFetch(`/api/coupons/${id}/redeem`, 'POST');
+    document.getElementById('qr-coupon-title').textContent = title;
+    document.getElementById('qr-code-display').textContent = r.qr_code.toUpperCase();
+    openModal('modal-qr');
+    showToast('✓ Coupon eingelöst!');
+    await refreshPoints();
+    updateCouponPts();
+    loadCoupons();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function updateCouponPts() {
+  document.getElementById('coupon-pts').textContent = (currentUser?.points_balance||0).toLocaleString();
+}
+
+// ── Nahbar ────────────────────────────────────────────────────────────────
+async function loadActivities() {
+  const acts = await apiFetch('/api/activities/suggest?limit=4');
+  const CAT_ICONS = {outdoor:'🌿',social:'👥',volunteer:'🌱',senior:'💛',other:'✨'};
+  document.getElementById('activities-list').innerHTML = acts.map(a => `
+    <div class="activity-card">
+      <div class="act-icon">${CAT_ICONS[a.category]||'✨'}</div>
+      <div>
+        <div class="act-title">${esc(a.title)}</div>
+        <div class="act-desc">${esc(a.desc)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadSeniors() {
+  const rows = await apiFetch('/api/nahbar/seniors');
+  const list = document.getElementById('seniors-list');
+  if (!rows.length) { list.innerHTML = '<div class="empty">Keine Senioren suchen aktuell Besuch.</div>'; return; }
+  list.innerHTML = rows.map(s => `
+    <div class="person-card">
+      <div class="person-avatar" style="background:var(--pink)">
+        ${s.avatar_url ? `<img src="${esc(s.avatar_url)}" alt="${esc(s.display_name||'?')[0]}" onerror="this.parentElement.textContent='${esc(s.display_name||'?')[0]}'">` : (s.display_name||'?')[0]}
+      </div>
+      <div class="person-info">
+        <div class="person-name">${esc(s.display_name)}</div>
+        <div class="person-bio">${esc(s.bio||'')}</div>
+        <div class="person-badges"><span class="badge badge-senior">Senior</span></div>
+      </div>
+      <button class="btn-connect" onclick="scheduleVisit(${s.id})">Besuchen +100</button>
+    </div>`).join('');
+}
+
+async function loadNearby() {
+  const rows = await apiFetch('/api/nahbar/nearby');
+  const list = document.getElementById('nearby-list');
+  if (!rows.length) { list.innerHTML = '<div class="empty">Registriere deine Stadt, um Nachbarn zu finden.</div>'; return; }
+  list.innerHTML = rows.slice(0,8).map(u => {
+    const initial = (u.display_name||'?')[0];
+    return `<div class="person-card">
+      <div class="person-avatar">
+        ${u.avatar_url ? `<img src="${esc(u.avatar_url)}" alt="${initial}" onerror="this.parentElement.textContent='${initial}'">` : initial}
+      </div>
+      <div class="person-info">
+        <div class="person-name">${esc(u.display_name)}</div>
+        <div class="person-bio">${esc(u.bio||'')}</div>
+        <div class="person-badges">
+          ${u.is_senior ? '<span class="badge badge-senior">Senior</span>' : ''}
+          ${u.is_ngo ? '<span class="badge badge-ngo">NGO</span>' : ''}
+          ${u.volunteer_hours > 0 ? `<span class="badge badge-vol">${u.volunteer_hours}h</span>` : ''}
+        </div>
+      </div>
+      <button class="btn-connect" onclick="connectNeighbor(${u.id}, this)">+15pts</button>
+    </div>`;
+  }).join('');
+}
+
+async function connectNeighbor(id, btn) {
+  try {
+    await apiFetch('/api/nahbar/connect', 'POST', {user_id: id, type: 'friend'});
+    btn.textContent = '✓';
+    btn.disabled = true;
+    showToast('✓ Verbunden! +15 Punkte');
+    await refreshPoints();
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+async function scheduleVisit(seniorId) {
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  try {
+    await apiFetch('/api/nahbar/visit', 'POST', {senior_id: seniorId, scheduled_at: tomorrow.toISOString().slice(0,16)});
+    showToast('✓ Besuch geplant! +5 Punkte');
+    await refreshPoints();
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+// ── SOS ───────────────────────────────────────────────────────────────────
+function triggerSOS() { openModal('modal-sos'); }
+
+async function sendSOS() {
+  const type = document.getElementById('sos-type').value;
+  const desc = document.getElementById('sos-desc').value.trim();
+  // Log as a special good deed for demo (in production would trigger push notifications)
+  try {
+    await apiFetch('/api/good-deed', 'POST', {
+      category: 'crisis',
+      description: `🆘 NOTFALL (${type}): ${desc || 'Hilfe benötigt'} — Position: Bern`
+    });
+  } catch {}
+  closeModal('modal-sos');
+  showToast('🆘 Alarm gesendet — Nachbarn wurden benachrichtigt!');
+}
+
+// ── Zeitbank ──────────────────────────────────────────────────────────────
+async function loadZeitbank(type, tabEl) {
+  currentZbType = type;
+  if (tabEl) {
+    document.querySelectorAll('.zb-tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+  }
+  const city = currentUser?.city || '';
+  const rows = await apiFetch(`/api/zeitbank?city=${encodeURIComponent(city)}&type=${type}`);
+  const list = document.getElementById('zeitbank-list');
+  if (!rows.length) { list.innerHTML = `<div class="empty">Noch keine ${type==='offer'?'Angebote':'Gesuche'}.</div>`; return; }
+  list.innerHTML = rows.map(r => {
+    const tagEl = type === 'offer'
+      ? '<span class="zb-offer-tag">BIETE AN</span>'
+      : '<span class="zb-req-tag">SUCHE</span>';
+    const initial = (r.display_name||'?')[0];
+    return `<div class="zb-card">
+      <div class="zb-skill">${esc(r.skill)}</div>
+      <div class="zb-desc">${esc(r.description||'')}</div>
+      <div class="zb-meta">
+        ${r.avatar_url ? `<img src="${esc(r.avatar_url)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='<span style=\'background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem\'>${initial}</span>'">` : `<span style="background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem">${initial}</span>`}
+        <span>${esc(r.display_name||'')}</span>
+        ${tagEl}
+        <span>📍 ${esc(r.city||'')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function submitZeitbank() {
+  const skill = document.getElementById('zb-skill').value.trim();
+  const type  = document.getElementById('zb-type').value;
+  const desc  = document.getElementById('zb-desc').value.trim();
+  if (!skill) { showToast('Fähigkeit eingeben'); return; }
+  try {
+    await apiFetch('/api/zeitbank', 'POST', {skill, type, description: desc, city: currentUser?.city||''});
+    closeModal('modal-zeitbank');
+    document.getElementById('zb-skill').value = '';
+    document.getElementById('zb-desc').value = '';
+    showToast('✓ Gespeichert!');
+    loadZeitbank(currentZbType);
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+// ── Good deeds ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.deed-cat').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.deed-cat').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      deedCategory = el.dataset.cat;
+    });
+  });
+});
+
+async function logDeed() {
+  const desc = document.getElementById('deed-input').value.trim();
+  if (!desc) { showToast('Beschreibung eingeben'); return; }
+  try {
+    await apiFetch('/api/good-deed', 'POST', {category: deedCategory, description: desc});
+    document.getElementById('deed-input').value = '';
+    showToast('✓ Gute Tat eingetragen! +25 Punkte');
+    await refreshPoints();
+    loadFeed();
+    loadChallenge();
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────
+async function loadProfile() {
+  if (!currentUser) return;
+  try {
+    const profile = await apiFetch(`/api/profile/${currentUser.id}`);
+    document.getElementById('prof-deeds').textContent = profile.deeds_count || 0;
+    document.getElementById('prof-pts').textContent = profile.points_balance || 0;
+    document.getElementById('prof-hours').textContent = profile.volunteer_hours || 0;
+  } catch {}
+  try {
+    const pts = await apiFetch('/api/my/points');
+    const hist = document.getElementById('points-history');
+    if (!pts.history.length) { hist.innerHTML = '<div class="empty">Noch keine Transaktionen.</div>'; return; }
+    hist.innerHTML = pts.history.map(tx => `
+      <div class="tx-item">
+        <div class="tx-reason">${esc(tx.reason)}</div>
+        <div class="tx-delta ${tx.delta>0?'tx-plus':'tx-minus'}">${tx.delta>0?'+':''}${tx.delta}</div>
+      </div>`).join('');
+  } catch {}
+}
+
+async function loadLeaderboard() {
+  const city = currentUser?.city || '';
+  const rows = await apiFetch(`/api/leaderboard?city=${encodeURIComponent(city)}`);
+  const list = document.getElementById('leaderboard-list');
+  const maxPts = rows.length ? rows[0].points_balance : 1;
+  const MEDALS = ['🥇','🥈','🥉'];
+  list.innerHTML = rows.map((r,i) => {
+    const pct = Math.round((r.points_balance / maxPts) * 100);
+    const initial = (r.display_name||'?')[0];
+    return `<div class="lb-item">
+      <div class="lb-rank">${MEDALS[i]||i+1}</div>
+      ${r.avatar_url
+        ? `<img src="${esc(r.avatar_url)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\'width:32px;height:32px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700\'>${initial}</div>'">`
+        : `<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0">${initial}</div>`}
+      <div class="lb-name">
+        <div>${esc(r.display_name)}</div>
+        <div class="lb-bar" style="width:${pct}%"></div>
+      </div>
+      <div class="lb-pts">⭐ ${(r.points_balance||0).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+async function refreshPoints() {
+  try {
+    currentUser = await apiFetch('/api/auth/me');
+    updateUserUI();
+  } catch {}
+}
+
+async function apiFetch(path, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: {'Content-Type':'application/json', ...(token?{'Authorization':'Bearer '+token}:{})},
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+function catLabel(c) {
+  return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',other:'Event'}[c]||c;
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+});
+
+// ── Manual install bar (HTTP-safe) ────────────────────────────────────────
+function showManualInstallBar() {
+  if (localStorage.getItem('hide_manual_install') || localStorage.getItem('pwa_installed')) return;
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isIOS     = /iphone|ipad/i.test(navigator.userAgent);
+  if (!isAndroid && !isIOS) return; // only show on mobile
+  setTimeout(() => {
+    const bar = document.getElementById('manual-install-bar');
+    if (bar) bar.style.display = 'flex';
+  }, 5000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+if (token) {
+  loadApp().then(() => showManualInstallBar()).catch(() => {
+    token = ''; localStorage.removeItem('konnekt_token');
+  });
+}
+updateThemeUI(savedTheme);
+
+// ── Service Worker ────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// ── PWA Install Banner ────────────────────────────────────────────────────
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  setTimeout(() => {
+    if (installPrompt && !localStorage.getItem('pwa_installed')) {
+      document.getElementById('install-banner').style.display = 'flex';
+    }
+  }, 3000);
+});
+function installApp() {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') localStorage.setItem('pwa_installed', '1');
+    document.getElementById('install-banner').style.display = 'none';
+    installPrompt = null;
+  });
+}
+function dismissInstall() {
+  document.getElementById('install-banner').style.display = 'none';
+  localStorage.setItem('pwa_dismissed', Date.now());
+}
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('pwa_installed', '1');
+  document.getElementById('install-banner').style.display = 'none';
+});
+</script>
+
+<!-- PWA Install Banner (auto, needs HTTPS) -->
+<div id="install-banner" style="
+  display:none; position:fixed; bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  left:.75rem; right:.75rem; z-index:300;
+  background:var(--card); border:1px solid var(--accent);
+  border-radius:16px; padding:.85rem 1rem;
+  align-items:center; gap:.85rem;
+  box-shadow:var(--shadow-lg);
+">
+  <div style="font-size:1.8rem;flex-shrink:0">🌐</div>
+  <div style="flex:1">
+    <div style="font-size:.85rem;font-weight:700">Konnekt installieren</div>
+    <div style="font-size:.72rem;color:var(--muted)">Füge die App zum Startbildschirm hinzu</div>
+  </div>
+  <button onclick="installApp()" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
+    Installieren
+  </button>
+  <button onclick="dismissInstall()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:.25rem">✕</button>
+</div>
+
+<!-- Manual install guide (always visible after login, works on HTTP) -->
+<div id="manual-install-bar" style="
+  display:none; position:fixed; bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  left:.75rem; right:.75rem; z-index:299;
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:14px; padding:.7rem 1rem;
+  align-items:center; gap:.75rem;
+  box-shadow:var(--shadow);
+">
+  <div style="font-size:1.4rem;flex-shrink:0">📲</div>
+  <div style="flex:1">
+    <div style="font-size:.8rem;font-weight:700;color:var(--text)">App auf Handy installieren</div>
+    <div style="font-size:.68rem;color:var(--muted)">Chrome ⋮ Menü → <strong style="color:var(--accent)">„Zum Startbildschirm"</strong></div>
+  </div>
+  <button onclick="document.getElementById('manual-install-bar').style.display='none';localStorage.setItem('hide_manual_install','1')"
+    style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:.25rem">✕</button>
+</div>
+
+</body>
+</html>

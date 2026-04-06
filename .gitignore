@@ -1,0 +1,9 @@
+data/
+*.db
+*.log
+*.pid
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.egg-info/
