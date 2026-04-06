@@ -552,7 +552,41 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
     <div class="auth-error" id="auth-error"></div>
     <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Anmelden</button>
-    <button class="btn-secondary" onclick="demoLogin()">✨ Demo ohne Account</button>
+
+    <!-- SSO divider -->
+    <div style="display:flex;align-items:center;gap:.6rem;margin:.15rem 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:.72rem;color:var(--muted)">oder</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+
+    <!-- Google SSO -->
+    <button class="btn-secondary" onclick="loginWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:.6rem">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.4 30.2 0 24 0 14.7 0 6.8 5.4 3 13.3l7.8 6C12.7 13.2 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.2 5.2-4.7 6.8l7.3 5.7c4.3-4 6.7-9.9 7.2-16.5z"/><path fill="#FBBC05" d="M10.8 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7L2.5 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.5 10.7l8.3-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2.1 1.4-4.8 2.3-8.6 2.3-6.1 0-11.3-3.7-13.2-9l-7.8 6C6.8 42.6 14.7 48 24 48z"/></svg>
+      Mit Google anmelden
+    </button>
+
+    <!-- Magic Link (passwordless) -->
+    <button class="btn-secondary" onclick="openMagicLink()" style="font-size:.85rem">
+      ✉️ Magic Link — kein Passwort nötig
+    </button>
+
+    <button class="btn-secondary" onclick="demoLogin()" style="font-size:.82rem;color:var(--dim)">✨ Demo ohne Account</button>
+  </div>
+</div>
+
+<!-- Magic Link Panel (inline) -->
+<div id="magic-panel" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);align-items:center;justify-content:center;padding:2rem;flex-direction:column">
+  <div style="width:100%;max-width:360px">
+    <div style="font-size:2rem;text-align:center;margin-bottom:.5rem">✉️</div>
+    <div style="font-size:1.2rem;font-weight:800;text-align:center;margin-bottom:.5rem">Magic Link</div>
+    <div style="font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:1.5rem">Gib deine E-Mail ein — wir schicken dir einen sicheren Login-Link. Kein Passwort nötig.</div>
+    <div class="field-group" style="margin-bottom:.75rem">
+      <input class="field" id="magic-email" type="email" placeholder="deine@email.com" autocomplete="email">
+    </div>
+    <div id="magic-msg" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:.75rem;color:#34d399;font-size:.85rem;margin-bottom:.75rem;text-align:center"></div>
+    <button class="btn-primary" onclick="sendMagicLink()" id="magic-btn">✉️ Magic Link senden</button>
+    <button class="btn-secondary" onclick="closeMagicLink()" style="width:100%;margin-top:.5rem">← Zurück</button>
   </div>
 </div>
 
@@ -723,6 +757,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div class="pstat"><div class="pstat-num" id="prof-deeds" style="color:var(--purple)">0</div><div class="pstat-lbl">Gute Taten</div></div>
       </div>
 
+      <!-- Pro upgrade / current tier -->
+      <div id="tier-banner" style="margin-bottom:1rem"></div>
+
       <!-- Invite friends -->
       <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(0,255,136,.05));border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
         <div style="font-size:1.5rem">🔗</div>
@@ -731,6 +768,12 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
           <div style="font-size:.75rem;color:var(--muted)">Für jede Einladung +50 Punkte</div>
         </div>
         <button class="btn-primary" style="padding:.5rem 1rem;font-size:.8rem;white-space:nowrap" onclick="copyInviteLink()">📋 Link kopieren</button>
+      </div>
+
+      <!-- Impact analytics (Pro) -->
+      <div id="impact-analytics" style="display:none">
+        <div class="section-title"><span class="section-dot" style="background:var(--accent2)"></span> Impact-Analyse ⭐ Pro</div>
+        <div id="impact-data" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem"></div>
       </div>
 
       <div class="section-title"><span class="section-dot" style="background:var(--orange)"></span> Punkte-Verlauf</div>
@@ -768,6 +811,93 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <span class="nav-icon">👤</span><span class="nav-label">Profil</span>
     </button>
   </nav>
+</div>
+
+<!-- ══ PRICING OVERLAY (full-screen) ══ -->
+<div id="pricing-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg);overflow-y:auto;padding:1.5rem 1rem 2rem">
+  <div style="max-width:480px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div style="font-size:1.1rem;font-weight:800">🚀 Konnekt upgraden</div>
+      <button onclick="closePricing()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.4rem .8rem;color:var(--dim);font-size:.85rem">✕</button>
+    </div>
+
+    <!-- Current tier banner -->
+    <div id="current-tier-banner" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1.2rem;text-align:center">
+      <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Dein aktueller Plan</div>
+      <div id="current-tier-label" style="font-size:1.2rem;font-weight:800;margin:.3rem 0">Free</div>
+    </div>
+
+    <!-- Pro card -->
+    <div class="pricing-card" style="background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(59,130,246,.08));border:1px solid rgba(124,58,237,.35);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#3b82f6)"></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
+        <span style="font-size:1.5rem">⭐</span>
+        <div>
+          <div style="font-weight:800;font-size:1rem">Konnekt Pro</div>
+          <div style="font-size:.75rem;color:var(--muted)">Für engagierte Einzelpersonen</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:1.4rem;font-weight:900;color:#a78bfa">9 CHF</div>
+          <div style="font-size:.7rem;color:var(--muted)">/Monat</div>
+        </div>
+      </div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem">
+        <li style="font-size:.83rem;color:var(--dim)">✅ Verifiziert-Badge auf Profil & Leaderboard</li>
+        <li style="font-size:.83rem;color:var(--dim)">📊 Impact-Analyse: CO₂, Stunden, Monatstrend</li>
+        <li style="font-size:.83rem;color:var(--dim)">🔝 Priorität in Zeitbank & Eventsuche</li>
+        <li style="font-size:.83rem;color:var(--dim)">🎯 Unbegrenzte Events erstellen</li>
+        <li style="font-size:.83rem;color:var(--dim)">💬 Priority-Support</li>
+      </ul>
+      <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:linear-gradient(135deg,#7c3aed,#3b82f6);box-shadow:0 4px 16px rgba(124,58,237,.3)">⭐ Pro werden — 9 CHF/Monat</button>
+    </div>
+
+    <!-- Business card -->
+    <div class="pricing-card" style="background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(239,68,68,.05));border:1px solid rgba(245,158,11,.35);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
+        <span style="font-size:1.5rem">🏢</span>
+        <div>
+          <div style="font-weight:800;font-size:1rem">Business Partner</div>
+          <div style="font-size:.75rem;color:var(--muted)">Für Unternehmen & Vereine</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:1.4rem;font-weight:900;color:var(--orange)">49 CHF</div>
+          <div style="font-size:.7rem;color:var(--muted)">/Monat</div>
+        </div>
+      </div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem">
+        <li style="font-size:.83rem;color:var(--dim)">🎟️ Eigene Coupons erstellen & verwalten</li>
+        <li style="font-size:.83rem;color:var(--dim)">📣 Featured Events (Priorität im Feed)</li>
+        <li style="font-size:.83rem;color:var(--dim)">📈 Volunteer-Tracking Dashboard</li>
+        <li style="font-size:.83rem;color:var(--dim)">📋 Monatlicher Impact-Report (PDF)</li>
+        <li style="font-size:.83rem;color:var(--dim)">🤝 Partnerseite + Logo auf Landing Page</li>
+      </ul>
+      <button class="btn-primary" onclick="upgradeTier('business')" id="business-btn" style="background:linear-gradient(135deg,#f59e0b,#ef4444);box-shadow:0 4px 16px rgba(245,158,11,.25)">🏢 Business werden — 49 CHF/Monat</button>
+    </div>
+
+    <!-- NGO card -->
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(6,182,212,.05));border:1px solid rgba(16,185,129,.35);border-radius:20px;padding:1.3rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#10b981,#06b6d4)"></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
+        <span style="font-size:1.5rem">🌱</span>
+        <div>
+          <div style="font-weight:800;font-size:1rem">NGO Partner</div>
+          <div style="font-size:.75rem;color:var(--muted)">Für gemeinnützige Organisationen</div>
+        </div>
+        <div style="margin-left:auto">
+          <div style="font-size:1.1rem;font-weight:900;color:var(--green)">Kostenlos</div>
+        </div>
+      </div>
+      <p style="font-size:.83rem;color:var(--dim);margin-bottom:1rem">Alle Business-Features — gratis für eingetragene NGOs, Vereine & soziale Institutionen (Nachweis erforderlich).</p>
+      <button class="btn-primary" onclick="contactNGO()" style="background:linear-gradient(135deg,#10b981,#06b6d4);box-shadow:0 4px 16px rgba(16,185,129,.25)">🌱 NGO-Partnerschaft anfragen</button>
+    </div>
+
+    <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:1rem">
+      Während der Beta: Upgrades werden sofort freigeschaltet. Abrechnung startet mit offiziellem Launch.<br>
+      Kündigung jederzeit möglich.
+    </p>
+  </div>
+</div>
 </div>
 
 <!-- ══ MODALS ══ -->
@@ -1114,7 +1244,7 @@ function switchScreen(name, btn) {
   if (name==='volunteer') loadEvents();
   if (name==='coupons') { loadCoupons(); updateCouponPts(); }
   if (name==='nahbar') { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
-  if (name==='profile') { loadProfile(); loadLeaderboard(); loadMyEvents(); }
+  if (name==='profile') { loadProfile(); loadLeaderboard(); loadMyEvents(); loadTierBanner(); loadImpactAnalytics(); }
 }
 
 function goProfile() { switchScreen('profile', document.querySelectorAll('.nav-item')[4]); }
@@ -1649,7 +1779,164 @@ function showManualInstallBar() {
   }, 5000);
 }
 
+// ── SSO / Magic Link functions ─────────────────────────────────────────────
+function loginWithGoogle() {
+  window.location.href = '/api/auth/google';
+}
+
+function openMagicLink() {
+  document.getElementById('screen-auth').style.display = 'none';
+  document.getElementById('magic-panel').style.display = 'flex';
+}
+
+function closeMagicLink() {
+  document.getElementById('magic-panel').style.display = 'none';
+  document.getElementById('screen-auth').style.display = 'flex';
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('magic-email').value.trim();
+  const btn = document.getElementById('magic-btn');
+  if (!email) { showToast('E-Mail eingeben'); return; }
+  btn.disabled = true; btn.textContent = 'Wird gesendet…';
+  try {
+    await apiFetch('/api/auth/magic', 'POST', {email});
+    document.getElementById('magic-msg').textContent = `✓ Magic Link wurde an ${email} gesendet! Bitte dein Postfach prüfen.`;
+    document.getElementById('magic-msg').style.display = 'block';
+    btn.textContent = '✓ Gesendet';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '✉️ Magic Link senden';
+    showToast(e.message || 'Fehler');
+  }
+}
+
+// ── Pricing / Business Model ──────────────────────────────────────────────
+function openPricing() {
+  const tier = currentUser?.subscription_tier || 'free';
+  const labels = {free:'Free 🆓', pro:'Pro ⭐', business:'Business 🏢', ngo:'NGO Partner 🌱'};
+  document.getElementById('current-tier-label').textContent = labels[tier] || 'Free 🆓';
+  document.getElementById('pricing-overlay').style.display = 'block';
+}
+
+function closePricing() {
+  document.getElementById('pricing-overlay').style.display = 'none';
+}
+
+async function upgradeTier(tier) {
+  const btn = document.getElementById(tier + '-btn');
+  btn.disabled = true; btn.textContent = 'Wird verarbeitet…';
+  try {
+    const r = await apiFetch('/api/subscription/upgrade', 'POST', {tier});
+    if (r.checkout_url) {
+      window.location.href = r.checkout_url;
+    } else {
+      showToast(`✓ ${tier === 'pro' ? 'Pro' : 'Business'} freigeschaltet! 🎉`);
+      currentUser = await apiFetch('/api/auth/me');
+      updateUserUI();
+      loadTierBanner();
+      closePricing();
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = tier === 'pro' ? '⭐ Pro werden — 9 CHF/Monat' : '🏢 Business werden — 49 CHF/Monat';
+    showToast(e.message || 'Fehler');
+  }
+}
+
+function contactNGO() {
+  window.location.href = `mailto:${encodeURIComponent('contract@architect-dna.ch')}?subject=NGO-Partnerschaft Konnekt&body=Hallo,%0A%0AWir sind eine gemeinnützige Organisation und möchten Konnekt NGO-Partner werden.%0A%0AOrganisation: %0AAnsprechperson: %0AWebsite: `;
+}
+
+function loadTierBanner() {
+  const tier = currentUser?.subscription_tier || 'free';
+  const banner = document.getElementById('tier-banner');
+  if (!banner) return;
+  if (tier === 'free') {
+    banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(59,130,246,.07));border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:.9rem;display:flex;align-items:center;gap:.75rem">
+      <span style="font-size:1.4rem">🚀</span>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:700">Konnekt Pro freischalten</div>
+        <div style="font-size:.73rem;color:var(--muted)">Impact-Analyse, Verified Badge, Priority · 9 CHF/Monat</div>
+      </div>
+      <button class="btn-primary" style="padding:.5rem .9rem;font-size:.78rem;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#3b82f6)" onclick="openPricing()">Upgrade</button>
+    </div>`;
+  } else {
+    const icons = {pro:'⭐', business:'🏢', ngo:'🌱'};
+    const colors = {pro:'#a78bfa', business:'var(--orange)', ngo:'var(--green)'};
+    banner.innerHTML = `<div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.75rem 1rem;display:flex;align-items:center;gap:.6rem">
+      <span style="font-size:1.2rem">${icons[tier]||'⭐'}</span>
+      <div style="font-size:.85rem;font-weight:700;color:${colors[tier]}">${tier.charAt(0).toUpperCase()+tier.slice(1)} Plan</div>
+      <button onclick="openPricing()" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.75rem;cursor:pointer">Plan verwalten</button>
+    </div>`;
+  }
+}
+
+async function loadImpactAnalytics() {
+  const tier = currentUser?.subscription_tier || 'free';
+  const section = document.getElementById('impact-analytics');
+  if (!section) return;
+  if (tier === 'free') { section.style.display = 'none'; return; }
+  section.style.display = '';
+  try {
+    const d = await apiFetch('/api/analytics/impact');
+    document.getElementById('impact-data').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--neon)">${d.volunteer_hours_equiv}h</div>
+          <div style="font-size:.68rem;color:var(--muted)">Ehrenamtsstunden</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--green)">${d.co2_kg_saved_equiv} kg</div>
+          <div style="font-size:.68rem;color:var(--muted)">CO₂-Äquivalent</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--accent)">${d.deeds}</div>
+          <div style="font-size:.68rem;color:var(--muted)">Gute Taten</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--purple)">${d.events_completed}</div>
+          <div style="font-size:.68rem;color:var(--muted)">Events beendet</div>
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);text-align:center">Monatstrend (letzte 6 Monate)</div>
+      <div style="display:flex;gap:.3rem;align-items:flex-end;height:50px;margin-top:.4rem">
+        ${(d.monthly_breakdown||[]).reverse().map(m => {
+          const max = Math.max(...(d.monthly_breakdown||[{pts:1}]).map(x=>x.pts),1);
+          const h = Math.round((m.pts/max)*46)+4;
+          return `<div style="flex:1;background:linear-gradient(0deg,var(--accent),var(--neon));border-radius:4px 4px 0 0;height:${h}px;opacity:.8" title="${m.month}: ${m.pts}pts"></div>`;
+        }).join('')}
+      </div>`;
+  } catch { section.style.display = 'none'; }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────
+// Handle SSO token from Google OAuth or Magic Link redirect
+(function handleSSORedirect() {
+  const params = new URLSearchParams(location.search);
+  const ssoToken = params.get('sso_token');
+  const ssoError = params.get('sso_error');
+  if (ssoToken) {
+    token = ssoToken;
+    localStorage.setItem('konnekt_token', token);
+    // Clean URL
+    history.replaceState({}, '', '/');
+  }
+  if (ssoError) {
+    history.replaceState({}, '', '/');
+    const msgs = {
+      google_denied: 'Google-Anmeldung abgebrochen.',
+      google_not_configured: 'Google OAuth nicht konfiguriert.',
+      link_expired: 'Magic Link abgelaufen — bitte neu anfordern.',
+    };
+    setTimeout(() => showAuthError(msgs[ssoError] || 'Anmeldung fehlgeschlagen.'), 100);
+  }
+  // Handle upgrade success/cancel
+  if (params.get('upgrade_success')) {
+    history.replaceState({}, '', '/');
+    setTimeout(() => showToast('🎉 Upgrade erfolgreich! Willkommen im Pro-Plan.'), 1500);
+  }
+})();
+
 if (token) {
   loadApp().then(() => showManualInstallBar()).catch(() => {
     token = ''; localStorage.removeItem('konnekt_token');

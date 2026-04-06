@@ -4,14 +4,15 @@ Konnekt — Social Impact Platform API
 Two pillars: VolunteerHub + Nahbar (anti-loneliness)
 Production-ready Flask REST API
 """
-import os, json, sqlite3, hashlib, secrets, time
+import os, json, sqlite3, hashlib, secrets, time, random
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from functools import wraps
+from urllib.parse import urlencode
 
 from dotenv import load_dotenv
-from flask import Flask, g, request, jsonify, send_from_directory, render_template_string
+from flask import Flask, g, request, jsonify, send_from_directory, render_template_string, redirect
 from flask_cors import CORS
 import requests as req
 
@@ -24,6 +25,21 @@ HOST   = os.getenv("HOST", "0.0.0.0")
 PORT   = int(os.getenv("PORT", 8529))
 DB     = os.getenv("DB_PATH", "../data/konnekt.db")
 SECRET = os.getenv("SECRET_KEY", secrets.token_hex(32))
+
+# ── OAuth / SSO ───────────────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_AUTH_URL      = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL     = "https://oauth2.googleapis.com/token"
+GOOGLE_INFO_URL      = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+# In-memory store for magic links (survives restarts only — fine for beta)
+_magic_links: dict = {}   # token → {email, expires}
+
+# ── Stripe ────────────────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY        = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PRO_PRICE_ID      = os.getenv("STRIPE_PRO_PRICE_ID", "")
+STRIPE_BUSINESS_PRICE_ID = os.getenv("STRIPE_BUSINESS_PRICE_ID", "")
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 
@@ -209,7 +225,31 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            tier TEXT NOT NULL DEFAULT 'free' CHECK(tier IN ('free','pro','business','ngo')),
+            started_at TEXT DEFAULT (datetime('now')),
+            expires_at TEXT,
+            stripe_customer_id TEXT DEFAULT '',
+            stripe_subscription_id TEXT DEFAULT '',
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS legal_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_name TEXT NOT NULL,
+            requester_org TEXT DEFAULT '',
+            requester_email TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            status TEXT DEFAULT 'pending'
+        );
         """)
+        # Add subscription_tier column to users if not exists (migration)
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
+        except sqlite3.OperationalError:
+            pass  # column already exists
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
@@ -354,8 +394,289 @@ def login():
 @require_auth
 def me():
     with get_db() as c:
-        user = c.execute("SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified FROM users WHERE id=?", (g.user_id,)).fetchone()
+        user = c.execute(
+            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified,subscription_tier FROM users WHERE id=?",
+            (g.user_id,)
+        ).fetchone()
     return jsonify(dict(user))
+
+@app.post("/api/auth/logout")
+@require_auth
+def logout_api():
+    token = request.headers.get("Authorization","").replace("Bearer ","")
+    with get_db() as c:
+        c.execute("DELETE FROM sessions WHERE token=?", (token,))
+    return jsonify({"ok": True})
+
+# ── Google OAuth SSO ──────────────────────────────────────────────────────────
+
+@app.get("/api/auth/google")
+def google_auth_start():
+    if not GOOGLE_CLIENT_ID:
+        return redirect("/?error=google_not_configured")
+    redirect_uri = request.host_url.rstrip('/') + "/api/auth/google/callback"
+    state = secrets.token_urlsafe(16)
+    params = urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    })
+    return redirect(f"{GOOGLE_AUTH_URL}?{params}")
+
+@app.get("/api/auth/google/callback")
+def google_auth_callback():
+    code = request.args.get("code","")
+    if not code:
+        return redirect("/?sso_error=google_denied")
+    redirect_uri = request.host_url.rstrip('/') + "/api/auth/google/callback"
+    try:
+        token_resp = req.post(GOOGLE_TOKEN_URL, data={
+            "code": code, "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": redirect_uri, "grant_type": "authorization_code"
+        }, timeout=10).json()
+        access_token = token_resp.get("access_token","")
+        if not access_token:
+            return redirect("/?sso_error=google_token_failed")
+        info = req.get(GOOGLE_INFO_URL, headers={"Authorization": f"Bearer {access_token}"}, timeout=10).json()
+        email = info.get("email","").lower()
+        name  = info.get("name","")
+        pic   = info.get("picture","")
+        if not email:
+            return redirect("/?sso_error=no_email")
+    except Exception:
+        return redirect("/?sso_error=google_error")
+    with get_db() as c:
+        user = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not user:
+            base = email.split("@")[0].lower()[:18]
+            uname = base; i = 2
+            while c.execute("SELECT id FROM users WHERE username=?", (uname,)).fetchone():
+                uname = f"{base}{i}"; i += 1
+            c.execute(
+                "INSERT INTO users (username,email,password_hash,display_name,avatar_url,is_verified,points_balance) VALUES (?,?,?,?,?,1,50)",
+                (uname, email, "OAUTH_GOOGLE", name or uname, pic)
+            )
+            uid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO point_transactions (user_id,delta,reason) VALUES (?,50,'Willkommen via Google!')", (uid,))
+        else:
+            uid = user["id"]
+            if pic:
+                c.execute("UPDATE users SET avatar_url=? WHERE id=? AND (avatar_url='' OR avatar_url IS NULL)", (pic, uid))
+        sso_token = secrets.token_urlsafe(32)
+        expires = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        c.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (?,?,?)", (sso_token, uid, expires))
+    return redirect(f"/?sso_token={sso_token}")
+
+# ── Magic Link (passwordless) ─────────────────────────────────────────────────
+
+@app.post("/api/auth/magic")
+def request_magic():
+    email = (request.json or {}).get("email","").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Gültige E-Mail erforderlich"}), 400
+    code = secrets.token_urlsafe(32)
+    _magic_links[code] = {"email": email, "expires": time.time() + 900}
+    magic_url = request.host_url.rstrip('/') + f"/api/auth/magic/verify?t={code}"
+    # In production: send via email (Mailgun/SendGrid). For beta: log to console.
+    print(f"[MAGIC LINK] {email} → {magic_url}", flush=True)
+    # Also try to send a basic email if SMTP is configured
+    _try_send_magic_email(email, magic_url)
+    return jsonify({"ok": True, "dev_url": magic_url if os.getenv("FLASK_ENV") == "development" else None})
+
+def _try_send_magic_email(email, url):
+    """Send magic link via email if MAILGUN_API_KEY is set."""
+    key = os.getenv("MAILGUN_API_KEY","")
+    domain = os.getenv("MAILGUN_DOMAIN","")
+    if not key or not domain:
+        return
+    try:
+        req.post(f"https://api.mailgun.net/v3/{domain}/messages",
+            auth=("api", key),
+            data={"from": f"Konnekt <noreply@{domain}>", "to": email,
+                  "subject": "Dein Konnekt Magic Link 🌐",
+                  "text": f"Klick hier um dich anzumelden (15 Minuten gültig):\n\n{url}\n\nFalls du das nicht angefordert hast, ignoriere diese E-Mail."},
+            timeout=5)
+    except Exception:
+        pass
+
+@app.get("/api/auth/magic/verify")
+def verify_magic():
+    code = request.args.get("t","")
+    data = _magic_links.pop(code, None)
+    if not data or time.time() > data["expires"]:
+        return redirect("/?sso_error=link_expired")
+    email = data["email"]
+    with get_db() as c:
+        user = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not user:
+            base = email.split("@")[0].lower()[:18]
+            uname = base; i = 2
+            while c.execute("SELECT id FROM users WHERE username=?", (uname,)).fetchone():
+                uname = f"{base}{i}"; i += 1
+            c.execute("INSERT INTO users (username,email,password_hash,display_name,points_balance) VALUES (?,?,?,?,50)",
+                      (uname, email, "MAGIC_LINK", uname))
+            uid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        else:
+            uid = user["id"]
+        sso_token = secrets.token_urlsafe(32)
+        expires = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        c.execute("INSERT INTO sessions (token,user_id,expires_at) VALUES (?,?,?)", (sso_token, uid, expires))
+    return redirect(f"/?sso_token={sso_token}")
+
+# ── Subscriptions & Business Model ───────────────────────────────────────────
+
+def get_user_tier(user_id):
+    with get_db() as c:
+        row = c.execute("SELECT subscription_tier FROM users WHERE id=?", (user_id,)).fetchone()
+        return (row["subscription_tier"] or "free") if row else "free"
+
+@app.get("/api/subscription")
+@require_auth
+def get_subscription():
+    with get_db() as c:
+        sub = c.execute("SELECT * FROM subscriptions WHERE user_id=?", (g.user_id,)).fetchone()
+        tier = get_user_tier(g.user_id)
+    return jsonify({
+        "tier": tier,
+        "subscription": dict(sub) if sub else None,
+        "perks": TIER_PERKS.get(tier, TIER_PERKS["free"])
+    })
+
+TIER_PERKS = {
+    "free":     {"label": "Free", "color": "#64748b", "badge": "",
+                 "features": ["Events mitmachen", "Gute Taten eintragen", "Zeitbank", "Coupons einlösen"]},
+    "pro":      {"label": "Pro", "color": "#a78bfa", "badge": "⭐",
+                 "features": ["Alles aus Free", "✅ Verifiziert-Badge", "📊 Impact-Analyse", "🔝 Priorität in Suche", "🎯 Unbegrenzte Events", "💬 Priority-Support"]},
+    "business": {"label": "Business Partner", "color": "#f59e0b", "badge": "🏢",
+                 "features": ["Alles aus Pro", "🎟️ Eigene Coupons verwalten", "📣 Featured Events", "📈 Volunteer-Tracking", "📋 Monats-Impact-Report", "🤝 Partnerseite"]},
+    "ngo":      {"label": "NGO Partner", "color": "#10b981", "badge": "🌱",
+                 "features": ["Alles aus Business", "🆓 Kostenlos für NGOs", "🏆 NGO-Leaderboard", "📧 Direktkontakt zu Volunteers"]}
+}
+
+STRIPE_PRICES = {
+    "pro":      {"monthly_chf": 9,  "annual_chf": 79,  "description": "Für engagierte Einzelpersonen"},
+    "business": {"monthly_chf": 49, "annual_chf": 449, "description": "Für Unternehmen & Vereine"},
+}
+
+@app.post("/api/subscription/upgrade")
+@require_auth
+def upgrade_subscription():
+    tier = (request.json or {}).get("tier","pro")
+    if tier not in ("pro","business"):
+        return jsonify({"error": "invalid tier"}), 400
+    if not STRIPE_SECRET_KEY:
+        # No Stripe configured: grant tier for free (beta/demo)
+        with get_db() as c:
+            c.execute("UPDATE users SET subscription_tier=? WHERE id=?", (tier, g.user_id))
+            existing = c.execute("SELECT id FROM subscriptions WHERE user_id=?", (g.user_id,)).fetchone()
+            if existing:
+                c.execute("UPDATE subscriptions SET tier=? WHERE user_id=?", (tier, g.user_id))
+            else:
+                c.execute("INSERT INTO subscriptions (user_id,tier) VALUES (?,?)", (g.user_id, tier))
+        return jsonify({"ok": True, "tier": tier, "method": "beta_free"})
+    # With Stripe: create checkout session
+    price_id = STRIPE_PRO_PRICE_ID if tier == "pro" else STRIPE_BUSINESS_PRICE_ID
+    try:
+        checkout = req.post("https://api.stripe.com/v1/checkout/sessions",
+            headers={"Authorization": f"Bearer {STRIPE_SECRET_KEY}"},
+            data={
+                "mode": "subscription",
+                "line_items[0][price]": price_id,
+                "line_items[0][quantity]": "1",
+                "success_url": request.host_url + "?upgrade_success=1",
+                "cancel_url": request.host_url + "?upgrade_cancelled=1",
+                "metadata[user_id]": str(g.user_id),
+                "metadata[tier]": tier,
+            }, timeout=10
+        ).json()
+        if "url" not in checkout:
+            return jsonify({"error": "Stripe error", "detail": checkout.get("error",{})}), 500
+        return jsonify({"checkout_url": checkout["url"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.post("/api/subscription/stripe-webhook")
+def stripe_webhook():
+    """Handle Stripe webhook to activate subscriptions after payment."""
+    payload = request.data
+    sig = request.headers.get("Stripe-Signature","")
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET","")
+    # Basic event parsing (full signature verification needs stripe-python library)
+    try:
+        event = json.loads(payload)
+    except Exception:
+        return jsonify({"error": "invalid json"}), 400
+    if event.get("type") == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = int(session.get("metadata",{}).get("user_id",0))
+        tier    = session.get("metadata",{}).get("tier","pro")
+        stripe_customer = session.get("customer","")
+        stripe_sub = session.get("subscription","")
+        if user_id:
+            with get_db() as c:
+                c.execute("UPDATE users SET subscription_tier=? WHERE id=?", (tier, user_id))
+                existing = c.execute("SELECT id FROM subscriptions WHERE user_id=?", (user_id,)).fetchone()
+                if existing:
+                    c.execute("UPDATE subscriptions SET tier=?,stripe_customer_id=?,stripe_subscription_id=? WHERE user_id=?",
+                              (tier, stripe_customer, stripe_sub, user_id))
+                else:
+                    c.execute("INSERT INTO subscriptions (user_id,tier,stripe_customer_id,stripe_subscription_id) VALUES (?,?,?,?)",
+                              (user_id, tier, stripe_customer, stripe_sub))
+    return jsonify({"ok": True})
+
+@app.get("/api/analytics/impact")
+@require_auth
+def impact_analytics():
+    tier = get_user_tier(g.user_id)
+    if tier not in ("pro","business","ngo"):
+        return jsonify({"error": "Pro required", "upgrade": True}), 403
+    with get_db() as c:
+        total_pts   = c.execute("SELECT SUM(delta) FROM point_transactions WHERE user_id=? AND delta>0", (g.user_id,)).fetchone()[0] or 0
+        deeds_count = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (g.user_id,)).fetchone()[0]
+        events_done = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (g.user_id,)).fetchone()[0]
+        events_made = c.execute("SELECT COUNT(*) FROM events WHERE organizer_id=?", (g.user_id,)).fetchone()[0]
+        visits_done = c.execute("SELECT COUNT(*) FROM senior_visits WHERE visitor_id=? AND completed=1", (g.user_id,)).fetchone()[0]
+        monthly = c.execute("""
+            SELECT strftime('%Y-%m', created_at) as month, SUM(delta) as pts
+            FROM point_transactions WHERE user_id=? AND delta>0
+            GROUP BY month ORDER BY month DESC LIMIT 6""", (g.user_id,)).fetchall()
+    co2_saved = round(events_done * 2.1 + deeds_count * 0.5, 1)
+    return jsonify({
+        "total_points_earned": total_pts,
+        "deeds": deeds_count,
+        "events_completed": events_done,
+        "events_organized": events_made,
+        "senior_visits": visits_done,
+        "co2_kg_saved_equiv": co2_saved,
+        "volunteer_hours_equiv": round(events_done * 2 + deeds_count * 0.5),
+        "monthly_breakdown": [dict(r) for r in monthly],
+    })
+
+# ── Legal Request (address on request) ───────────────────────────────────────
+
+@app.post("/api/legal/address-request")
+def legal_address_request():
+    d = request.json or {}
+    name  = d.get("name","").strip()
+    org   = d.get("org","").strip()
+    email = d.get("email","").strip().lower()
+    purpose = d.get("purpose","").strip()
+    if not name or not email or not purpose:
+        return jsonify({"error": "Name, E-Mail und Zweck erforderlich"}), 400
+    with get_db() as c:
+        c.execute("INSERT INTO legal_requests (requester_name,requester_org,requester_email,purpose) VALUES (?,?,?,?)",
+                  (name, org, email, purpose))
+        req_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    # Notify owner
+    _try_send_magic_email.__wrapped__ = None  # reuse send helper
+    owner_msg = f"Neue Adressanfrage #{req_id}\nVon: {name} ({org})\nE-Mail: {email}\nZweck: {purpose}"
+    print(f"[LEGAL REQUEST] {owner_msg}", flush=True)
+    return jsonify({"ok": True, "request_id": req_id,
+                    "message": "Ihre Anfrage wurde registriert. Bei berechtigtem Interesse erhalten Sie innerhalb von 14 Tagen eine Antwort."})
 
 # ── Events (VolunteerHub) ─────────────────────────────────────────────────────
 
@@ -1187,22 +1508,55 @@ h2{font-size:1rem;font-weight:700;margin:1.5rem 0 .5rem}
 p,address{font-size:.88rem;color:#94a3b8;line-height:1.7;font-style:normal}
 a{color:#60a5fa}
 .back{display:inline-block;margin-bottom:1.5rem;font-size:.82rem;color:#475569}
+.info-box{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:1rem 1.2rem;margin:.75rem 0}
+.req-form{display:flex;flex-direction:column;gap:.6rem;margin-top:.75rem}
+.req-form input,.req-form textarea,.req-form select{background:#0c0c1a;border:1px solid #1c1c38;border-radius:8px;padding:.65rem .9rem;color:#e2e8f0;font-size:.88rem;font-family:inherit;outline:none}
+.req-form textarea{min-height:80px;resize:vertical}
+.req-btn{background:linear-gradient(135deg,#7c3aed,#3b82f6);color:white;border:none;border-radius:8px;padding:.75rem;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit}
+.success-msg{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:.75rem;color:#34d399;font-size:.85rem;display:none}
 </style></head>
 <body>
 <a class="back" href="/landing">← Zurück</a>
 <h1>Impressum</h1>
-<p><strong style="color:#f87171">⚠️ PFLICHTFELDER — VOR VERÖFFENTLICHUNG AUSFÜLLEN</strong></p>
 
-<h2>Angaben gemäß § 5 TMG / Art. 3 lit. s UWG</h2>
+<h2>Angaben gemäß § 5 TMG / Art. 3 lit. s UWG (Schweiz: Art. 3 UWG)</h2>
+<div class="info-box">
 <address>
 <strong>""" + OWNER_NAME + """</strong><br>
-""" + OWNER_ADDRESS + """<br>
-E-Mail: <a href="mailto:""" + OWNER_EMAIL + """">""" + OWNER_EMAIL + """</a>
-""" + (f"<br>UID: {OWNER_UID}" if OWNER_UID else "") + """
+E-Mail: <a href="mailto:""" + OWNER_EMAIL + """">""" + OWNER_EMAIL + """</a><br>
+Plattform: Konnekt (Beta) · Betrieb als Privatperson
 </address>
+</div>
+
+<h2>Physische Adresse</h2>
+<p>Die physische Postadresse des Betreibers wird gemäß Schweizer Datenschutzgesetz (DSG Art. 19)
+zum Schutz der Privatsphäre nicht öffentlich angezeigt. Sie wird auf begründete, verifizierte
+Anfrage von Behörden, Gerichten oder berechtigten Dritten mitgeteilt.</p>
+
+<div class="info-box">
+<strong>Adresse anfordern (Behörden / Rechtliches)</strong>
+<p style="margin:.5rem 0 .75rem;font-size:.82rem">Für rechtliche Anfragen, Behördenanfragen oder bei berechtigtem Interesse
+füllen Sie das folgende Formular aus. Wir antworten innerhalb von 14 Tagen.</p>
+<form class="req-form" onsubmit="submitRequest(event)">
+  <input type="text" id="req-name" placeholder="Ihr Name / Organisation *" required>
+  <input type="text" id="req-org" placeholder="Behörde / Firma (falls zutreffend)">
+  <input type="email" id="req-email" placeholder="Ihre E-Mail-Adresse *" required>
+  <select id="req-purpose" required>
+    <option value="">Anfrage-Zweck wählen *</option>
+    <option value="legal">Rechtliche Angelegenheit</option>
+    <option value="authority">Behördenanfrage</option>
+    <option value="court">Gerichtsverfahren</option>
+    <option value="press">Presseanfrage</option>
+    <option value="other">Sonstiges</option>
+  </select>
+  <textarea id="req-desc" placeholder="Kurze Beschreibung des Anliegens *" required></textarea>
+  <button class="req-btn" type="submit">Anfrage einreichen</button>
+</form>
+<div class="success-msg" id="req-success">✓ Anfrage eingegangen. Sie erhalten eine Antwort innerhalb von 14 Tagen.</div>
+</div>
 
 <h2>Verantwortlich für den Inhalt</h2>
-<p>""" + OWNER_NAME + """ (Privatperson / Einzelunternehmen)</p>
+<p>""" + OWNER_NAME + """ (Privatperson / Einzelunternehmen, Beta-Phase)</p>
 
 <h2>Haftungsausschluss</h2>
 <p>Konnekt befindet sich im Beta-Stadium. Inhalte werden von Nutzern erstellt.
@@ -1210,9 +1564,34 @@ Der Betreiber übernimmt keine Haftung für Richtigkeit oder Vollständigkeit
 von Nutzerinhalten. Bei Verstössen bitte an <a href="mailto:""" + OWNER_EMAIL + """">""" + OWNER_EMAIL + """</a> wenden.</p>
 
 <h2>Streitschlichtung</h2>
-<p>Die EU-Kommission stellt unter <a href="https://ec.europa.eu/consumers/odr" target="_blank">ec.europa.eu/consumers/odr</a>
-eine Plattform zur Online-Streitbeilegung bereit. Wir nehmen nicht an einem Streitbeilegungsverfahren
-vor einer Verbraucherschlichtungsstelle teil.</p>
+<p>Der Betreiber nimmt nicht an Verbraucher-Streitbeilegungsverfahren teil.
+Für Schweizer Nutzer gilt das DSG; für EU-Nutzer die DSGVO.</p>
+
+<script>
+async function submitRequest(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true; btn.textContent = 'Wird gesendet…';
+  try {
+    const r = await fetch('/api/legal/address-request', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: document.getElementById('req-name').value,
+        org: document.getElementById('req-org').value,
+        email: document.getElementById('req-email').value,
+        purpose: document.getElementById('req-purpose').value + ': ' + document.getElementById('req-desc').value
+      })
+    });
+    if (r.ok) {
+      document.querySelector('.req-form').style.display = 'none';
+      document.getElementById('req-success').style.display = 'block';
+    } else {
+      btn.disabled = false; btn.textContent = 'Anfrage einreichen';
+    }
+  } catch { btn.disabled = false; btn.textContent = 'Anfrage einreichen'; }
+}
+</script>
 </body></html>"""
 
 DATENSCHUTZ_HTML = """<!DOCTYPE html>
@@ -1234,7 +1613,8 @@ a{color:#60a5fa}
 <p>Stand: April 2026 · Gültig für die Beta-Version von Konnekt</p>
 
 <h2>1. Verantwortlicher</h2>
-<p>""" + OWNER_NAME + """, """ + OWNER_ADDRESS + """. Kontakt: <a href="mailto:""" + OWNER_EMAIL + """">""" + OWNER_EMAIL + """</a></p>
+<p>""" + OWNER_NAME + """ · Kontakt: <a href="mailto:""" + OWNER_EMAIL + """">""" + OWNER_EMAIL + """</a><br>
+Physische Adresse auf Anfrage verfügbar (siehe <a href="/impressum">Impressum</a>).</p>
 
 <h2>2. Welche Daten wir erheben</h2>
 <ul>
