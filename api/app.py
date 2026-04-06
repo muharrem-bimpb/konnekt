@@ -1062,7 +1062,8 @@ def platform_stats():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "version": "1.0.0", "platform": "Konnekt"})
+    return jsonify({"status": "ok", "version": "2.0.0-global", "platform": "Konnekt",
+                    "features": ["sso", "magic_link", "subscriptions", "analytics"]})
 
 # ── Zeitbank (Time / Skill Exchange) ─────────────────────────────────────────
 
