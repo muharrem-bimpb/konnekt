@@ -1518,7 +1518,7 @@ async function saveProfile() {
   };
   if (selectedEmoji) updates.avatar_url = `emoji:${selectedEmoji}`;
   try {
-    currentUser = await apiFetch('/api/profile', 'PATCH', updates);
+    currentUser = await apiFetch('/api/profile', 'POST', updates);
     updateUserUI();
     closeModal('modal-edit-profile');
     showToast('✓ Profil gespeichert!');

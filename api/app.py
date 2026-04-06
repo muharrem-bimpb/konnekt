@@ -635,7 +635,7 @@ def get_profile(uid):
     result["events_completed"] = events_done
     return jsonify(result)
 
-@app.patch("/api/profile")
+@app.post("/api/profile")
 @require_auth
 def update_profile():
     d = request.json or {}
