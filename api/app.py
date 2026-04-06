@@ -806,7 +806,7 @@ def get_zeitbank():
 
 @app.post("/api/zeitbank")
 @require_auth
-def add_zeitbank(uid):
+def add_zeitbank():
     d = request.json or {}
     skill = d.get("skill","").strip()
     typ   = d.get("type","offer")
@@ -814,15 +814,15 @@ def add_zeitbank(uid):
         return jsonify({"error": "skill and type required"}), 400
     with get_db() as c:
         c.execute("INSERT INTO zeitbank (user_id,type,skill,description,city) VALUES (?,?,?,?,?)",
-                  (uid, typ, skill, d.get("description","").strip(), d.get("city","").strip()))
+                  (g.user_id, typ, skill, d.get("description","").strip(), d.get("city","").strip()))
         new_id = c.lastrowid
     return jsonify({"id": new_id}), 201
 
-@app.delete("/api/zeitbank/<int:zid>")
+@app.post("/api/zeitbank/<int:zid>/delete")
 @require_auth
-def delete_zeitbank(uid, zid):
+def delete_zeitbank(zid):
     with get_db() as c:
-        c.execute("UPDATE zeitbank SET active=0 WHERE id=? AND user_id=?", (zid, uid))
+        c.execute("UPDATE zeitbank SET active=0 WHERE id=? AND user_id=?", (zid, g.user_id))
     return jsonify({"ok": True})
 
 # ── Monthly Community Challenge ───────────────────────────────────────────────
@@ -881,20 +881,20 @@ _init_referrals()
 
 @app.post("/api/invite/generate")
 @require_auth
-def generate_invite(uid):
+def generate_invite():
     code = secrets.token_urlsafe(8)
     with get_db() as c:
-        c.execute("INSERT INTO referrals (referrer_id,code) VALUES (?,?)", (uid, code))
+        c.execute("INSERT INTO referrals (referrer_id,code) VALUES (?,?)", (g.user_id, code))
     return jsonify({"code": code, "url": f"/join/{code}"})
 
 @app.get("/api/invite/my")
 @require_auth
-def my_invites(uid):
+def my_invites():
     with get_db() as c:
         rows = c.execute("""SELECT r.code, r.used, r.created_at, u.display_name
                             FROM referrals r LEFT JOIN users u ON r.used_by=u.id
-                            WHERE r.referrer_id=? ORDER BY r.created_at DESC""", (uid,)).fetchall()
-        count = c.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=? AND used=1", (uid,)).fetchone()[0]
+                            WHERE r.referrer_id=? ORDER BY r.created_at DESC""", (g.user_id,)).fetchall()
+        count = c.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=? AND used=1", (g.user_id,)).fetchone()[0]
     return jsonify({"invites": [dict(r) for r in rows], "accepted_count": count})
 
 @app.get("/join/<code>")
