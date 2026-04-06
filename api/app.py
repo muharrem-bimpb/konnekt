@@ -815,7 +815,7 @@ def add_zeitbank():
     with get_db() as c:
         c.execute("INSERT INTO zeitbank (user_id,type,skill,description,city) VALUES (?,?,?,?,?)",
                   (g.user_id, typ, skill, d.get("description","").strip(), d.get("city","").strip()))
-        new_id = c.lastrowid
+        new_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
     return jsonify({"id": new_id}), 201
 
 @app.post("/api/zeitbank/<int:zid>/delete")
