@@ -11,7 +11,7 @@ from pathlib import Path
 from functools import wraps
 
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
+from flask import Flask, g, request, jsonify, send_from_directory, render_template_string
 from flask_cors import CORS
 import requests as req
 
