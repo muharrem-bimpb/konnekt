@@ -59,6 +59,7 @@
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
 
+@keyframes spin { to { transform: rotate(360deg); } }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { font-size: 16px; }
 body {
@@ -552,6 +553,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="screen-loading" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:1rem">
+  <div style="font-size:2.5rem">🌐</div>
+  <div style="font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Konnekt</div>
+  <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+</div>
+
 <!-- ══ APP ══ -->
 <div id="app" style="display:none;flex-direction:column;min-height:100dvh">
 
@@ -955,24 +963,40 @@ function logout() {
   localStorage.removeItem('konnekt_token');
   token = ''; currentUser = null;
   document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-loading').style.display = 'none';
   document.getElementById('screen-auth').classList.add('active');
   document.getElementById('screen-auth').style.display = 'flex';
 }
 
 // ── App init ──────────────────────────────────────────────────────────────
 async function loadApp() {
-  document.getElementById('screen-auth').style.display = 'none';
-  document.getElementById('screen-auth').classList.remove('active');
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('app').style.flexDirection = 'column';
+  // Show loading spinner, hide auth
+  const loading = document.getElementById('screen-loading');
+  const auth = document.getElementById('screen-auth');
+  const appEl = document.getElementById('app');
+  loading.style.display = 'flex';
+  auth.style.display = 'none';
+  auth.classList.remove('active');
   try {
     currentUser = await apiFetch('/api/auth/me');
+    // Token valid — show app
+    loading.style.display = 'none';
+    appEl.style.display = 'flex';
+    appEl.style.flexDirection = 'column';
     updateUserUI();
     loadFeed();
     loadEvents();
     loadPlatformStats();
     loadChallenge();
-  } catch(e) { logout(); }
+  } catch(e) {
+    // Token invalid — back to auth, clear token
+    loading.style.display = 'none';
+    token = '';
+    localStorage.removeItem('konnekt_token');
+    auth.style.display = 'flex';
+    auth.classList.add('active');
+    throw e;
+  }
 }
 
 function updateUserUI() {

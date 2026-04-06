@@ -213,6 +213,29 @@ def init_db():
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
+        # Always ensure demo token exists (survives Railway redeploys without volume)
+        _ensure_demo_token(c)
+
+def _ensure_demo_token(c):
+    """Create demo user + session on every boot if they don't exist."""
+    DEMO_TOKEN = "demo-token-konnekt-2026"
+    DEMO_EMAIL = "demo@konnekt.app"
+    DEMO_USER  = "demo"
+    # Create demo user if missing
+    existing = c.execute("SELECT id FROM users WHERE email=?", (DEMO_EMAIL,)).fetchone()
+    if not existing:
+        c.execute(
+            "INSERT OR IGNORE INTO users (username,email,password_hash,display_name,city,points_balance,avatar_url) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (DEMO_USER, DEMO_EMAIL, "DEMO_NO_LOGIN", "Demo-Nutzer", "Bern", 250,
+             "https://i.pravatar.cc/150?u=demo@konnekt.app")
+        )
+        existing = c.execute("SELECT id FROM users WHERE email=?", (DEMO_EMAIL,)).fetchone()
+    demo_id = existing["id"]
+    # Upsert the demo session token with 1-year expiry
+    expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
+    c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
+              (DEMO_TOKEN, demo_id, expires))
 
 def _seed_demo(c):
     # Demo businesses with coupons
