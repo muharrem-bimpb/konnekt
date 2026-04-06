@@ -635,6 +635,33 @@ def get_profile(uid):
     result["events_completed"] = events_done
     return jsonify(result)
 
+@app.patch("/api/profile")
+@require_auth
+def update_profile():
+    d = request.json or {}
+    allowed = {"display_name", "bio", "city", "avatar_url"}
+    updates = {k: v for k, v in d.items() if k in allowed}
+    if not updates:
+        return jsonify({"error": "nothing to update"}), 400
+    set_clause = ", ".join(f"{k}=?" for k in updates)
+    with get_db() as c:
+        c.execute(f"UPDATE users SET {set_clause} WHERE id=?", (*updates.values(), g.user_id))
+        user = c.execute(
+            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified FROM users WHERE id=?",
+            (g.user_id,)
+        ).fetchone()
+    return jsonify(dict(user))
+
+@app.get("/api/my/events")
+@require_auth
+def my_events():
+    with get_db() as c:
+        rows = c.execute(
+            "SELECT id,title,category,starts_at,participants_count,points_reward,status FROM events WHERE organizer_id=? ORDER BY starts_at DESC LIMIT 20",
+            (g.user_id,)
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
 @app.get("/api/my/points")
 @require_auth
 def my_points():
