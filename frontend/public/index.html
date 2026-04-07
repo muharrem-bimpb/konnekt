@@ -663,7 +663,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
       <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
       <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
-      <div class="fpill" onclick="filterEvents('hangout',this)">🎮 Hangout</div>
+      <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
       <div class="fpill" id="map-pill" onclick="showMapView(this)">🗺️ Karte</div>
     </div>
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
@@ -1090,6 +1090,7 @@ const API = '';
 let token = localStorage.getItem('konnekt_token') || '';
 let currentUser = null;
 let currentEventFilter = '';
+let currentEventFilterParam = 'category'; // 'category' or 'type'
 let currentCouponFilter = '';
 let currentZbType = 'offer';
 let deedCategory = 'neighbor';
@@ -1321,7 +1322,8 @@ async function loadPlatformStats() {
 // ── Events ────────────────────────────────────────────────────────────────
 async function loadEvents() {
   const city = currentUser?.city || '';
-  const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${currentEventFilter?'&category='+currentEventFilter:''}`;
+  const filterQ = currentEventFilter ? `&${currentEventFilterParam}=${currentEventFilter}` : '';
+  const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${filterQ}`;
   const events = await apiFetch(url);
   const list = document.getElementById('events-list');
   if (!events.length) { list.innerHTML = '<div class="empty">Keine Events gefunden.</div>'; return; }
@@ -1362,8 +1364,9 @@ async function loadEvents() {
   }).join('');
 }
 
-function filterEvents(cat, el) {
+function filterEvents(cat, el, param='category') {
   currentEventFilter = cat;
+  currentEventFilterParam = param;
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   // Restore list view if map was showing

@@ -375,7 +375,7 @@ def geocode_address(address, city):
         r = req.get("https://nominatim.openstreetmap.org/search",
             params={"q": query, "format": "json", "limit": 1},
             headers={"User-Agent": "KonnektApp/2.0"},
-            timeout=4)
+            timeout=2)
         results = r.json()
         if results:
             return float(results[0]["lat"]), float(results[0]["lon"])
@@ -763,9 +763,10 @@ def legal_address_request():
 
 @app.get("/api/events")
 def get_events():
-    city = request.args.get("city","")
+    city     = request.args.get("city","")
     category = request.args.get("category","")
-    limit = int(request.args.get("limit", 20))
+    ev_type  = request.args.get("type","")
+    limit    = int(request.args.get("limit", 20))
     with get_db() as c:
         q = "SELECT e.*, u.display_name as organizer_name, u.is_verified as org_verified FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.status='active'"
         params = []
@@ -773,6 +774,8 @@ def get_events():
             q += " AND e.city LIKE ?"; params.append(f"%{city}%")
         if category:
             q += " AND e.category=?"; params.append(category)
+        if ev_type:
+            q += " AND e.type=?"; params.append(ev_type)
         q += " ORDER BY e.starts_at ASC LIMIT ?"
         params.append(limit)
         rows = c.execute(q, params).fetchall()
