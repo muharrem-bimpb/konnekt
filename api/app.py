@@ -206,6 +206,18 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS event_join_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            queue_position INTEGER DEFAULT 0,
+            message TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(event_id, user_id),
+            FOREIGN KEY(event_id) REFERENCES events(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         CREATE TABLE IF NOT EXISTS feed_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             type TEXT NOT NULL,
@@ -250,9 +262,18 @@ def init_db():
             c.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
         except sqlite3.OperationalError:
             pass  # column already exists
+        # Add type + is_public columns to events (migration)
+        for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1")]:
+            try:
+                c.execute(f"ALTER TABLE events ADD COLUMN {col} {defn}")
+            except sqlite3.OperationalError:
+                pass
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
+        # Seed demo events independently (so existing DBs get events too)
+        if c.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0:
+            _seed_events(c)
         # Always ensure demo token exists (survives Railway redeploys without volume)
         _ensure_demo_token(c)
 
@@ -289,7 +310,7 @@ def _seed_demo(c):
     for b in businesses:
         c.execute("INSERT INTO businesses (name,description,category,address,city,lat,lng,verified) VALUES (?,?,?,?,?,?,?,1)", b)
 
-    biz_ids = [r[0] for r in c.execute("SELECT id FROM businesses").fetchall()]
+    biz_ids = [r[0] for r in c.execute("SELECT id FROM businesses ORDER BY id").fetchall()]
     coupons = [
         (biz_ids[0], "10% auf alle Backwaren", "Zeige diesen Code an der Kasse", 100, "food"),
         (biz_ids[0], "Kaffee gratis zum Gebäck", "Bei jedem Kauf ab 3 CHF", 50, "food"),
@@ -301,6 +322,66 @@ def _seed_demo(c):
     ]
     for cpn in coupons:
         c.execute("INSERT INTO coupons (business_id,title,description,points_cost,category) VALUES (?,?,?,?,?)", cpn)
+
+def _seed_events(c):
+    """Seed demo events — hangouts + volunteer — so the map & list are never empty."""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    # (title, description, category, ev_type, is_public, address, city, lat, lng, pts, max_p, days_ahead, hour)
+    evs = [
+        ("UNO Spielabend 🃏 — Alle willkommen!",
+         "Spontaner UNO-Abend im Rosengarten. Locals, Ausländer, Familien — alle herzlich willkommen! Bring your own snacks.",
+         "social","hangout",1,"Rosengarten Bern","Bern",46.9572,7.4542,0,8,1,14),
+        ("Brettspiele Café — Offener Tisch 🎲",
+         "Komm und spiel mit! Chess, Scrabble, Catan — alle Sprachen ok. Einfach reinkommen.",
+         "social","hangout",1,"Münstergasse 38, Bern","Bern",46.9473,7.4500,0,10,1,16),
+        ("Improv Theater — Join us! 🎭",
+         "Improvisationstheater-Gruppe sucht neue Gesichter. Keine Erfahrung nötig, nur Lust am Spielen!",
+         "social","hangout",1,"Dampfzentrale, Bern","Bern",46.9455,7.4633,0,12,2,19),
+        ("Deutschkurs für Geflüchtete & Migranten",
+         "Kostenloser wöchentlicher Deutschkurs. Alle Niveaus willkommen.",
+         "education","volunteer",0,"Heiliggeistkirche, Bern","Bern",46.9481,7.4408,100,20,2,9),
+        ("Quartierreinigung Länggasse 🌿",
+         "Gemeinsam Müll sammeln und Strassen sauber halten. Material wird gestellt.",
+         "environment","volunteer",0,"Länggasse, Bern","Bern",46.9518,7.4196,80,30,3,9),
+        ("Senioren-Kaffeenachmittag ☕",
+         "Besuche einsame Senioren im Altersheim für 1-2h Gesellschaft, Kaffee & Gespräch.",
+         "senior","volunteer",0,"Altersheim Brunnmatt, Bern","Bern",46.9459,7.4127,100,6,3,14),
+        ("Park Yoga — Gratis für alle 🧘",
+         "Outdoor-Yoga jeden Dienstagmorgen. Keine Vorkenntnisse nötig, Matte mitbringen.",
+         "health","volunteer",0,"Bundesgarten, Bern","Bern",46.9433,7.4348,50,20,4,7),
+        ("Sprachencafé — Multilingual Meetup 🌍",
+         "Treffe Leute aus aller Welt. Übe Deutsch, Englisch, Französisch — alle willkommen!",
+         "social","hangout",1,"Café de la Grenette, Bern","Bern",46.9481,7.4476,0,15,4,17),
+    ]
+    for (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,pts,max_p,days,hour) in evs:
+        starts = (now + timedelta(days=days)).replace(hour=hour,minute=0,second=0,microsecond=0)
+        try:
+            c.execute("""INSERT INTO events
+                (organizer_id,title,description,category,type,is_public,address,city,lat,lng,
+                 starts_at,points_reward,max_participants,status)
+                VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
+                (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,
+                 starts.strftime('%Y-%m-%dT%H:%M:%S'),pts,max_p))
+        except Exception:
+            pass
+
+def geocode_address(address, city):
+    """Use Nominatim (OSM) — free, no API key needed."""
+    if not address and not city:
+        return 0.0, 0.0
+    try:
+        query = ", ".join(filter(None, [address, city, "Switzerland"]))
+        r = req.get("https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "json", "limit": 1},
+            headers={"User-Agent": "KonnektApp/2.0"},
+            timeout=4)
+        results = r.json()
+        if results:
+            return float(results[0]["lat"]), float(results[0]["lon"])
+    except Exception:
+        pass
+    return 0.0, 0.0
 
 init_db()
 
@@ -715,13 +796,20 @@ def create_event():
     required = ["title", "starts_at"]
     if not all(d.get(k) for k in required):
         return jsonify({"error": "title und starts_at erforderlich"}), 400
+    lat = float(d.get("lat") or 0)
+    lng = float(d.get("lng") or 0)
+    if not lat or not lng:
+        lat, lng = geocode_address(d.get("address",""), d.get("city",""))
+    ev_type = d.get("type", "volunteer")
+    is_pub  = 1 if ev_type == "hangout" else 0
     with get_db() as c:
         c.execute("""
-            INSERT INTO events (organizer_id,title,description,category,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO events (organizer_id,title,description,category,type,is_public,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             g.user_id, d["title"], d.get("description",""), d.get("category","other"),
-            d.get("address",""), d.get("city",""), d.get("lat",0), d.get("lng",0),
+            ev_type, is_pub,
+            d.get("address",""), d.get("city",""), lat, lng,
             d["starts_at"], d.get("ends_at"), d.get("max_participants",0),
             d.get("points_reward",50), json.dumps(d.get("tags",[]))
         ))
@@ -760,6 +848,80 @@ def complete_event(eid):
         c.execute("UPDATE users SET volunteer_hours=volunteer_hours+2 WHERE id=?", (g.user_id,))
     award_points(g.user_id, pts, "Event abgeschlossen", "event", eid)
     return jsonify({"ok": True, "points_awarded": pts})
+
+@app.post("/api/events/<int:eid>/join-request")
+@require_auth
+def send_join_request(eid):
+    """Request to join a hangout event — queued, host accepts/declines."""
+    d = request.json or {}
+    with get_db() as c:
+        ev = c.execute("SELECT * FROM events WHERE id=? AND status='active'", (eid,)).fetchone()
+        if not ev:
+            return jsonify({"error": "not found"}), 404
+        pos = (c.execute("SELECT COUNT(*) FROM event_join_requests WHERE event_id=? AND status='pending'", (eid,)).fetchone()[0] or 0) + 1
+        try:
+            c.execute("INSERT INTO event_join_requests (event_id,user_id,queue_position,message) VALUES (?,?,?,?)",
+                      (eid, g.user_id, pos, (d.get("message") or "").strip()[:200]))
+        except sqlite3.IntegrityError:
+            return jsonify({"error": "Anfrage bereits gesendet"}), 409
+    return jsonify({"ok": True, "queue_position": pos})
+
+@app.get("/api/events/<int:eid>/join-requests")
+@require_auth
+def get_join_requests(eid):
+    """Host sees pending join requests for their event."""
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev or ev["organizer_id"] != g.user_id:
+            return jsonify({"error": "forbidden"}), 403
+        rows = c.execute("""
+            SELECT jq.id, jq.queue_position, jq.message, jq.status, jq.created_at,
+                   u.id as user_id, u.display_name, u.avatar_url, u.city, u.volunteer_hours
+            FROM event_join_requests jq JOIN users u ON jq.user_id=u.id
+            WHERE jq.event_id=? AND jq.status='pending'
+            ORDER BY jq.queue_position ASC
+        """, (eid,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/events/<int:eid>/join-requests/<int:rid>/respond")
+@require_auth
+def respond_join_request(eid, rid):
+    """Host accepts or declines a join request."""
+    action = (request.json or {}).get("action","")
+    if action not in ("accept","decline"):
+        return jsonify({"error": "action must be 'accept' or 'decline'"}), 400
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev or ev["organizer_id"] != g.user_id:
+            return jsonify({"error": "forbidden"}), 403
+        jq = c.execute("SELECT * FROM event_join_requests WHERE id=? AND event_id=?", (rid, eid)).fetchone()
+        if not jq:
+            return jsonify({"error": "not found"}), 404
+        new_status = "accepted" if action == "accept" else "declined"
+        c.execute("UPDATE event_join_requests SET status=? WHERE id=?", (new_status, rid))
+        if action == "accept":
+            try:
+                c.execute("INSERT INTO event_registrations (event_id,user_id) VALUES (?,?)", (eid, jq["user_id"]))
+                c.execute("UPDATE events SET participants_count=participants_count+1 WHERE id=?", (eid,))
+            except sqlite3.IntegrityError:
+                pass
+            award_points(jq["user_id"], 10, "Hangout-Anfrage akzeptiert", "event", eid)
+    return jsonify({"ok": True, "action": action})
+
+@app.get("/api/map/events")
+def map_events():
+    """Events with GPS coords for map display."""
+    city = request.args.get("city","")
+    with get_db() as c:
+        q = """SELECT id, title, description, category, type, is_public, address, city,
+                      lat, lng, starts_at, max_participants, participants_count, points_reward
+               FROM events WHERE status='active' AND lat != 0 AND lng != 0"""
+        params = []
+        if city:
+            q += " AND city LIKE ?"; params.append(f"%{city}%")
+        q += " ORDER BY starts_at ASC LIMIT 80"
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 # ── Coupons ───────────────────────────────────────────────────────────────────
 
@@ -1062,8 +1224,8 @@ def platform_stats():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "version": "2.0.0-global", "platform": "Konnekt",
-                    "features": ["sso", "magic_link", "subscriptions", "analytics"]})
+    return jsonify({"status": "ok", "version": "2.1.0-beta2", "platform": "Konnekt",
+                    "features": ["sso", "magic_link", "subscriptions", "analytics", "map", "hangouts", "join_queue"]})
 
 # ── Zeitbank (Time / Skill Exchange) ─────────────────────────────────────────
 
@@ -1277,7 +1439,7 @@ LANDING_HTML = """<!DOCTYPE html>
 <meta property="og:title" content="Konnekt — Verbinde dich mit deiner Nachbarschaft">
 <meta property="og:description" content="Mach Ehrenamt, besuche Senioren, verdiene Punkte und löse lokale Coupons ein. Kostenlos & beta.">
 <meta property="og:image" content="/icons/icon-512.png">
-<title>Konnekt — Ehrenamt & Nachbarschaft · Beta</title>
+<title>Konnekt — Ehrenamt & Nachbarschaft · Beta 2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1363,13 +1525,13 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
   <div class="notice">⚠️ {{ notice }}</div>
   {% endif %}
 
-  <div class="beta-badge">🌱 BETA · April 2026</div>
+  <div class="beta-badge">✦ BETA 2 · April 2026 · Handgebaut in Bern</div>
   <div class="hero-emoji">🌐</div>
   <h1>Konnekt</h1>
   <p class="hero-sub">
     Ehrenamt. Nachbarschaft. Zusammenhalt.<br>
     Verdiene Punkte für gute Taten — löse sie bei lokalen Geschäften ein.
-    Kein Algorithmus der dich süchtig macht. Einfach echte Menschen.
+    Kein Algorithmus. Keine Werbung. Einfach echte Menschen.
   </p>
 
   <div class="stats">
@@ -1431,6 +1593,11 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
       <div class="feat-title">Keine Werbung. Nie.</div>
       <div class="feat-desc">Kein Algorithmus der dich süchtig hält. Keine verkauften Daten. Konnekt finanziert sich durch NGO-Accounts und Community-Partnerschaften.</div>
     </div>
+    <div class="feat-card" style="--c:#8b5cf6">
+      <div class="feat-icon">🎮</div>
+      <div class="feat-title">Hangouts &amp; Spontan-Events</div>
+      <div class="feat-desc">UNO im Park, Sprachcafé, Brettspiele — sieh offene Hangouts auf der Karte und frag einfach ob du mitmachen kannst. Offen für alle.</div>
+    </div>
   </div>
 </div>
 
@@ -1460,13 +1627,40 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
   </div>
 </div>
 
+<!-- Personal note from the founder -->
+<div style="background:#07071a;border-top:1px solid #1c1c38;padding:3rem 1.5rem">
+  <div style="max-width:600px;margin:0 auto">
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;color:#e2e8f0">Eine persönliche Note 👋</div>
+    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1rem">
+      Ich bin Muharrem. Ich hab Konnekt gebaut weil ich glaube, dass Technologie Menschen zusammenbringen
+      sollte — nicht auseinander. Nicht durch Algorithmen die dich süchtig halten, sondern durch echte
+      Aktionen in der echten Welt.
+    </p>
+    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1rem">
+      Das hier ist <strong style="color:#a78bfa">Beta 2</strong> — es läuft, es macht Spass, und es wächst.
+      Manches ist noch roh. Manches wird noch besser. Ich baue das nicht für Investoren oder
+      Exit-Strategie — ich bau es weil ich in Bern wohne und mir wünsche, dass wir uns mehr kennen.
+    </p>
+    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1.5rem">
+      Wenn du eine NGO vertrittst, einen Verein leitest, oder einfach Feedback hast —
+      schreib mir direkt. Kein Ticketsystem, kein Chatbot.
+    </p>
+    <a href="mailto:contract@architect-dna.ch" style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:10px;padding:.65rem 1.2rem;font-size:.85rem;font-weight:700;color:#a78bfa;text-decoration:none">
+      ✉️ contract@architect-dna.ch
+    </a>
+    <div style="margin-top:1.5rem;font-size:.78rem;color:#334155">
+      Built with care · Bern, Schweiz · 2026
+    </div>
+  </div>
+</div>
+
 <div class="site-footer">
   <div style="margin-bottom:.5rem">
     <a href="/impressum">Impressum</a>
     <a href="/datenschutz">Datenschutz</a>
     <a href="/">App öffnen</a>
   </div>
-  <div>© 2026 Konnekt · Beta · Mit ❤️ für Bern und darüber hinaus</div>
+  <div>© 2026 Konnekt · Beta 2 · Mit ❤️ für Bern und die Welt</div>
 </div>
 
 <script>

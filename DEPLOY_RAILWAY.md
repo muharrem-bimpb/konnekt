@@ -43,7 +43,10 @@ git push -u origin main
 SECRET_KEY=7d9debdae7d680880c131b74a445c66040e9f4baf8073e3e16a5aeb36cfb26ce
 PORT=8080
 DATA_DIR=/data
+STRIPE_PRO_PRICE_ID=price_1TJT6cJj5CtfTvT6loIfLjrn
+STRIPE_BUSINESS_PRICE_ID=price_1TJT80Jj5CtfTvT66B8gKxnc
 ```
+Add `STRIPE_SECRET_KEY=sk_live_...` (from Stripe Dashboard → Developers → API keys) once you go live.
 
 4. Unter "Volumes" → "Add Volume" → Mount Path: `/data` (persistente DB!)
 5. Deploy läuft automatisch durch

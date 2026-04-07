@@ -267,6 +267,13 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 .cat-sport       { background: rgba(59,130,246,.12); color: var(--accent); border: 1px solid rgba(59,130,246,.25); }
 .cat-seasonal    { background: rgba(236,72,153,.08); color: var(--pink); border: 1px solid rgba(236,72,153,.2); }
 .cat-other       { background: rgba(148,163,184,.1); color: var(--dim); border: 1px solid var(--border); }
+.cat-hangout     { background: rgba(139,92,246,.12); color: var(--purple); border: 1px solid rgba(139,92,246,.25); }
+.hangout-badge   { font-size:.62rem;background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);border-radius:99px;padding:.15rem .5rem;font-weight:700;display:inline-flex;align-items:center;gap:.2rem }
+#events-map .leaflet-popup-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+#map-container { background: var(--card2); }
+.btn-request { flex:1; background:var(--purple); color:white; border:none; border-radius:10px; padding:.65rem; font-size:.83rem; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.2); transition:all .15s; }
+.btn-request:active { transform:scale(.97); }
+.btn-request.requested { background:var(--card2); color:var(--purple); border:1px solid rgba(139,92,246,.3); box-shadow:none; }
 .event-pts { font-size: .78rem; font-weight: 700; color: var(--orange); display: flex; align-items: center; gap: .25rem; }
 .event-title { font-size: .98rem; font-weight: 700; margin-bottom: .35rem; line-height: 1.3; }
 .event-meta { font-size: .75rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
@@ -514,6 +521,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 .loading { text-align: center; color: var(--muted); padding: 2rem; }
 </style>
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
@@ -602,7 +610,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="topbar-brand">🌐 <span>Konnekt</span></div>
+    <div class="topbar-brand">🌐 <span>Konnekt</span> <sup style="font-size:.55rem;font-weight:700;color:var(--purple);letter-spacing:.04em;vertical-align:super">β2</sup></div>
     <div class="topbar-right">
       <div class="points-badge">⭐ <span id="hdr-points">0</span></div>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Theme wechseln">🌙</button>
@@ -648,16 +656,21 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <div class="screen" id="screen-volunteer">
-    <div class="scroll-body">
-      <div class="filter-row" id="event-filters">
-        <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
-        <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
-        <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
-        <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
-        <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
-        <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
-      </div>
+    <div class="filter-row" id="event-filters" style="flex-shrink:0;padding:.6rem 1rem .4rem;margin:0;background:var(--bg);border-bottom:1px solid var(--border)">
+      <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
+      <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
+      <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
+      <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
+      <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
+      <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
+      <div class="fpill" onclick="filterEvents('hangout',this)">🎮 Hangout</div>
+      <div class="fpill" id="map-pill" onclick="showMapView(this)">🗺️ Karte</div>
+    </div>
+    <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
+    </div>
+    <div id="map-container" style="display:none;flex:1;overflow:hidden;position:relative">
+      <div id="events-map" style="width:100%;height:100%"></div>
     </div>
     <button class="fab" onclick="openCreateEvent()" title="Event erstellen">+</button>
   </div>
@@ -908,6 +921,14 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <div class="modal-handle"></div>
     <div class="modal-title">Event erstellen <button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
     <div id="ev-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
+    <!-- Event type toggle -->
+    <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
+      <button type="button" id="ev-type-btn-volunteer" onclick="setEvType('volunteer')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.82rem;font-weight:700;background:var(--accent);color:white;cursor:pointer;transition:all .2s">🌱 Ehrenamt</button>
+      <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.82rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
+    </div>
+    <div id="ev-hangout-hint" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--purple);margin-bottom:.65rem">
+      🎮 Hangout: Öffentliches Event — Leute in der Nähe sehen es auf der Karte und können anfragen mitzumachen. Du entscheidest wer rein darf.
+    </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Titel *</div>
       <input class="field" id="ev-title" type="text" placeholder="Was findet statt?">
@@ -1072,6 +1093,8 @@ let currentEventFilter = '';
 let currentCouponFilter = '';
 let currentZbType = 'offer';
 let deedCategory = 'neighbor';
+let currentEvType = 'volunteer';
+let leafletMap = null;
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 const savedTheme = localStorage.getItem('konnekt_theme') || 'dark';
@@ -1302,30 +1325,38 @@ async function loadEvents() {
   const events = await apiFetch(url);
   const list = document.getElementById('events-list');
   if (!events.length) { list.innerHTML = '<div class="empty">Keine Events gefunden.</div>'; return; }
-  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',other:'🎉'};
+  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',other:'🎉'};
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.starts_at);
     const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
     const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const isHangout = ev.type === 'hangout';
+    const catClass = isHangout ? 'hangout' : (ev.category||'other');
     const imgHtml = ev.image_url
       ? `<img class="event-img" src="${esc(ev.image_url)}" alt="${esc(ev.title)}" loading="lazy" onerror="this.style.display='none'">`
       : `<div class="event-img-placeholder">${CAT_EMOJI[ev.category]||'🌱'}</div>`;
+    const hangoutBadge = isHangout
+      ? `<span class="hangout-badge">🎮 Hangout · Offen für alle</span>`
+      : '';
+    const actionBtn = isHangout
+      ? `<button class="btn-request" onclick="joinRequest(${ev.id}, this)">✋ Anfragen mitzumachen</button>`
+      : `<button class="btn-join" onclick="registerEvent(${ev.id}, this)">Mitmachen</button>`;
+    const pts = isHangout ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
     return `<div class="event-card">
       ${imgHtml}
       <div class="event-body">
         <div class="event-header">
-          <span class="event-cat cat-${ev.category||'other'}">${catLabel(ev.category)}</span>
-          <span class="event-pts">⭐ +${ev.points_reward}</span>
+          <span class="event-cat cat-${catClass}">${isHangout ? '🎮 Hangout' : catLabel(ev.category)}</span>
+          ${pts}
         </div>
-        <div class="event-title">${esc(ev.title)}</div>
+        ${hangoutBadge}
+        <div class="event-title" style="margin-top:${isHangout?'.4rem':'0'}">${esc(ev.title)}</div>
         <div class="event-meta">
           <span>📅 ${dateStr} ${timeStr}</span>
           <span>📍 ${esc(ev.city||ev.address||'')}</span>
           <span>👤 ${ev.participants_count||0}${ev.max_participants>0?' / '+ev.max_participants:''}</span>
         </div>
-        <div class="event-actions">
-          <button class="btn-join" onclick="registerEvent(${ev.id}, this)">Mitmachen</button>
-        </div>
+        <div class="event-actions">${actionBtn}</div>
       </div>
     </div>`;
   }).join('');
@@ -1335,7 +1366,70 @@ function filterEvents(cat, el) {
   currentEventFilter = cat;
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
+  // Restore list view if map was showing
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('events-scroll').style.display = '';
   loadEvents();
+}
+
+function showMapView(pill) {
+  document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  document.getElementById('events-scroll').style.display = 'none';
+  document.getElementById('map-container').style.display = '';
+  initMap();
+}
+
+function initMap() {
+  if (leafletMap) { leafletMap.invalidateSize(); loadMapEvents(); return; }
+  // Default: Bern centre
+  leafletMap = L.map('events-map', {zoomControl:true}).setView([46.9480, 7.4474], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(leafletMap);
+  // Try GPS location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      leafletMap.setView([pos.coords.latitude, pos.coords.longitude], 14);
+    }, () => {});
+  }
+  loadMapEvents();
+}
+
+async function loadMapEvents() {
+  if (!leafletMap) return;
+  try {
+    const city = currentUser?.city || '';
+    const events = await apiFetch(`/api/map/events?city=${encodeURIComponent(city)}`);
+    events.forEach(ev => {
+      if (!ev.lat || !ev.lng) return;
+      const isHangout = ev.type === 'hangout';
+      const bg = isHangout ? '#8b5cf6' : '#3b82f6';
+      const emoji = isHangout ? '🎮' : ({volunteer:'🌱',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',social:'👥'}[ev.category] || '🌱');
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:${bg};color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 3px 10px rgba(0,0,0,.4);border:2.5px solid white;cursor:pointer">${emoji}</div>`,
+        iconSize: [38,38], iconAnchor: [19,19]
+      });
+      const marker = L.marker([ev.lat, ev.lng], {icon}).addTo(leafletMap);
+      const dt = new Date(ev.starts_at);
+      const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+      const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      const spots = ev.max_participants > 0 ? `${ev.participants_count||0}/${ev.max_participants}` : `${ev.participants_count||0} dabei`;
+      const actionBtn = isHangout
+        ? `<button onclick="joinRequest(${ev.id},this)" style="background:#8b5cf6;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">✋ Beitreten anfragen</button>`
+        : `<button onclick="registerEvent(${ev.id},this)" style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">Mitmachen</button>`;
+      marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:.1rem">
+        ${isHangout ? '<div style="font-size:.65rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">🎮 HANGOUT · OFFEN</div>' : ''}
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:.25rem;line-height:1.3">${ev.title}</div>
+        <div style="font-size:.75rem;color:#666;margin-bottom:.3rem">📅 ${dateStr} ${timeStr}</div>
+        <div style="font-size:.75rem;color:#666;margin-bottom:.4rem">👤 ${spots}${ev.points_reward ? ` · ⭐ +${ev.points_reward}` : ''}</div>
+        <div style="font-size:.78rem;color:#444;line-height:1.4">${(ev.description||'').slice(0,100)}${ev.description&&ev.description.length>100?'…':''}</div>
+        ${actionBtn}
+      </div>`);
+    });
+  } catch(e) { console.error('Map events error', e); }
 }
 
 async function registerEvent(id, btn) {
@@ -1346,6 +1440,32 @@ async function registerEvent(id, btn) {
     showToast('✓ Angemeldet! +10 Punkte');
     await refreshPoints();
   } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function joinRequest(id, btn) {
+  try {
+    const msg = prompt('Optional: Kurze Nachricht an den Gastgeber (oder leer lassen)') ?? '';
+    if (msg === null) return; // cancelled
+    await apiFetch(`/api/events/${id}/join-request`, 'POST', {message: msg});
+    if (btn) { btn.textContent = '⏳ Anfrage gesendet'; btn.disabled = true; btn.classList.add('requested'); }
+    showToast('✓ Anfrage gesendet! Gastgeber entscheidet.');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+function setEvType(type) {
+  currentEvType = type;
+  const vBtn = document.getElementById('ev-type-btn-volunteer');
+  const hBtn = document.getElementById('ev-type-btn-hangout');
+  const hint = document.getElementById('ev-hangout-hint');
+  if (type === 'volunteer') {
+    vBtn.style.background = 'var(--accent)'; vBtn.style.color = 'white';
+    hBtn.style.background = 'transparent'; hBtn.style.color = 'var(--dim)';
+    hint.style.display = 'none';
+  } else {
+    hBtn.style.background = 'var(--purple)'; hBtn.style.color = 'white';
+    vBtn.style.background = 'transparent'; vBtn.style.color = 'var(--dim)';
+    hint.style.display = '';
+  }
 }
 
 function openCreateEvent() {
@@ -1374,6 +1494,7 @@ async function createEvent() {
   try {
     await apiFetch('/api/events', 'POST', {
       title,
+      type: currentEvType,
       description: document.getElementById('ev-desc').value.trim(),
       category: document.getElementById('ev-cat').value,
       starts_at,
@@ -1387,6 +1508,7 @@ async function createEvent() {
     document.getElementById('ev-pts').value = '50';
     document.getElementById('ev-max').value = '0';
     document.getElementById('ev-start').value = '';
+    setEvType('volunteer'); // reset type toggle
     closeModal('modal-create-event');
     showToast('✓ Event erstellt! +20 Punkte');
     loadEvents();
@@ -1749,7 +1871,7 @@ async function apiFetch(path, method='GET', body=null) {
 }
 
 function catLabel(c) {
-  return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',other:'Event'}[c]||c;
+  return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',hangout:'Hangout',other:'Event'}[c]||c;
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -2019,5 +2141,6 @@ window.addEventListener('appinstalled', () => {
     style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:.25rem">✕</button>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
