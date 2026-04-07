@@ -570,6 +570,14 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 .bubble-emoji-pick { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
 .city-chip { background:var(--card2);border:1.5px solid var(--border);border-radius:99px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:var(--dim);cursor:pointer;transition:all .15s; }
 .city-chip.selected,.city-chip:active { border-color:var(--accent);background:rgba(59,130,246,.12);color:var(--accent); }
+.klopf-opt { background:var(--card2);border:1.5px solid var(--border);border-radius:14px;padding:.7rem .4rem;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.25rem; }
+.klopf-opt span { font-size:1.6rem;line-height:1; }
+.klopf-opt div { font-size:.62rem;font-weight:600;color:var(--dim); }
+.klopf-opt:active,.klopf-opt:hover { border-color:var(--accent);background:rgba(59,130,246,.1);transform:scale(1.06); }
+.klopf-item { display:flex;align-items:center;gap:.75rem;padding:.7rem 0;border-bottom:1px solid var(--border); }
+.klopf-emoji { font-size:2rem;flex-shrink:0; }
+.klopf-btn { background:var(--card2);border:1.5px solid var(--border);border-radius:99px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;color:var(--dim);transition:all .15s; }
+.klopf-btn:hover { border-color:var(--accent);color:var(--accent); }
 
 .bubble-emoji-opt {
   width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--border);
@@ -674,9 +682,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="topbar-brand">🌐 <span>Konnekt</span> <sup style="font-size:.55rem;font-weight:700;color:var(--purple);letter-spacing:.04em;vertical-align:super">β2</sup></div>
+    <div class="topbar-brand">🌐 <span>Konnekt</span> <sup style="font-size:.55rem;font-weight:700;color:var(--purple);letter-spacing:.04em;vertical-align:super">v1</sup></div>
     <div class="topbar-right">
       <div class="points-badge">⭐ <span id="hdr-points">0</span></div>
+      <button class="klopf-inbox-btn" id="klopf-inbox-btn" onclick="openKlopfInbox()" title="Klopf Inbox" style="position:relative;background:none;border:none;font-size:1.2rem;cursor:pointer;padding:.2rem .3rem;line-height:1">
+        👋
+        <span id="klopf-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--red,#ef4444);color:white;border-radius:99px;font-size:.55rem;font-weight:800;min-width:14px;height:14px;display:none;align-items:center;justify-content:center;padding:0 3px">0</span>
+      </button>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Theme wechseln">🌙</button>
       <button class="avatar-btn" id="avatar-btn" onclick="goProfile()">?</button>
     </div>
@@ -1251,6 +1263,38 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Klopf Send Modal -->
+<div class="modal-overlay" id="modal-klopf-send">
+  <div class="modal" style="text-align:center">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="justify-content:center">
+      Klopf an <span id="klopf-target-name" style="color:var(--accent)">–</span>
+      <button class="modal-close" onclick="closeModal('modal-klopf-send')">✕</button>
+    </div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:1.2rem">Kein Text, kein Chat — nur ein Signal. Einfach und ehrlich.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:1.2rem" id="klopf-emoji-grid">
+      <button class="klopf-opt" onclick="submitKlopf('👋')"><span>👋</span><div>Hallo</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('☕')"><span>☕</span><div>Treffen?</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('❤️')"><span>❤️</span><div>Respekt</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('🙏')"><span>🙏</span><div>Sorry</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('🎮')"><span>🎮</span><div>Mitspielen?</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('🌱')"><span>🌱</span><div>Mitmachen</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('😄')"><span>😄</span><div>Cool!</div></button>
+      <button class="klopf-opt" onclick="submitKlopf('🤝')"><span>🤝</span><div>Verbinden</div></button>
+    </div>
+    <div id="klopf-send-error" style="display:none;color:#f87171;font-size:.8rem;margin-bottom:.5rem"></div>
+  </div>
+</div>
+
+<!-- Klopf Inbox Modal -->
+<div class="modal-overlay" id="modal-klopf-inbox">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👋 Klopf Inbox <button class="modal-close" onclick="closeModal('modal-klopf-inbox')">✕</button></div>
+    <div id="klopf-inbox-list"><div class="loading">Lade…</div></div>
+  </div>
+</div>
+
 <!-- City Onboarding Modal -->
 <div class="modal-overlay" id="modal-city-onboard">
   <div class="modal" style="text-align:center">
@@ -1444,6 +1488,7 @@ async function loadApp() {
     if (!currentUser.city && currentUser.username !== 'demo') {
       setTimeout(() => openModal('modal-city-onboard'), 800);
     }
+    pollKlopfBadge();
   } catch(e) {
     // Token invalid — back to auth, clear token
     loading.style.display = 'none';
@@ -1906,7 +1951,7 @@ async function loadNearby() {
           ${u.volunteer_hours > 0 ? `<span class="badge badge-vol">${u.volunteer_hours}h</span>` : ''}
         </div>
       </div>
-      <button class="btn-connect" onclick="connectNeighbor(${u.id}, this)">+15pts</button>
+      <button class="klopf-btn" onclick="openKlopfSend(${u.id},'${esc(u.display_name)}','nahbar')">👋 Klopfen</button>
     </div>`;
   }).join('');
 }
@@ -2659,6 +2704,83 @@ window.addEventListener('appinstalled', () => {
   localStorage.setItem('pwa_installed', '1');
   document.getElementById('install-banner').style.display = 'none';
 });
+
+// ── Klopf System ─────────────────────────────────────────────────────────────
+let _klopfTargetId = null;
+let _klopfContext  = 'nahbar';
+
+function openKlopfSend(userId, name, context) {
+  _klopfTargetId = userId;
+  _klopfContext  = context || 'nahbar';
+  document.getElementById('klopf-target-name').textContent = name;
+  document.getElementById('klopf-send-error').style.display = 'none';
+  openModal('modal-klopf-send');
+}
+
+async function submitKlopf(emoji) {
+  if (!_klopfTargetId) return;
+  const errEl = document.getElementById('klopf-send-error');
+  try {
+    await apiFetch('/api/klopf', 'POST', { to_id: _klopfTargetId, emoji, context: _klopfContext });
+    closeModal('modal-klopf-send');
+    showToast(`${emoji} Klopf gesendet!`);
+  } catch(e) {
+    errEl.textContent = e.message || 'Fehler';
+    errEl.style.display = '';
+  }
+}
+
+async function openKlopfInbox() {
+  openModal('modal-klopf-inbox');
+  const list = document.getElementById('klopf-inbox-list');
+  list.innerHTML = '<div class="loading">Lade…</div>';
+  // Reset badge
+  const badge = document.getElementById('klopf-badge');
+  badge.style.display = 'none';
+  try {
+    const data = await apiFetch('/api/klopf/inbox');
+    if (!data.items.length) {
+      list.innerHTML = '<div class="empty">Noch keine Klopfs. Geh raus und verbinde dich! 👋</div>';
+      return;
+    }
+    list.innerHTML = data.items.map(k => {
+      const ago = _timeAgo(k.created_at);
+      return `<div class="klopf-item ${k.seen ? '' : 'unseen'}">
+        <div class="klopf-emoji">${k.emoji}</div>
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:700">${esc(k.display_name)}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${esc(k.city||'')} · ${ago}</div>
+          ${k.context && k.context !== 'nahbar' ? `<div style="font-size:.68rem;color:var(--purple);margin-top:.1rem">via ${esc(k.context)}</div>` : ''}
+        </div>
+        <button class="klopf-btn" onclick="openKlopfSend(${k.from_id},'${esc(k.display_name)}','nahbar');closeModal('modal-klopf-inbox')">👋 Zurück</button>
+      </div>`;
+    }).join('');
+  } catch { list.innerHTML = '<div class="empty">Fehler beim Laden.</div>'; }
+}
+
+async function pollKlopfBadge() {
+  try {
+    const data = await apiFetch('/api/klopf/unseen');
+    const badge = document.getElementById('klopf-badge');
+    if (data.unseen > 0) {
+      badge.textContent = data.unseen;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch {}
+}
+
+function _timeAgo(iso) {
+  const diff = Math.floor((Date.now() - new Date(iso + (iso.includes('Z') ? '' : 'Z'))) / 1000);
+  if (diff < 60) return 'gerade eben';
+  if (diff < 3600) return `${Math.floor(diff/60)} Min`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} Std`;
+  return `${Math.floor(diff/86400)} Tage`;
+}
+
+// Poll for new klopfs every 30s when app is open
+setInterval(pollKlopfBadge, 30000);
 </script>
 
 <!-- PWA Install Banner (auto, needs HTTPS) -->

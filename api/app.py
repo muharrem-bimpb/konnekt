@@ -1518,6 +1518,76 @@ def delete_zeitbank(zid):
         c.execute("UPDATE zeitbank SET active=0 WHERE id=? AND user_id=?", (zid, g.user_id))
     return jsonify({"ok": True})
 
+# ── Klopf (Emoji Signal) System ──────────────────────────────────────────────
+
+KLOPF_EMOJIS = {'👋', '☕', '❤️', '🙏', '🎮', '🌱', '😄', '🤝'}
+
+def _init_klopf():
+    with get_db() as c:
+        c.executescript("""
+        CREATE TABLE IF NOT EXISTS klopf (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_id INTEGER NOT NULL,
+            to_id INTEGER NOT NULL,
+            emoji TEXT NOT NULL DEFAULT '👋',
+            context TEXT DEFAULT '',   -- e.g. 'event:42' or 'nahbar'
+            seen INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(from_id) REFERENCES users(id),
+            FOREIGN KEY(to_id)   REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS klopf_to_idx ON klopf(to_id, seen);
+        """)
+
+_init_klopf()
+
+@app.post("/api/klopf")
+@require_auth
+def send_klopf():
+    d = request.json or {}
+    to_id  = int(d.get("to_id", 0))
+    emoji  = d.get("emoji", "👋")
+    context= d.get("context", "nahbar").strip()[:40]
+    if not to_id or to_id == g.user_id:
+        return jsonify({"error": "invalid target"}), 400
+    if emoji not in KLOPF_EMOJIS:
+        emoji = "👋"
+    # Max 1 klopf per sender→receiver per hour (anti-spam)
+    with get_db() as c:
+        recent = c.execute(
+            "SELECT id FROM klopf WHERE from_id=? AND to_id=? AND created_at > datetime('now','-1 hour')",
+            (g.user_id, to_id)
+        ).fetchone()
+        if recent:
+            return jsonify({"error": "Du hast dieser Person gerade schon geklopft 😊"}), 429
+        c.execute("INSERT INTO klopf (from_id,to_id,emoji,context) VALUES (?,?,?,?)",
+                  (g.user_id, to_id, emoji, context))
+        kid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "id": kid})
+
+@app.get("/api/klopf/inbox")
+@require_auth
+def klopf_inbox():
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT k.id, k.emoji, k.context, k.seen, k.created_at,
+                   u.id as from_id, u.display_name, u.avatar_url, u.city
+            FROM klopf k JOIN users u ON k.from_id=u.id
+            WHERE k.to_id=?
+            ORDER BY k.created_at DESC LIMIT 30
+        """, (g.user_id,)).fetchall()
+        unseen = c.execute("SELECT COUNT(*) FROM klopf WHERE to_id=? AND seen=0", (g.user_id,)).fetchone()[0]
+        # Mark all as seen
+        c.execute("UPDATE klopf SET seen=1 WHERE to_id=? AND seen=0", (g.user_id,))
+    return jsonify({"items": [dict(r) for r in rows], "unseen": unseen})
+
+@app.get("/api/klopf/unseen")
+@require_auth
+def klopf_unseen_count():
+    with get_db() as c:
+        n = c.execute("SELECT COUNT(*) FROM klopf WHERE to_id=? AND seen=0", (g.user_id,)).fetchone()[0]
+    return jsonify({"unseen": n})
+
 # ── Monthly Community Challenge ───────────────────────────────────────────────
 
 MONTH_DE = ["Januar","Februar","März","April","Mai","Juni",
