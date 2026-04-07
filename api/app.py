@@ -346,7 +346,11 @@ def _seed_events(c):
     """Seed demo events — hangouts + volunteer — so the map & list are never empty."""
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    # (title, description, category, ev_type, is_public, address, city, lat, lng, pts, max_p, days_ahead, hour)
+    # Use first available user (don't hardcode id=1 — Railway DB may differ)
+    first_user = c.execute("SELECT id FROM users ORDER BY id LIMIT 1").fetchone()
+    if not first_user:
+        return
+    uid = first_user["id"]
     evs = [
         ("UNO Spielabend 🃏 — Alle willkommen!",
          "Spontaner UNO-Abend im Rosengarten. Locals, Ausländer, Familien — alle herzlich willkommen! Bring your own snacks.",
@@ -379,8 +383,8 @@ def _seed_events(c):
             c.execute("""INSERT INTO events
                 (organizer_id,title,description,category,type,is_public,address,city,lat,lng,
                  starts_at,points_reward,max_participants,status)
-                VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
-                (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
+                (uid,title,desc,cat,ev_type,is_pub,addr,city,lat,lng,
                  starts.strftime('%Y-%m-%dT%H:%M:%S'),pts,max_p))
         except Exception:
             pass
@@ -812,7 +816,7 @@ def get_events():
     ev_type  = request.args.get("type","")
     limit    = int(request.args.get("limit", 20))
     with get_db() as c:
-        q = "SELECT e.*, u.display_name as organizer_name, u.is_verified as org_verified FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.status='active' AND e.starts_at >= datetime('now', '-2 hours')"
+        q = "SELECT e.*, u.display_name as organizer_name, u.is_verified as org_verified FROM events e LEFT JOIN users u ON e.organizer_id=u.id WHERE e.status='active' AND e.starts_at >= datetime('now', '-2 hours')"
         params = []
         if city:
             q += " AND e.city LIKE ?"; params.append(f"%{city}%")
@@ -828,7 +832,7 @@ def get_events():
 @app.get("/api/events/<int:eid>")
 def get_event(eid):
     with get_db() as c:
-        ev = c.execute("SELECT e.*, u.display_name as organizer_name FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.id=?", (eid,)).fetchone()
+        ev = c.execute("SELECT e.*, u.display_name as organizer_name FROM events e LEFT JOIN users u ON e.organizer_id=u.id WHERE e.id=?", (eid,)).fetchone()
         if not ev:
             return jsonify({"error": "not found"}), 404
         regs = c.execute("SELECT u.display_name, u.avatar_url FROM event_registrations er JOIN users u ON er.user_id=u.id WHERE er.event_id=? LIMIT 20", (eid,)).fetchall()
