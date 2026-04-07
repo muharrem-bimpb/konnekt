@@ -460,14 +460,25 @@ def award_points(user_id, delta, reason, ref_type=None, ref_id=None):
 
 @app.route("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    resp = send_from_directory(app.static_folder, "index.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/<path:path>")
 def static_files(path):
     try:
-        return send_from_directory(app.static_folder, path)
+        resp = send_from_directory(app.static_folder, path)
+        if path in ("sw.js", "manifest.json"):
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return resp
     except Exception:
-        return send_from_directory(app.static_folder, "index.html")
+        resp = send_from_directory(app.static_folder, "index.html")
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
 
