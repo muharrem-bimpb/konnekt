@@ -256,6 +256,20 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             status TEXT DEFAULT 'pending'
         );
+        CREATE TABLE IF NOT EXISTS life_bubbles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            emoji TEXT DEFAULT '✨',
+            description TEXT DEFAULT '',
+            lat REAL DEFAULT 0,
+            lng REAL DEFAULT 0,
+            address TEXT DEFAULT '',
+            city TEXT DEFAULT '',
+            expires_at TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         """)
         # Add subscription_tier column to users if not exists (migration)
         try:
@@ -268,14 +282,19 @@ def init_db():
                 c.execute(f"ALTER TABLE events ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
                 pass
+        # Always ensure demo token/user exists first (other seeds depend on having a user)
+        _ensure_demo_token(c)
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
-        # Seed demo events independently (so existing DBs get events too)
-        if c.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0:
+        # Seed demo events independently; re-seed if all events are in the past
+        total_ev = c.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        future_ev = c.execute("SELECT COUNT(*) FROM events WHERE starts_at >= datetime('now')").fetchone()[0]
+        if total_ev == 0 or future_ev == 0:
             _seed_events(c)
-        # Always ensure demo token exists (survives Railway redeploys without volume)
-        _ensure_demo_token(c)
+        # Seed demo bubbles if none active
+        if c.execute("SELECT COUNT(*) FROM life_bubbles WHERE expires_at > datetime('now')").fetchone()[0] == 0:
+            _seed_bubbles(c)
 
 def _ensure_demo_token(c):
     """Create demo user + session on every boot if they don't exist."""
@@ -363,6 +382,31 @@ def _seed_events(c):
                 VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
                 (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,
                  starts.strftime('%Y-%m-%dT%H:%M:%S'),pts,max_p))
+        except Exception:
+            pass
+
+def _seed_bubbles(c):
+    """Seed demo life bubbles so the map is alive on first visit."""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    # Use first available user, or skip if none
+    first_user = c.execute("SELECT id FROM users ORDER BY id LIMIT 1").fetchone()
+    if not first_user:
+        return
+    uid = first_user["id"]
+    bubbles = [
+        ("UNO am Rosengarten 🃏", "🃏", "Spontane Runde UNO! Platz für 4 mehr. Komm einfach vorbei!", 46.9572, 7.4542, "Rosengarten, Bern", "Bern", 3),
+        ("Öffentliches Klavier 🎹", "🎹", "Jemand spielt gerade Klavier im Generationen Haus. Es klingt grandios — komm zuhören oder mitspielen!", 46.9478, 7.4440, "Generationen Haus, Bern", "Bern", 2),
+        ("Frisbee im Bundesgarten 🥏", "🥏", "Wir spielen Frisbee, brauchen noch 2-3 Leute!", 46.9433, 7.4348, "Bundesgarten, Bern", "Bern", 2),
+        ("Kaffee & Konversation ☕", "☕", "Sitze allein im Café de la Grenette. Wer will reden? Alle Sprachen ok.", 46.9481, 7.4476, "Café de la Grenette, Bern", "Bern", 1),
+        ("Skateboard am Bundeshaus 🛹", "🛹", "Learning tricks, chill vibes, all levels welcome!", 46.9466, 7.4438, "Bundeshaus, Bern", "Bern", 4),
+    ]
+    for (title, emoji, desc, lat, lng, addr, city, hrs) in bubbles:
+        expires = (now + timedelta(hours=hrs)).isoformat()
+        try:
+            c.execute("""INSERT INTO life_bubbles (user_id,title,emoji,description,lat,lng,address,city,expires_at)
+                         VALUES (?,?,?,?,?,?,?,?,?)""",
+                      (uid, title, emoji, desc, lat, lng, addr, city, expires))
         except Exception:
             pass
 
@@ -768,7 +812,7 @@ def get_events():
     ev_type  = request.args.get("type","")
     limit    = int(request.args.get("limit", 20))
     with get_db() as c:
-        q = "SELECT e.*, u.display_name as organizer_name, u.is_verified as org_verified FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.status='active'"
+        q = "SELECT e.*, u.display_name as organizer_name, u.is_verified as org_verified FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.status='active' AND e.starts_at >= datetime('now', '-2 hours')"
         params = []
         if city:
             q += " AND e.city LIKE ?"; params.append(f"%{city}%")
@@ -925,6 +969,123 @@ def map_events():
         q += " ORDER BY starts_at ASC LIMIT 80"
         rows = c.execute(q, params).fetchall()
     return jsonify([dict(r) for r in rows])
+
+# ── Life Bubbles ──────────────────────────────────────────────────────────────
+
+@app.get("/api/bubbles")
+def get_bubbles():
+    """Active life bubbles — spontaneous moments on the map."""
+    city = request.args.get("city", "")
+    with get_db() as c:
+        q = """SELECT b.id, b.title, b.emoji, b.description, b.lat, b.lng,
+                      b.address, b.city, b.expires_at, b.created_at,
+                      u.display_name, u.avatar_url
+               FROM life_bubbles b JOIN users u ON b.user_id=u.id
+               WHERE b.expires_at > datetime('now')"""
+        params = []
+        if city:
+            q += " AND b.city LIKE ?"; params.append(f"%{city}%")
+        q += " ORDER BY b.created_at DESC LIMIT 60"
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/bubbles")
+@require_auth
+def drop_bubble():
+    """Drop a life bubble — a spontaneous moment others can join."""
+    d = request.json or {}
+    if not d.get("title"):
+        return jsonify({"error": "title required"}), 400
+    lat = float(d.get("lat") or 0)
+    lng = float(d.get("lng") or 0)
+    if not lat or not lng:
+        lat, lng = geocode_address(d.get("address", ""), d.get("city", ""))
+    hours = min(max(int(d.get("hours", 3)), 1), 8)
+    expires = (datetime.utcnow() + timedelta(hours=hours)).isoformat()
+    with get_db() as c:
+        c.execute("""
+            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (g.user_id, d["title"][:100], d.get("emoji", "✨"),
+              d.get("description", "")[:200],
+              lat, lng, d.get("address", ""), d.get("city", ""), expires))
+        bid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"id": bid, "ok": True}), 201
+
+@app.delete("/api/bubbles/<int:bid>")
+@require_auth
+def delete_bubble(bid):
+    with get_db() as c:
+        b = c.execute("SELECT user_id FROM life_bubbles WHERE id=?", (bid,)).fetchone()
+        if not b:
+            return jsonify({"error": "not found"}), 404
+        if b["user_id"] != g.user_id:
+            return jsonify({"error": "forbidden"}), 403
+        c.execute("DELETE FROM life_bubbles WHERE id=?", (bid,))
+    return jsonify({"ok": True})
+
+# ── Dashboard Analytics ───────────────────────────────────────────────────────
+
+@app.get("/api/dashboard")
+def get_dashboard():
+    """Rich stats for the dashboard — charts, category breakdown, trends."""
+    with get_db() as c:
+        # Category breakdown for events
+        cat_rows = c.execute("""
+            SELECT category, COUNT(*) as cnt
+            FROM events WHERE status='active'
+            GROUP BY category ORDER BY cnt DESC LIMIT 8
+        """).fetchall()
+
+        # Deeds per day — last 7 days
+        deed_rows = c.execute("""
+            SELECT date(created_at) as day, COUNT(*) as cnt
+            FROM good_deeds
+            WHERE created_at >= date('now', '-6 days')
+            GROUP BY date(created_at) ORDER BY day ASC
+        """).fetchall()
+        # Fill in missing days with 0
+        from datetime import date, timedelta as td
+        days_map = {r["day"]: r["cnt"] for r in deed_rows}
+        weekly_deeds = []
+        for i in range(6, -1, -1):
+            d = (date.today() - td(days=i)).isoformat()
+            weekly_deeds.append({"day": d, "count": days_map.get(d, 0)})
+
+        # Event registrations per day — last 7 days
+        reg_rows = c.execute("""
+            SELECT date(created_at) as day, COUNT(*) as cnt
+            FROM event_registrations
+            WHERE created_at >= date('now', '-6 days')
+            GROUP BY date(created_at) ORDER BY day ASC
+        """).fetchall()
+        reg_map = {r["day"]: r["cnt"] for r in reg_rows}
+        weekly_regs = []
+        for i in range(6, -1, -1):
+            d = (date.today() - td(days=i)).isoformat()
+            weekly_regs.append({"day": d, "count": reg_map.get(d, 0)})
+
+        # Total stats
+        stats = c.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM users) as users,
+                (SELECT COUNT(*) FROM good_deeds) as deeds,
+                (SELECT COUNT(*) FROM events WHERE status='active') as active_events,
+                (SELECT COUNT(*) FROM event_registrations) as total_signups,
+                (SELECT COALESCE(SUM(points_earned),0) FROM good_deeds) as deed_pts,
+                (SELECT COUNT(*) FROM life_bubbles WHERE expires_at > datetime('now')) as live_bubbles
+        """).fetchone()
+
+        return jsonify({
+            "categories": [{"name": r["category"], "count": r["cnt"]} for r in cat_rows],
+            "weekly_deeds": weekly_deeds,
+            "weekly_regs": weekly_regs,
+            "users": stats["users"],
+            "deeds": stats["deeds"],
+            "active_events": stats["active_events"],
+            "total_signups": stats["total_signups"],
+            "live_bubbles": stats["live_bubbles"],
+        })
 
 # ── Coupons ───────────────────────────────────────────────────────────────────
 

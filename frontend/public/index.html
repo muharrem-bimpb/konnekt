@@ -519,6 +519,66 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
 .empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 2rem 1rem; }
 .loading { text-align: center; color: var(--muted); padding: 2rem; }
+
+/* ── Dashboard ── */
+.dash-charts { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1rem; }
+.dash-chart-card { background: var(--card2); border: 1px solid var(--border); border-radius: 14px; padding: .85rem; box-shadow: var(--shadow-sm); }
+.dash-chart-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .6rem; }
+.dash-chart-canvas { width: 100%; aspect-ratio: 1; max-height: 140px; }
+.dash-wide { grid-column: 1/-1; }
+.dash-bar-chart { display: flex; gap: 3px; align-items: flex-end; height: 60px; }
+.dash-bar { flex: 1; border-radius: 3px 3px 0 0; min-width: 4px; transition: height .6s ease; }
+.dash-bar-labels { display: flex; gap: 3px; }
+.dash-bar-label { flex: 1; text-align: center; font-size: .55rem; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.dash-stat-row { display: grid; grid-template-columns: repeat(2,1fr); gap: .6rem; margin-bottom: 1rem; }
+.dash-stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: .75rem; text-align: center; box-shadow: var(--shadow-sm); }
+.dash-stat-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.dash-stat-lbl { font-size: .62rem; color: var(--muted); margin-top: .15rem; }
+
+/* ── Life Bubbles ── */
+@keyframes bubblePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(139,92,246,.6), 0 3px 10px rgba(0,0,0,.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(139,92,246,0), 0 3px 10px rgba(0,0,0,.4); }
+  100% { box-shadow: 0 0 0 0 rgba(139,92,246,0), 0 3px 10px rgba(0,0,0,.4); }
+}
+@keyframes bubblePulseGreen {
+  0%   { box-shadow: 0 0 0 0 rgba(0,255,136,.5), 0 3px 10px rgba(0,0,0,.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(0,255,136,0), 0 3px 10px rgba(0,0,0,.4); }
+  100% { box-shadow: 0 0 0 0 rgba(0,255,136,0), 0 3px 10px rgba(0,0,0,.4); }
+}
+.bubble-marker { animation: bubblePulse 2s infinite; border: 2.5px solid white; cursor: pointer; }
+.bubble-card {
+  background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(59,130,246,.05));
+  border: 1px solid rgba(139,92,246,.25); border-radius: 14px; padding: .85rem;
+  margin-bottom: .6rem; display: flex; align-items: flex-start; gap: .75rem;
+  box-shadow: var(--shadow-sm); transition: transform .15s;
+}
+.bubble-card:active { transform: scale(.98); }
+.bubble-emoji { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
+.bubble-body { flex: 1; min-width: 0; }
+.bubble-title { font-size: .9rem; font-weight: 700; line-height: 1.3; margin-bottom: .2rem; }
+.bubble-desc { font-size: .75rem; color: var(--dim); line-height: 1.4; margin-bottom: .3rem; }
+.bubble-meta { font-size: .7rem; color: var(--muted); display: flex; gap: .6rem; flex-wrap: wrap; }
+.bubble-expires { font-size: .65rem; padding: .2rem .5rem; border-radius: 99px; background: rgba(139,92,246,.12); color: var(--purple); font-weight: 700; border: 1px solid rgba(139,92,246,.2); }
+.bubble-drop-btn {
+  width: 100%; padding: .9rem; border-radius: 14px; border: 2px dashed rgba(139,92,246,.4);
+  background: rgba(139,92,246,.05); color: var(--purple); font-size: .88rem; font-weight: 700;
+  cursor: pointer; transition: all .2s; margin-bottom: .85rem;
+}
+.bubble-drop-btn:hover { border-color: var(--purple); background: rgba(139,92,246,.1); }
+.bubble-emoji-pick { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.bubble-emoji-opt {
+  width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--card2); font-size: 1.3rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: all .15s;
+}
+.bubble-emoji-opt.selected { border-color: var(--purple); background: rgba(139,92,246,.15); }
+.bubbles-live-badge {
+  display: inline-flex; align-items: center; gap: .3rem; background: rgba(139,92,246,.1);
+  border: 1px solid rgba(139,92,246,.3); border-radius: 99px; padding: .25rem .7rem;
+  font-size: .72rem; font-weight: 700; color: var(--purple); margin-left: .5rem;
+}
+.bubbles-live-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--purple); animation: bubblePulse 1.5s infinite; display: inline-block; }
 </style>
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -636,20 +696,67 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div class="challenge-milestones" id="challenge-milestones"></div>
       </div>
 
-      <!-- Platform stats -->
-      <div class="section-title"><span class="section-dot"></span> Bern im Überblick</div>
-      <div class="hero-stats">
-        <div class="hero-stat"><div class="hero-stat-num" id="stat-users" style="color:var(--accent)">–</div><div class="hero-stat-lbl">Mitglieder</div></div>
-        <div class="hero-stat"><div class="hero-stat-num" id="stat-deeds" style="color:var(--green)">–</div><div class="hero-stat-lbl">Gute Taten</div></div>
-        <div class="hero-stat"><div class="hero-stat-num" id="stat-events" style="color:var(--orange)">–</div><div class="hero-stat-lbl">Events</div></div>
+      <!-- Dashboard stats -->
+      <div class="section-title"><span class="section-dot"></span> Community Insights</div>
+      <div class="dash-stat-row" id="dash-stats">
+        <div class="dash-stat"><div class="dash-stat-num" id="dash-users" style="color:var(--accent)">–</div><div class="dash-stat-lbl">Mitglieder</div></div>
+        <div class="dash-stat"><div class="dash-stat-num" id="dash-deeds" style="color:var(--green)">–</div><div class="dash-stat-lbl">Gute Taten</div></div>
+        <div class="dash-stat"><div class="dash-stat-num" id="dash-events" style="color:var(--orange)">–</div><div class="dash-stat-lbl">Aktive Events</div></div>
+        <div class="dash-stat"><div class="dash-stat-num" id="dash-bubbles" style="color:var(--purple)">–</div><div class="dash-stat-lbl">Live Bubbles</div></div>
       </div>
 
-      <div class="impact-grid">
-        <div class="impact-item"><div class="impact-num" id="stat-visits" style="color:var(--pink)">–</div><div class="impact-lbl">Senioren-Besuche</div></div>
-        <div class="impact-item"><div class="impact-num" id="stat-pts" style="color:var(--neon)">–</div><div class="impact-lbl">Punkte vergeben</div></div>
+      <!-- Charts row -->
+      <div class="dash-charts">
+        <!-- Activity bar chart (full width) -->
+        <div class="dash-chart-card dash-wide">
+          <div class="dash-chart-title">📈 Aktivität der letzten 7 Tage</div>
+          <div class="dash-bar-chart" id="dash-bar-chart"></div>
+          <div class="dash-bar-labels" id="dash-bar-labels"></div>
+          <div style="display:flex;gap:1rem;margin-top:.4rem">
+            <div style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:var(--green)"></div>Gute Taten</div>
+            <div style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></div>Event-Anmeldungen</div>
+          </div>
+        </div>
+
+        <!-- Category donut -->
+        <div class="dash-chart-card">
+          <div class="dash-chart-title">🌱 Events nach Typ</div>
+          <canvas id="dash-donut" width="140" height="140" class="dash-chart-canvas"></canvas>
+        </div>
+
+        <!-- Weekly summary -->
+        <div class="dash-chart-card" style="display:flex;flex-direction:column;justify-content:space-between">
+          <div class="dash-chart-title">⭐ Dein Beitrag</div>
+          <div id="dash-personal" style="display:flex;flex-direction:column;gap:.4rem">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--dim)">Punkte</span>
+              <span id="dash-my-pts" style="font-size:1rem;font-weight:800;color:var(--orange)">–</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--dim)">Stunden</span>
+              <span id="dash-my-hours" style="font-size:1rem;font-weight:800;color:var(--green)">–</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--dim)">Taten</span>
+              <span id="dash-my-deeds" style="font-size:1rem;font-weight:800;color:var(--purple)">–</span>
+            </div>
+          </div>
+          <div style="height:4px;background:linear-gradient(90deg,var(--purple),var(--accent),var(--neon));border-radius:99px;margin-top:.6rem"></div>
+        </div>
       </div>
+
       <div class="neon-line" style="margin-bottom:.85rem"></div>
 
+      <!-- Live Bubbles preview -->
+      <div class="section-title" style="margin-top:.5rem">
+        <span class="section-dot" style="background:var(--purple)"></span>
+        🫧 Live Bubbles
+        <span class="bubbles-live-badge" id="feed-bubble-count">0 aktiv</span>
+      </div>
+      <div id="feed-bubbles-list"><div class="loading">Lade…</div></div>
+      <button class="bubble-drop-btn" onclick="openDropBubble()">🫧 Eigene Bubble droppen — sag wer du bist & was du tust!</button>
+
+      <div class="neon-line" style="margin-bottom:.85rem"></div>
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> Aktuelle Aktivitäten</div>
       <div id="feed-list"><div class="loading">Lade Feed…</div></div>
     </div>
@@ -665,14 +772,30 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
       <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
       <div class="fpill" id="map-pill" onclick="showMapView(this)">🗺️ Karte</div>
+      <div class="fpill" id="bubbles-pill" onclick="showBubblesView(this)" style="border-color:rgba(139,92,246,.4);color:var(--purple)">🫧 Bubbles</div>
     </div>
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
     </div>
     <div id="map-container" style="display:none;flex:1;overflow:hidden;position:relative">
       <div id="events-map" style="width:100%;height:100%"></div>
+      <!-- Map mode toolbar -->
+      <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem">
+        <button id="map-show-events-btn" onclick="setMapMode('events')" style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
+        <button id="map-show-bubbles-btn" onclick="setMapMode('bubbles')" style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
+      </div>
     </div>
-    <button class="fab" onclick="openCreateEvent()" title="Event erstellen">+</button>
+    <!-- Bubbles list view -->
+    <div id="bubbles-scroll" style="display:none" class="scroll-body">
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(59,130,246,.05));border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:1rem;margin-bottom:.85rem">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:.25rem">🫧 Was sind Life Bubbles?</div>
+        <div style="font-size:.76rem;color:var(--dim);line-height:1.5">Spontane Momente, die du teilst. Spielst du gerade UNO im Park? Klingt Klavier im Generationen Haus? Dropp eine Bubble — andere sehen sie auf der Karte und können einfach vorbeikommen. Keine Anmeldung, kein Stress.</div>
+      </div>
+      <div id="bubbles-list"><div class="loading">Lade Bubbles…</div></div>
+    </div>
+    <!-- FABs: create event (always) + drop bubble (bubbles view) -->
+    <button class="fab" id="fab-event" onclick="openCreateEvent()" title="Event erstellen" style="background:var(--accent)">+</button>
+    <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:linear-gradient(135deg,var(--purple),var(--accent));right:calc(1.2rem + 60px)">🫧</button>
   </div>
 
   <div class="screen" id="screen-coupons">
@@ -809,7 +932,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   <!-- Bottom nav -->
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="switchScreen('feed',this)">
-      <span class="nav-icon">🏠</span><span class="nav-label">Feed</span>
+      <span class="nav-icon">📊</span><span class="nav-label">Discover</span>
     </button>
     <button class="nav-item" onclick="switchScreen('volunteer',this)">
       <span class="nav-icon">🌱</span><span class="nav-label">Events</span>
@@ -1081,6 +1204,49 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Drop Bubble Modal -->
+<div class="modal-overlay" id="modal-drop-bubble">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🫧 Bubble droppen <button class="modal-close" onclick="closeModal('modal-drop-bubble')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:.85rem;line-height:1.5">
+      Zeig der Community was gerade passiert. Kein Event, kein Plan — einfach ein spontaner Moment, zu dem andere dazukommen können.
+    </div>
+    <!-- Emoji type picker -->
+    <div style="margin-bottom:.75rem">
+      <div class="field-label">Was ist es? (Tippe auf ein Emoji)</div>
+      <div class="bubble-emoji-pick" id="bubble-emoji-row"></div>
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Kurze Beschreibung *</div>
+      <input class="field" id="bubble-title" type="text" placeholder="z.B. UNO am Münsterplatz — wer macht mit?">
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Details (optional)</div>
+      <textarea class="ta" id="bubble-desc" placeholder="Wo genau, wie viele Plätze frei, …" rows="2"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem">
+      <div class="field-group">
+        <div class="field-label">Ort / Adresse</div>
+        <input class="field" id="bubble-addr" type="text" placeholder="Münsterplatz, Bern">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Läuft ab in</div>
+        <select class="field" id="bubble-hours">
+          <option value="1">1 Stunde</option>
+          <option value="2">2 Stunden</option>
+          <option value="3" selected>3 Stunden</option>
+          <option value="4">4 Stunden</option>
+          <option value="6">6 Stunden</option>
+          <option value="8">8 Stunden</option>
+        </select>
+      </div>
+    </div>
+    <div id="bubble-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
+    <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:linear-gradient(135deg,var(--purple),var(--accent));box-shadow:0 4px 16px rgba(139,92,246,.3)">🫧 Bubble droppen!</button>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1200,7 +1366,7 @@ async function loadApp() {
     updateUserUI();
     loadFeed();
     loadEvents();
-    loadPlatformStats();
+    loadDashboard();
     loadChallenge();
   } catch(e) {
     // Token invalid — back to auth, clear token
@@ -1265,10 +1431,26 @@ function switchScreen(name, btn) {
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  if (name==='volunteer') loadEvents();
+  if (name==='feed') { loadDashboard(); loadFeed(); }
+  if (name==='volunteer') { loadEvents(); resetEventsView(); }
   if (name==='coupons') { loadCoupons(); updateCouponPts(); }
   if (name==='nahbar') { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
   if (name==='profile') { loadProfile(); loadLeaderboard(); loadMyEvents(); loadTierBanner(); loadImpactAnalytics(); }
+}
+
+function resetEventsView() {
+  // Ensure events view is visible (not bubbles/map)
+  const evScroll = document.getElementById('events-scroll');
+  const mapCont  = document.getElementById('map-container');
+  const bubScroll= document.getElementById('bubbles-scroll');
+  if (bubScroll && bubScroll.style.display !== 'none') return; // already in bubble view
+  if (mapCont && mapCont.style.display !== 'none') return; // already in map view
+  if (evScroll) evScroll.style.display = '';
+  if (mapCont) mapCont.style.display = 'none';
+  const fabEvt = document.getElementById('fab-event');
+  const fabBub = document.getElementById('fab-bubble');
+  if (fabEvt) fabEvt.style.display = 'flex';
+  if (fabBub) fabBub.style.display = 'none';
 }
 
 function goProfile() { switchScreen('profile', document.querySelectorAll('.nav-item')[4]); }
@@ -1326,7 +1508,13 @@ async function loadEvents() {
   const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${filterQ}`;
   const events = await apiFetch(url);
   const list = document.getElementById('events-list');
-  if (!events.length) { list.innerHTML = '<div class="empty">Keine Events gefunden.</div>'; return; }
+  if (!events.length) {
+    list.innerHTML = `<div class="empty">
+      Keine kommenden Events gefunden.<br>
+      <button class="btn-primary" style="margin-top:1rem;padding:.55rem 1.2rem;font-size:.82rem" onclick="openCreateEvent()">+ Erstes Event erstellen</button>
+    </div>`;
+    return;
+  }
   const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',other:'🎉'};
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.starts_at);
@@ -1369,9 +1557,12 @@ function filterEvents(cat, el, param='category') {
   currentEventFilterParam = param;
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-  // Restore list view if map was showing
+  // Restore list view
   document.getElementById('map-container').style.display = 'none';
+  document.getElementById('bubbles-scroll').style.display = 'none';
   document.getElementById('events-scroll').style.display = '';
+  document.getElementById('fab-event').style.display = 'flex';
+  document.getElementById('fab-bubble').style.display = 'none';
   loadEvents();
 }
 
@@ -1379,7 +1570,16 @@ function showMapView(pill) {
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   pill.classList.add('active');
   document.getElementById('events-scroll').style.display = 'none';
+  document.getElementById('bubbles-scroll').style.display = 'none';
   document.getElementById('map-container').style.display = '';
+  document.getElementById('fab-event').style.display = 'flex';
+  document.getElementById('fab-bubble').style.display = 'flex';
+  currentMapMode = 'events';
+  // Reset toolbar style
+  const evBtn = document.getElementById('map-show-events-btn');
+  const buBtn = document.getElementById('map-show-bubbles-btn');
+  if (evBtn) { evBtn.style.background='var(--accent)'; evBtn.style.color='white'; evBtn.style.border='none'; }
+  if (buBtn) { buBtn.style.background='var(--card)'; buBtn.style.color='var(--purple)'; buBtn.style.border='1px solid rgba(139,92,246,.4)'; }
   initMap();
 }
 
@@ -2034,6 +2234,277 @@ async function loadImpactAnalytics() {
   } catch { section.style.display = 'none'; }
 }
 
+// ── Dashboard ─────────────────────────────────────────────────────────────
+let dashDonutChart = null;
+
+async function loadDashboard() {
+  // Update personal stats from currentUser
+  if (currentUser) {
+    document.getElementById('dash-my-pts').textContent = (currentUser.points_balance||0).toLocaleString();
+    document.getElementById('dash-my-hours').textContent = (currentUser.volunteer_hours||0) + 'h';
+  }
+  try {
+    const d = await apiFetch('/api/dashboard');
+    // Stats row
+    document.getElementById('dash-users').textContent  = d.users || 0;
+    document.getElementById('dash-deeds').textContent  = d.deeds || 0;
+    document.getElementById('dash-events').textContent = d.active_events || 0;
+    document.getElementById('dash-bubbles').textContent = d.live_bubbles || 0;
+
+    // Bar chart: activity last 7 days
+    renderActivityBars(d.weekly_deeds || [], d.weekly_regs || []);
+
+    // Donut: events by category
+    if (d.categories && d.categories.length) {
+      renderDonut(d.categories);
+    }
+
+    // Personal deeds count (from profile API)
+    try {
+      const profile = await apiFetch(`/api/profile/${currentUser.id}`);
+      document.getElementById('dash-my-deeds').textContent = profile.deeds_count || 0;
+    } catch {}
+  } catch(e) { console.error('Dashboard load error', e); }
+
+  // Load bubbles for preview
+  loadFeedBubbles();
+}
+
+function renderActivityBars(deeds, regs) {
+  const chart = document.getElementById('dash-bar-chart');
+  const labels = document.getElementById('dash-bar-labels');
+  if (!chart || !deeds.length) return;
+
+  const maxVal = Math.max(...deeds.map(d=>d.count), ...regs.map(r=>r.count), 1);
+  const DAY_LABELS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  chart.innerHTML = deeds.map((d, i) => {
+    const deedH = Math.max(Math.round((d.count / maxVal) * 56), d.count > 0 ? 4 : 0);
+    const regH  = Math.max(Math.round(((regs[i]?.count||0) / maxVal) * 56), (regs[i]?.count||0) > 0 ? 4 : 0);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;height:60px;justify-content:flex-end">
+      <div class="dash-bar" style="width:100%;height:${deedH}px;background:linear-gradient(0deg,var(--green),rgba(16,185,129,.5))"></div>
+      <div class="dash-bar" style="width:100%;height:${regH}px;background:linear-gradient(0deg,var(--accent),rgba(59,130,246,.5))"></div>
+    </div>`;
+  }).join('');
+
+  labels.innerHTML = deeds.map(d => {
+    const date = new Date(d.day + 'T12:00:00');
+    return `<div class="dash-bar-label">${DAY_LABELS[date.getDay()]}</div>`;
+  }).join('');
+}
+
+function renderDonut(categories) {
+  const canvas = document.getElementById('dash-donut');
+  if (!canvas) return;
+
+  const CAT_COLORS = {
+    volunteer: '#10b981', social: '#06b6d4', environment: '#22c55e',
+    senior: '#ec4899', health: '#ef4444', education: '#8b5cf6',
+    sport: '#f59e0b', other: '#475569'
+  };
+  const labels = categories.slice(0,6).map(c => catLabel(c.name));
+  const data   = categories.slice(0,6).map(c => c.count);
+  const colors = categories.slice(0,6).map(c => CAT_COLORS[c.name] || '#475569');
+
+  if (dashDonutChart) { dashDonutChart.destroy(); dashDonutChart = null; }
+  dashDonutChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent', hoverOffset: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+      },
+      animation: { duration: 600 }
+    }
+  });
+}
+
+async function loadFeedBubbles() {
+  try {
+    const city = currentUser?.city || '';
+    const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    const count = bubbles.length;
+    const badge = document.getElementById('feed-bubble-count');
+    if (badge) badge.textContent = count + (count === 1 ? ' aktiv' : ' aktiv');
+    const list = document.getElementById('feed-bubbles-list');
+    if (!list) return;
+    if (!count) {
+      list.innerHTML = '<div class="empty">Keine aktiven Bubbles in deiner Nähe.<br>Sei der Erste — dropp eine!</div>';
+      return;
+    }
+    list.innerHTML = bubbles.slice(0,3).map(b => renderBubbleCard(b)).join('');
+    if (count > 3) {
+      list.innerHTML += `<div style="text-align:center;font-size:.78rem;color:var(--purple);cursor:pointer;padding:.5rem" onclick="switchScreen('volunteer',document.querySelectorAll('.nav-item')[1]);showBubblesView(document.getElementById('bubbles-pill'))">+ ${count-3} weitere Bubbles auf der Karte →</div>`;
+    }
+  } catch {}
+}
+
+// ── Life Bubbles ───────────────────────────────────────────────────────────
+const BUBBLE_EMOJIS = ['✨','🎮','🎵','🎹','🃏','🎲','🏃','🛹','⚽','🏀','🎭','☕','🍕','📚','🎨','🌳','🎸','🥏','🎯','🤸'];
+let selectedBubbleEmoji = '✨';
+let currentMapMode = 'events'; // 'events' | 'bubbles'
+
+function openDropBubble() {
+  // Build emoji picker
+  const row = document.getElementById('bubble-emoji-row');
+  if (row) {
+    row.innerHTML = BUBBLE_EMOJIS.map(e =>
+      `<button class="bubble-emoji-opt ${e===selectedBubbleEmoji?'selected':''}" onclick="selectBubbleEmoji('${e}',this)">${e}</button>`
+    ).join('');
+  }
+  // Pre-fill city
+  const addrEl = document.getElementById('bubble-addr');
+  if (addrEl && !addrEl.value && currentUser?.city) addrEl.value = currentUser.city;
+  document.getElementById('bubble-error').style.display = 'none';
+  openModal('modal-drop-bubble');
+}
+
+function selectBubbleEmoji(e, btn) {
+  selectedBubbleEmoji = e;
+  document.querySelectorAll('.bubble-emoji-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function submitDropBubble() {
+  const title = document.getElementById('bubble-title').value.trim();
+  const errEl = document.getElementById('bubble-error');
+  const btn   = document.getElementById('bubble-submit-btn');
+  errEl.style.display = 'none';
+  if (!title) { errEl.textContent = 'Bitte eine Beschreibung eingeben.'; errEl.style.display = ''; return; }
+  btn.disabled = true; btn.textContent = 'Wird gedroppt…';
+  try {
+    await apiFetch('/api/bubbles', 'POST', {
+      title,
+      emoji: selectedBubbleEmoji,
+      description: document.getElementById('bubble-desc').value.trim(),
+      address: document.getElementById('bubble-addr').value.trim(),
+      city: currentUser?.city || '',
+      hours: parseInt(document.getElementById('bubble-hours').value) || 3
+    });
+    // Reset
+    document.getElementById('bubble-title').value = '';
+    document.getElementById('bubble-desc').value = '';
+    closeModal('modal-drop-bubble');
+    showToast('🫧 Bubble gedroppt! Leute in der Nähe sehen sie jetzt.');
+    loadFeedBubbles();
+    // If bubbles view is open, reload
+    if (document.getElementById('bubbles-scroll').style.display !== 'none') {
+      loadBubblesView();
+    }
+  } catch(e) {
+    errEl.textContent = e.message || 'Fehler beim Droppen.';
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false; btn.textContent = '🫧 Bubble droppen!';
+  }
+}
+
+function renderBubbleCard(b) {
+  const now = new Date();
+  const exp = new Date(b.expires_at + (b.expires_at.includes('Z') ? '' : 'Z'));
+  const minsLeft = Math.max(0, Math.round((exp - now) / 60000));
+  const timeLeft = minsLeft < 60 ? `${minsLeft}min` : `${Math.round(minsLeft/60)}h`;
+  return `<div class="bubble-card">
+    <div class="bubble-emoji">${esc(b.emoji||'✨')}</div>
+    <div class="bubble-body">
+      <div class="bubble-title">${esc(b.title)}</div>
+      ${b.description ? `<div class="bubble-desc">${esc(b.description)}</div>` : ''}
+      <div class="bubble-meta">
+        <span>👤 ${esc(b.display_name||'')}</span>
+        ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
+        <span class="bubble-expires">⏱ ${timeLeft}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadBubblesView() {
+  const city = currentUser?.city || '';
+  const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+  const list = document.getElementById('bubbles-list');
+  if (!list) return;
+  if (!bubbles.length) {
+    list.innerHTML = '<div class="empty">Keine aktiven Bubbles gerade.<br>Sei der Erste — dropp deine!</div>';
+    return;
+  }
+  list.innerHTML = bubbles.map(b => renderBubbleCard(b)).join('');
+}
+
+function showBubblesView(pill) {
+  document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  document.getElementById('events-scroll').style.display = 'none';
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('bubbles-scroll').style.display = '';
+  document.getElementById('fab-event').style.display = 'none';
+  document.getElementById('fab-bubble').style.display = 'flex';
+  loadBubblesView();
+}
+
+// ── Map modes (events / bubbles) ───────────────────────────────────────────
+let bubbleMapMarkers = [];
+
+function setMapMode(mode) {
+  currentMapMode = mode;
+  const evBtn  = document.getElementById('map-show-events-btn');
+  const buBtn  = document.getElementById('map-show-bubbles-btn');
+  if (mode === 'events') {
+    evBtn.style.background = 'var(--accent)'; evBtn.style.color = 'white';
+    evBtn.style.border = 'none';
+    buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--purple)';
+    buBtn.style.border = '1px solid rgba(139,92,246,.4)';
+    // Show event markers, hide bubble markers
+    bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m));
+    bubbleMapMarkers = [];
+    loadMapEvents();
+  } else {
+    buBtn.style.background = 'var(--purple)'; buBtn.style.color = 'white';
+    buBtn.style.border = 'none';
+    evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--accent)';
+    evBtn.style.border = '1px solid rgba(59,130,246,.4)';
+    // Clear event markers and load bubbles
+    if (leafletMap) {
+      leafletMap.eachLayer(layer => {
+        if (layer instanceof L.Marker) leafletMap.removeLayer(layer);
+      });
+    }
+    loadMapBubbles();
+  }
+}
+
+async function loadMapBubbles() {
+  if (!leafletMap) return;
+  try {
+    const city = currentUser?.city || '';
+    const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    bubbleMapMarkers = [];
+    bubbles.forEach(b => {
+      if (!b.lat || !b.lng) return;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="bubble-marker" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:white;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2.5px solid white;cursor:pointer">${b.emoji||'✨'}</div>`,
+        iconSize: [42,42], iconAnchor: [21,21]
+      });
+      const marker = L.marker([b.lat, b.lng], {icon}).addTo(leafletMap);
+      bubbleMapMarkers.push(marker);
+      const now = new Date();
+      const exp = new Date(b.expires_at + (b.expires_at.includes('Z') ? '' : 'Z'));
+      const minsLeft = Math.max(0, Math.round((exp - now) / 60000));
+      const timeLeft = minsLeft < 60 ? `${minsLeft}min` : `${Math.round(minsLeft/60)}h`;
+      marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:180px;padding:.1rem">
+        <div style="font-size:1.4rem;text-align:center;margin-bottom:.3rem">${b.emoji||'✨'}</div>
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;line-height:1.3">${b.title}</div>
+        ${b.description ? `<div style="font-size:.75rem;color:#666;margin-bottom:.3rem">${b.description}</div>` : ''}
+        <div style="font-size:.72rem;color:#888">👤 ${b.display_name||''} · ⏱ noch ${timeLeft}</div>
+        ${b.address ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">📍 ${b.address}</div>` : ''}
+      </div>`);
+    });
+  } catch(e) { console.error('Bubble map error', e); }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────
 // Handle SSO token from Google OAuth or Magic Link redirect
 (function handleSSORedirect() {
@@ -2145,5 +2616,6 @@ window.addEventListener('appinstalled', () => {
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </body>
 </html>
