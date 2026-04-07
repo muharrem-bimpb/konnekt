@@ -567,6 +567,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 }
 .bubble-drop-btn:hover { border-color: var(--purple); background: rgba(139,92,246,.1); }
 .bubble-emoji-pick { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.city-chip { background:var(--card2);border:1.5px solid var(--border);border-radius:99px;padding:.45rem .9rem;font-size:.82rem;font-weight:600;color:var(--dim);cursor:pointer;transition:all .15s; }
+.city-chip.selected,.city-chip:active { border-color:var(--accent);background:rgba(59,130,246,.12);color:var(--accent); }
+
 .bubble-emoji-opt {
   width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--border);
   background: var(--card2); font-size: 1.3rem; cursor: pointer; display: flex;
@@ -1029,7 +1032,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
 
     <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:1rem">
-      Während der Beta: Upgrades werden sofort freigeschaltet. Abrechnung startet mit offiziellem Launch.<br>
+      Konnekt v1.0: Upgrades werden sofort freigeschaltet. Stripe-Abrechnung ist aktiv.<br>
       Kündigung jederzeit möglich.
     </p>
   </div>
@@ -1247,6 +1250,33 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- City Onboarding Modal -->
+<div class="modal-overlay" id="modal-city-onboard">
+  <div class="modal" style="text-align:center">
+    <div class="modal-handle"></div>
+    <div style="font-size:2rem;margin-bottom:.5rem">📍</div>
+    <div class="modal-title" style="justify-content:center;margin-bottom:.4rem">In welcher Stadt bist du?</div>
+    <div style="font-size:.8rem;color:var(--dim);margin-bottom:1.2rem;line-height:1.5">Events, Bubbles und Nachbarn werden nach Stadt gefiltert. Du kannst das später im Profil ändern.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:1rem" id="city-chips">
+      <button class="city-chip" onclick="selectCityChip('Bern',this)">🏛 Bern</button>
+      <button class="city-chip" onclick="selectCityChip('Zürich',this)">🌆 Zürich</button>
+      <button class="city-chip" onclick="selectCityChip('Basel',this)">🎭 Basel</button>
+      <button class="city-chip" onclick="selectCityChip('Luzern',this)">⛵ Luzern</button>
+      <button class="city-chip" onclick="selectCityChip('Genf',this)">🕊 Genf</button>
+      <button class="city-chip" onclick="selectCityChip('St. Gallen',this)">🏔 St. Gallen</button>
+      <button class="city-chip" onclick="selectCityChip('Winterthur',this)">🌿 Winterthur</button>
+      <button class="city-chip" onclick="selectCityChip('Lausanne',this)">🎓 Lausanne</button>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+      <input class="field" id="city-custom-input" type="text" placeholder="Andere Stadt eingeben…" style="flex:1">
+    </div>
+    <button class="btn-primary" id="city-onboard-btn" onclick="submitCityOnboard()" style="opacity:.5;pointer-events:none">Weiter →</button>
+    <div style="margin-top:.75rem">
+      <button onclick="closeModal('modal-city-onboard')" style="background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;font-family:inherit">Später festlegen</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1348,6 +1378,47 @@ function logout() {
   document.getElementById('screen-auth').style.display = 'flex';
 }
 
+// ── City Onboarding ──────────────────────────────────────────────────────
+let _selectedOnboardCity = '';
+
+function selectCityChip(city, btn) {
+  _selectedOnboardCity = city;
+  document.querySelectorAll('.city-chip').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('city-custom-input').value = '';
+  _updateCityOnboardBtn();
+}
+
+function _updateCityOnboardBtn() {
+  const city = _selectedOnboardCity || document.getElementById('city-custom-input').value.trim();
+  const btn = document.getElementById('city-onboard-btn');
+  btn.style.opacity = city ? '1' : '.5';
+  btn.style.pointerEvents = city ? 'auto' : 'none';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('city-custom-input');
+  if (inp) inp.addEventListener('input', () => {
+    if (inp.value.trim()) {
+      _selectedOnboardCity = '';
+      document.querySelectorAll('.city-chip').forEach(b => b.classList.remove('selected'));
+    }
+    _updateCityOnboardBtn();
+  });
+});
+
+async function submitCityOnboard() {
+  const city = _selectedOnboardCity || document.getElementById('city-custom-input').value.trim();
+  if (!city) return;
+  try {
+    currentUser = await apiFetch('/api/profile', 'POST', { city });
+    updateUserUI();
+    closeModal('modal-city-onboard');
+    showToast(`📍 ${city} gespeichert!`);
+    loadEvents(); loadDashboard(); loadFeed();
+  } catch {}
+}
+
 // ── App init ──────────────────────────────────────────────────────────────
 async function loadApp() {
   // Show loading spinner, hide auth
@@ -1368,6 +1439,10 @@ async function loadApp() {
     loadEvents();
     loadDashboard();
     loadChallenge();
+    // City onboarding: show modal if city is not set and user isn't demo
+    if (!currentUser.city && currentUser.username !== 'demo') {
+      setTimeout(() => openModal('modal-city-onboard'), 800);
+    }
   } catch(e) {
     // Token invalid — back to auth, clear token
     loading.style.display = 'none';

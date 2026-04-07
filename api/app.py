@@ -5,6 +5,7 @@ Two pillars: VolunteerHub + Nahbar (anti-loneliness)
 Production-ready Flask REST API
 """
 import os, json, sqlite3, hashlib, secrets, time, random
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -33,8 +34,9 @@ GOOGLE_AUTH_URL      = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL     = "https://oauth2.googleapis.com/token"
 GOOGLE_INFO_URL      = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-# In-memory store for magic links (survives restarts only — fine for beta)
-_magic_links: dict = {}   # token → {email, expires}
+# In-memory stores (survive restarts only — fine for single-instance)
+_magic_links: dict = {}                          # token → {email, expires}
+_login_attempts: dict = defaultdict(list)        # ip → [timestamps]  (rate limiter)
 
 # ── Stripe ────────────────────────────────────────────────────────────────────
 STRIPE_SECRET_KEY        = os.getenv("STRIPE_SECRET_KEY", "")
@@ -511,6 +513,14 @@ def register():
 
 @app.post("/api/auth/login")
 def login():
+    # Simple rate limiter: max 10 attempts per IP per minute
+    ip = request.remote_addr or "unknown"
+    now = time.time()
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < 60]
+    if len(_login_attempts[ip]) >= 10:
+        return jsonify({"error": "Zu viele Versuche. Bitte 1 Minute warten."}), 429
+    _login_attempts[ip].append(now)
+
     d = request.json or {}
     email = d.get("email","").strip().lower()
     password = d.get("password","")
@@ -882,6 +892,8 @@ def register_event(eid):
         ev = c.execute("SELECT * FROM events WHERE id=?", (eid,)).fetchone()
         if not ev:
             return jsonify({"error": "not found"}), 404
+        if ev["organizer_id"] == g.user_id:
+            return jsonify({"error": "Du bist der Organisator dieses Events"}), 409
         already = c.execute("SELECT id FROM event_registrations WHERE event_id=? AND user_id=?", (eid, g.user_id)).fetchone()
         if already:
             return jsonify({"error": "bereits angemeldet"}), 409
@@ -895,12 +907,16 @@ def register_event(eid):
 @app.post("/api/events/<int:eid>/complete")
 @require_auth
 def complete_event(eid):
-    """Mark attendance and award full points"""
+    """Mark attendance and award full points — only callable after event starts."""
     with get_db() as c:
         reg = c.execute("SELECT * FROM event_registrations WHERE event_id=? AND user_id=?", (eid, g.user_id)).fetchone()
         if not reg:
             return jsonify({"error": "nicht angemeldet"}), 404
-        ev = c.execute("SELECT points_reward FROM events WHERE id=?", (eid,)).fetchone()
+        if reg["status"] == "completed":
+            return jsonify({"error": "bereits abgeschlossen"}), 409
+        ev = c.execute("SELECT points_reward, starts_at FROM events WHERE id=?", (eid,)).fetchone()
+        if ev and ev["starts_at"] > datetime.utcnow().isoformat():
+            return jsonify({"error": "Event hat noch nicht begonnen"}), 409
         pts = ev["points_reward"] if ev else 50
         c.execute("UPDATE event_registrations SET status='completed', points_awarded=? WHERE event_id=? AND user_id=?", (pts, eid, g.user_id))
         c.execute("UPDATE users SET volunteer_hours=volunteer_hours+2 WHERE id=?", (g.user_id,))
@@ -1124,6 +1140,14 @@ def redeem_coupon(cid):
         cpn = c.execute("SELECT * FROM coupons WHERE id=?", (cid,)).fetchone()
         if not cpn:
             return jsonify({"error": "not found"}), 404
+        if cpn["status"] != "active":
+            return jsonify({"error": "Coupon nicht mehr verfügbar"}), 409
+        if cpn["max_redemptions"] > 0 and cpn["redemptions_count"] >= cpn["max_redemptions"]:
+            return jsonify({"error": "Coupon ausgeschöpft"}), 409
+        # One redemption per user per coupon
+        already = c.execute("SELECT id FROM coupon_redemptions WHERE coupon_id=? AND user_id=?", (cid, g.user_id)).fetchone()
+        if already:
+            return jsonify({"error": "Du hast diesen Coupon bereits eingelöst"}), 409
         user = c.execute("SELECT points_balance FROM users WHERE id=?", (g.user_id,)).fetchone()
         if user["points_balance"] < cpn["points_cost"]:
             return jsonify({"error": "nicht genug Punkte", "have": user["points_balance"], "need": cpn["points_cost"]}), 402
@@ -1231,6 +1255,13 @@ def log_good_deed():
     if not description:
         return jsonify({"error": "description erforderlich"}), 400
     with get_db() as c:
+        # Anti-cheat: max 5 good deeds per day per user
+        today_count = c.execute(
+            "SELECT COUNT(*) FROM good_deeds WHERE user_id=? AND date(created_at)=date('now')",
+            (g.user_id,)
+        ).fetchone()[0]
+        if today_count >= 5:
+            return jsonify({"error": "Tageslimit erreicht (5 Taten/Tag). Morgen geht's weiter! 🌱"}), 429
         c.execute("INSERT INTO good_deeds (user_id,category,description,points_earned) VALUES (?,?,?,25)",
                   (g.user_id, category, description))
         did = c.execute("SELECT last_insert_rowid()").fetchone()[0]
@@ -1399,7 +1430,7 @@ def platform_stats():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "version": "2.1.0-beta2", "platform": "Konnekt",
+    return jsonify({"status": "ok", "version": "1.0.0", "platform": "Konnekt",
                     "features": ["sso", "magic_link", "subscriptions", "analytics", "map", "hangouts", "join_queue"]})
 
 # ── Zeitbank (Time / Skill Exchange) ─────────────────────────────────────────
@@ -1486,24 +1517,31 @@ def delete_zeitbank(zid):
 
 # ── Monthly Community Challenge ───────────────────────────────────────────────
 
+MONTH_DE = ["Januar","Februar","März","April","Mai","Juni",
+            "Juli","August","September","Oktober","November","Dezember"]
+
 @app.get("/api/challenge")
 def get_challenge():
     """Return the current monthly community challenge with live progress."""
+    now = datetime.utcnow()
+    month_name = MONTH_DE[now.month - 1]
+    month_label = f"{month_name} {now.year}"
     with get_db() as c:
         deeds  = c.execute("SELECT COUNT(*) FROM good_deeds").fetchone()[0]
         visits = c.execute("SELECT COUNT(*) FROM senior_visits WHERE completed=1").fetchone()[0]
         hours  = c.execute("SELECT SUM(volunteer_hours) FROM users").fetchone()[0] or 0
         events_joined = c.execute("SELECT SUM(participants_count) FROM events").fetchone()[0] or 0
+    goal = 500
     return jsonify({
-        "month": "April 2026",
-        "title": "Bern verbindet sich",
-        "subtitle": "Gemeinsam 500 gute Taten bis Ende April",
-        "goal": 500,
+        "month": month_label,
+        "title": "Konnekt verbindet",
+        "subtitle": f"Gemeinsam {goal} gute Taten bis Ende {month_name}",
+        "goal": goal,
         "progress": deeds,
         "milestones": [
             {"at": 100, "label": "100 gute Taten 🌱", "done": deeds >= 100},
             {"at": 250, "label": "250 Verbindungen 💛", "done": deeds >= 250},
-            {"at": 500, "label": "500 — Bern leuchtet! ✨", "done": deeds >= 500},
+            {"at": goal, "label": f"{goal} — die Community leuchtet! ✨", "done": deeds >= goal},
         ],
         "side_stats": {
             "senior_visits": visits,
@@ -1614,7 +1652,7 @@ LANDING_HTML = """<!DOCTYPE html>
 <meta property="og:title" content="Konnekt — Verbinde dich mit deiner Nachbarschaft">
 <meta property="og:description" content="Mach Ehrenamt, besuche Senioren, verdiene Punkte und löse lokale Coupons ein. Kostenlos & beta.">
 <meta property="og:image" content="/icons/icon-512.png">
-<title>Konnekt — Ehrenamt & Nachbarschaft · Beta 2</title>
+<title>Konnekt — Ehrenamt & Nachbarschaft · v1.0</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1700,7 +1738,7 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
   <div class="notice">⚠️ {{ notice }}</div>
   {% endif %}
 
-  <div class="beta-badge">✦ BETA 2 · April 2026 · Handgebaut in Bern</div>
+  <div class="beta-badge">✦ v1.0 · Jetzt live · Handgebaut in Bern</div>
   <div class="hero-emoji">🌐</div>
   <h1>Konnekt</h1>
   <p class="hero-sub">
@@ -1812,7 +1850,7 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
       Aktionen in der echten Welt.
     </p>
     <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1rem">
-      Das hier ist <strong style="color:#a78bfa">Beta 2</strong> — es läuft, es macht Spass, und es wächst.
+      Das hier ist <strong style="color:#a78bfa">Version 1.0</strong> — live, wachsend, und mit Herz gebaut.
       Manches ist noch roh. Manches wird noch besser. Ich baue das nicht für Investoren oder
       Exit-Strategie — ich bau es weil ich in Bern wohne und mir wünsche, dass wir uns mehr kennen.
     </p>
@@ -1835,7 +1873,7 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
     <a href="/datenschutz">Datenschutz</a>
     <a href="/">App öffnen</a>
   </div>
-  <div>© 2026 Konnekt · Beta 2 · Mit ❤️ für Bern und die Welt</div>
+  <div>© 2026 Konnekt · v1.0 · Mit ❤️ für Bern und die Welt</div>
 </div>
 
 <script>
