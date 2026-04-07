@@ -867,7 +867,10 @@ def create_event():
     lat = float(d.get("lat") or 0)
     lng = float(d.get("lng") or 0)
     if not lat or not lng:
-        lat, lng = geocode_address(d.get("address",""), d.get("city",""))
+        addr = d.get("address","").strip()
+        city = d.get("city","").strip()
+        if addr:  # only geocode when an actual address is given
+            lat, lng = geocode_address(addr, city)
     ev_type = d.get("type", "volunteer")
     is_pub  = 1 if ev_type == "hangout" else 0
     with get_db() as c:
