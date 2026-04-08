@@ -696,7 +696,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <!-- Screens -->
-  <div class="screen active" id="screen-feed">
+  <div class="screen" id="screen-feed">
     <div class="scroll-body">
       <!-- Community Challenge -->
       <div class="challenge-card" id="challenge-card" style="display:none">
@@ -798,7 +798,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <!-- Map screen: full-screen map with mode toggles -->
-  <div class="screen" id="screen-map" style="display:none;flex-direction:column;overflow:hidden">
+  <div class="screen active" id="screen-map" style="flex-direction:column;overflow:hidden">
     <div style="flex:1;position:relative;min-height:0">
       <div id="events-map" style="width:100%;height:100%;min-height:300px"></div>
       <!-- Map mode toolbar -->
@@ -995,13 +995,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Bottom nav -->
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="switchScreen('feed',this)">
+    <button class="nav-item" onclick="switchScreen('feed',this)">
       <span class="nav-icon">📊</span><span class="nav-label">Discover</span>
     </button>
     <button class="nav-item" onclick="switchScreen('volunteer',this)">
       <span class="nav-icon">🌱</span><span class="nav-label">Events</span>
     </button>
-    <button class="nav-item" onclick="switchScreen('map',this)">
+    <button class="nav-item active" onclick="switchScreen('map',this)">
       <span class="nav-icon">🗺️</span><span class="nav-label">Karte</span>
     </button>
     <button class="nav-item" onclick="switchScreen('coupons',this)">
@@ -1571,6 +1571,9 @@ async function loadApp() {
     appEl.style.display = 'flex';
     appEl.style.flexDirection = 'column';
     updateUserUI();
+    // Map is the default screen — initialise it first
+    openMapScreen();
+    // Pre-load other tabs in background
     loadFeed();
     loadEvents();
     loadDashboard();
@@ -1653,14 +1656,15 @@ function switchScreen(name, btn) {
 }
 
 function openMapScreen() {
-  // Make sure screen-map is visible and map is initialised
-  initMap();
-  // Default to events mode
   const fabBub = document.getElementById('fab-bubble');
   const fabEvt = document.getElementById('fab-event-map');
   if (fabEvt) fabEvt.style.display = 'flex';
   if (fabBub) fabBub.style.display = 'none';
-  setMapMode(currentMapMode || 'events');
+  // Defer init until the screen is painted — avoids Leaflet measuring 0×0
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    initMap();
+    setMapMode(currentMapMode || 'events');
+  }));
 }
 
 function goProfile() { switchScreen('profile', document.querySelector('.nav-item:last-child')); }
@@ -1782,7 +1786,8 @@ function showMapView(pill) {
 
 function initMap() {
   if (leafletMap) {
-    setTimeout(() => leafletMap.invalidateSize(), 50);
+    // Give the screen time to finish its flex layout before recalculating size
+    setTimeout(() => { leafletMap.invalidateSize(); }, 150);
     loadMapEvents();
     return;
   }
@@ -1999,14 +2004,22 @@ async function startTrail(trailId) {
 }
 
 async function loadCoupons() {
-  const city = currentUser?.city || '';
-  const url = `/api/coupons?city=${encodeURIComponent(city)}${currentCouponFilter?'&category='+currentCouponFilter:''}`;
-  const [coupons, myRedemptions] = await Promise.all([
-    apiFetch(url),
-    apiFetch('/api/my/coupons').catch(() => [])
-  ]);
-  const pts = currentUser?.points_balance || 0;
   const list = document.getElementById('coupons-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading">Lade Coupons…</div>';
+  let coupons, myRedemptions;
+  try {
+    const city = currentUser?.city || '';
+    const url = `/api/coupons?city=${encodeURIComponent(city)}${currentCouponFilter?'&category='+currentCouponFilter:''}`;
+    [coupons, myRedemptions] = await Promise.all([
+      apiFetch(url),
+      apiFetch('/api/my/coupons').catch(() => [])
+    ]);
+  } catch(e) {
+    list.innerHTML = '<div class="empty">Coupons konnten nicht geladen werden. Bitte neu laden.</div>';
+    return;
+  }
+  const pts = currentUser?.points_balance || 0;
   const ICONS = {food:'🍞',sport:'🏃',culture:'🎭',other:'🎟️'};
   const redeemedIds = new Set(myRedemptions.map(r => r.coupon_id));
 
