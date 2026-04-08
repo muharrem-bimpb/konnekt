@@ -1441,10 +1441,14 @@ def nearby_users():
         if not user or not user["city"]:
             return jsonify([])
         rows = c.execute("""
-            SELECT id, display_name, bio, avatar_url, city, is_senior, volunteer_hours
-            FROM users
-            WHERE city LIKE ? AND id != ?
-            ORDER BY RANDOM() LIMIT 20
+            SELECT u.id, u.display_name, u.bio, u.city, u.is_senior, u.is_ngo,
+                   u.volunteer_hours,
+                   (SELECT COUNT(*) FROM good_deeds WHERE user_id=u.id) AS deed_count,
+                   (SELECT COUNT(*) FROM event_registrations WHERE user_id=u.id AND status='attended') AS events_attended
+            FROM users u
+            WHERE u.city LIKE ? AND u.id != ?
+            ORDER BY (u.volunteer_hours * 2 + (SELECT COUNT(*) FROM good_deeds WHERE user_id=u.id)) DESC
+            LIMIT 20
         """, (f"%{user['city']}%", g.user_id)).fetchall()
     return jsonify([dict(r) for r in rows])
 

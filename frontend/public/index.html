@@ -2119,8 +2119,8 @@ async function loadSeniors() {
   if (!rows.length) { list.innerHTML = '<div class="empty">Keine Senioren suchen aktuell Besuch.</div>'; return; }
   list.innerHTML = rows.map(s => `
     <div class="person-card">
-      <div class="person-avatar" style="background:var(--pink)">
-        ${s.avatar_url ? `<img src="${esc(s.avatar_url)}" alt="${esc(s.display_name||'?')[0]}" onerror="this.parentElement.textContent='${esc(s.display_name||'?')[0]}'">` : (s.display_name||'?')[0]}
+      <div class="person-avatar" style="background:var(--pink);font-size:1.2rem;font-weight:800">
+        ${(s.display_name||'?')[0].toUpperCase()}
       </div>
       <div class="person-info">
         <div class="person-name">${esc(s.display_name)}</div>
@@ -2136,18 +2136,24 @@ async function loadNearby() {
   const list = document.getElementById('nearby-list');
   if (!rows.length) { list.innerHTML = '<div class="empty">Registriere deine Stadt, um Nachbarn zu finden.</div>'; return; }
   list.innerHTML = rows.slice(0,8).map(u => {
-    const initial = (u.display_name||'?')[0];
+    const initial = (u.display_name||'?')[0].toUpperCase();
+    const hours = u.volunteer_hours || 0;
+    const deeds = u.deed_count || 0;
+    const attended = u.events_attended || 0;
+    // trust score label
+    const trustLabel = hours >= 10 ? '⭐ Aktiv' : hours >= 3 ? '✓ Dabei' : '🌱 Neu';
     return `<div class="person-card">
-      <div class="person-avatar">
-        ${u.avatar_url ? `<img src="${esc(u.avatar_url)}" alt="${initial}" onerror="this.parentElement.textContent='${initial}'">` : initial}
-      </div>
+      <div class="person-avatar" style="font-size:1.2rem;font-weight:800">${initial}</div>
       <div class="person-info">
         <div class="person-name">${esc(u.display_name)}</div>
-        <div class="person-bio">${esc(u.bio||'')}</div>
-        <div class="person-badges">
+        <div class="person-bio" style="font-size:.72rem;color:var(--dim)">${esc(u.bio||'')}</div>
+        <div class="person-badges" style="margin-top:.3rem;display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">
+          <span class="badge" style="background:var(--accent2);color:white;font-size:.68rem">${trustLabel}</span>
+          ${hours > 0 ? `<span class="badge badge-vol" title="Freiwilligenstunden">🕐 ${hours}h</span>` : ''}
+          ${deeds > 0 ? `<span class="badge" style="background:var(--green);color:white;font-size:.68rem" title="Gute Taten">🤝 ${deeds}</span>` : ''}
+          ${attended > 0 ? `<span class="badge" style="background:var(--accent);color:white;font-size:.68rem" title="Events besucht">📅 ${attended}</span>` : ''}
           ${u.is_senior ? '<span class="badge badge-senior">Senior</span>' : ''}
           ${u.is_ngo ? '<span class="badge badge-ngo">NGO</span>' : ''}
-          ${u.volunteer_hours > 0 ? `<span class="badge badge-vol">${u.volunteer_hours}h</span>` : ''}
         </div>
       </div>
       <button class="klopf-btn" onclick="openKlopfSend(${u.id},'${esc(u.display_name)}','nahbar')">👋 Klopfen</button>
@@ -2211,7 +2217,7 @@ async function loadZeitbank(type, tabEl) {
       <div class="zb-skill">${esc(r.skill)}</div>
       <div class="zb-desc">${esc(r.description||'')}</div>
       <div class="zb-meta">
-        ${r.avatar_url ? `<img src="${esc(r.avatar_url)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='<span style=\'background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem\'>${initial}</span>'">` : `<span style="background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem">${initial}</span>`}
+        <span style="background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0">${initial}</span>
         <span>${esc(r.display_name||'')}</span>
         ${tagEl}
         <span>📍 ${esc(r.city||'')}</span>
