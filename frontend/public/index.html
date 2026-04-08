@@ -653,6 +653,22 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </button>
 
     <button class="btn-secondary" onclick="demoLogin()" style="font-size:.82rem;color:var(--dim)">✨ Demo ohne Account</button>
+
+    <!-- Test accounts for UI testing -->
+    <div id="test-accounts" style="margin-top:.5rem;background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:12px;padding:.65rem">
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.45rem">🧪 Test-Konten (Klopfen, Punkte…)</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        <button onclick="testLogin('test-anna-2026','Anna Müller')" style="background:linear-gradient(90deg,rgba(124,58,237,.2),rgba(59,130,246,.1));border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;color:var(--text);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span>👩 Anna Müller</span><span style="color:#a78bfa;font-size:.68rem">⭐ Pro · 680 Pts · 12h</span>
+        </button>
+        <button onclick="testLogin('test-luca-2026','Luca Bianchi')" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;color:var(--text);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span>👨 Luca Bianchi</span><span style="color:var(--muted);font-size:.68rem">Free · 210 Pts · 3h</span>
+        </button>
+        <button onclick="testLogin('test-fatima-2026','Fatima Hassan')" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;color:var(--text);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span>👩 Fatima Hassan</span><span style="color:var(--muted);font-size:.68rem">Free · 95 Pts · 1h</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1043,11 +1059,12 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         </div>
       </div>
       <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem">
+        <li style="font-size:.85rem;font-weight:700;color:#a78bfa">🚀 3× Punkte auf ALLES — Events, Taten, Besuche</li>
+        <li style="font-size:.8rem;color:var(--dim);padding-left:.8rem">→ Mehr Coupons einlösen, schneller Stammgast werden</li>
         <li style="font-size:.83rem;color:var(--dim)">✅ Verifiziert-Badge auf Profil & Leaderboard</li>
         <li style="font-size:.83rem;color:var(--dim)">📊 Impact-Analyse: CO₂, Stunden, Monatstrend</li>
         <li style="font-size:.83rem;color:var(--dim)">🔝 Priorität in Zeitbank & Eventsuche</li>
         <li style="font-size:.83rem;color:var(--dim)">🎯 Unbegrenzte Events erstellen</li>
-        <li style="font-size:.83rem;color:var(--dim)">💬 Priority-Support</li>
       </ul>
       <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:linear-gradient(135deg,#7c3aed,#3b82f6);box-shadow:0 4px 16px rgba(124,58,237,.3)">⭐ Pro werden — 9 CHF/Monat</button>
     </div>
@@ -1491,17 +1508,17 @@ async function submitAuth() {
 }
 
 async function demoLogin() {
-  // Use the pre-seeded demo token (1-year expiry, no password needed)
   token = 'demo-token-konnekt-2026';
   localStorage.setItem('konnekt_token', token);
-  try {
-    await loadApp();
-    showManualInstallBar();
-  } catch(e) {
-    token = '';
-    localStorage.removeItem('konnekt_token');
-    showAuthError('Demo nicht verfügbar — bitte registriere dich kurz.');
-  }
+  try { await loadApp(); showManualInstallBar(); }
+  catch(e) { token = ''; localStorage.removeItem('konnekt_token'); showAuthError('Demo nicht verfügbar.'); }
+}
+
+async function testLogin(testToken, name) {
+  token = testToken;
+  localStorage.setItem('konnekt_token', token);
+  try { await loadApp(); showToast(`✓ Eingeloggt als ${name}`); }
+  catch(e) { token = ''; localStorage.removeItem('konnekt_token'); showAuthError('Test-Konto nicht verfügbar — warte auf Serverstart.'); }
 }
 
 function showAuthError(msg) {
@@ -1630,17 +1647,20 @@ function updateUserUI() {
   } else {
     profWrap.innerHTML = `<span>${initial}</span>${editBadge}`;
   }
-  document.getElementById('prof-name').textContent = currentUser.display_name || currentUser.username;
+  const tier = currentUser.subscription_tier || 'free';
+  const tierBadge = tier === 'pro' ? ' <span style="font-size:.65rem;background:linear-gradient(90deg,#7c3aed,#3b82f6);color:white;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">⭐ PRO</span>'
+    : tier === 'business' ? ' <span style="font-size:.65rem;background:var(--orange);color:white;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">🏢 BIZ</span>' : '';
+  document.getElementById('prof-name').innerHTML = esc(currentUser.display_name || currentUser.username) + tierBadge;
   document.getElementById('prof-city').textContent = currentUser.city ? '📍 ' + currentUser.city : '';
   document.getElementById('prof-bio').textContent = currentUser.bio || '';
-  document.getElementById('prof-pts').textContent = currentUser.points_balance || 0;
+  document.getElementById('prof-pts').textContent = (currentUser.points_balance || 0).toLocaleString();
   document.getElementById('prof-hours').textContent = currentUser.volunteer_hours || 0;
 
-  // Streak
   const streakEl = document.getElementById('prof-streak');
   const hours = currentUser.volunteer_hours || 0;
   if (hours > 0) {
-    streakEl.innerHTML = `<span class="streak-badge">🔥 ${hours} Ehrenamtsstunden</span>`;
+    const proNote = tier === 'pro' ? ' · 3× Multiplikator aktiv' : '';
+    streakEl.innerHTML = `<span class="streak-badge">🔥 ${hours} Ehrenamtsstunden${proNote}</span>`;
   }
 }
 
@@ -1742,7 +1762,7 @@ async function loadEvents() {
     const catClass = isHangout ? 'hangout' : (ev.category||'other');
     const imgHtml = ev.image_url
       ? `<img class="event-img" src="${esc(ev.image_url)}" alt="${esc(ev.title)}" loading="lazy" onerror="this.style.display='none'">`
-      : `<div class="event-img-placeholder">${CAT_EMOJI[ev.category]||'🌱'}</div>`;
+      : '';
     const hangoutBadge = isHangout
       ? `<span class="hangout-badge">🎮 Hangout · Offen für alle</span>`
       : '';
@@ -1856,7 +1876,7 @@ async function registerEvent(id, btn) {
     await apiFetch(`/api/events/${id}/register`, 'POST');
     btn.textContent = '✓ Angemeldet';
     btn.classList.add('joined');
-    showToast('✓ Angemeldet! +10 Punkte');
+    showToast(`✓ Angemeldet! ${ptMsg(10)}`);
     await refreshPoints();
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
@@ -1987,7 +2007,7 @@ async function createEvent() {
     document.getElementById('ev-start').value = '';
     setEvType('volunteer');
     closeModal('modal-create-event');
-    showToast('✓ Event erstellt! +20 Punkte');
+    showToast(`✓ Event erstellt! ${ptMsg(20)}`);
     loadEvents();
     if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
     await refreshPoints();
@@ -2209,7 +2229,7 @@ async function connectNeighbor(id, btn) {
     await apiFetch('/api/nahbar/connect', 'POST', {user_id: id, type: 'friend'});
     btn.textContent = '✓';
     btn.disabled = true;
-    showToast('✓ Verbunden! +15 Punkte');
+    showToast(`✓ Verbunden! ${ptMsg(15)}`);
     await refreshPoints();
   } catch(e) { showToast(e.message||'Fehler'); }
 }
@@ -2218,7 +2238,7 @@ async function scheduleVisit(seniorId) {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
   try {
     await apiFetch('/api/nahbar/visit', 'POST', {senior_id: seniorId, scheduled_at: tomorrow.toISOString().slice(0,16)});
-    showToast('✓ Besuch geplant! +5 Punkte');
+    showToast(`✓ Besuch geplant! ${ptMsg(5)}`);
     await refreshPoints();
   } catch(e) { showToast(e.message||'Fehler'); }
 }
@@ -2316,7 +2336,7 @@ async function logDeed() {
     updateDeedCounter({value:''});
     const rem = r.deeds_remaining_today ?? '–';
     document.getElementById('deed-remaining').textContent = `${rem} Taten heute noch möglich`;
-    showToast('✓ Gute Tat eingetragen! +25 Punkte');
+    showToast(`✓ Gute Tat eingetragen! ${ptMsg(25)}`);
     await refreshPoints();
     loadFeed();
     loadChallenge();
@@ -2491,6 +2511,12 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+/** Returns earned-points string, showing 3× multiplier for Pro users. */
+function ptMsg(base) {
+  if (currentUser?.subscription_tier === 'pro') return `+${base*3} Punkte ⭐ 3×`;
+  return `+${base} Punkte`;
+}
+
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -2585,13 +2611,19 @@ function loadTierBanner() {
   const banner = document.getElementById('tier-banner');
   if (!banner) return;
   if (tier === 'free') {
-    banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(59,130,246,.07));border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:.9rem;display:flex;align-items:center;gap:.75rem">
-      <span style="font-size:1.4rem">🚀</span>
-      <div style="flex:1">
-        <div style="font-size:.85rem;font-weight:700">Konnekt Pro freischalten</div>
-        <div style="font-size:.73rem;color:var(--muted)">Impact-Analyse, Verified Badge, Priority · 9 CHF/Monat</div>
+    const balance = currentUser?.points_balance || 0;
+    banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(59,130,246,.07));border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:.9rem">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+        <span style="font-size:1.4rem">🚀</span>
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:800">Pro = <span style="color:#a78bfa">3× mehr Punkte</span> auf alles</div>
+          <div style="font-size:.73rem;color:var(--muted)">Du hättest ${balance*3} statt ${balance} Pts — mehr Coupons, mehr Stammgast</div>
+        </div>
+        <button class="btn-primary" style="padding:.5rem .9rem;font-size:.78rem;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#3b82f6)" onclick="openPricing()">9 CHF/M</button>
       </div>
-      <button class="btn-primary" style="padding:.5rem .9rem;font-size:.78rem;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#3b82f6)" onclick="openPricing()">Upgrade</button>
+      <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:.5rem .75rem;font-size:.73rem;color:var(--dim)">
+        💡 <strong style="color:var(--text)">Woher kommen die Coupons?</strong> Unternehmen zahlen ein Werbebudget an Konnekt (ab 49 CHF/M). Deine Punkte lösen direkt gegen dieses Budget ein — kein Umweg, kein Trick.
+      </div>
     </div>`;
   } else {
     const icons = {pro:'⭐', business:'🏢', ngo:'🌱'};

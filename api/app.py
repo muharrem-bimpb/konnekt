@@ -373,6 +373,42 @@ def _ensure_demo_token(c):
               (DEMO_TOKEN, demo_id, expires))
 
 def _seed_demo(c):
+    # ── Test users for Klopfen / UI testing ───────────────────────────────────
+    test_users = [
+        # (email, username, display_name, bio, city, points, volunteer_hours, tier, token)
+        ("anna@konnekt.app", "anna_m", "Anna Müller",
+         "Ehrenamtlich seit 3 Jahren. Mag Brettspiele und Stadtgärten 🌱",
+         "Bern", 680, 12, "pro", "test-anna-2026"),
+        ("luca@konnekt.app", "luca_b", "Luca Bianchi",
+         "Neu in Bern, lerne Deutsch. Fotograf & Kaffeeliebhaber ☕",
+         "Bern", 210, 3, "free", "test-luca-2026"),
+        ("fatima@konnekt.app", "fatima_h", "Fatima Hassan",
+         "Sozialarbeiterin, 2 Kinder. Organisiere gerne kleine Events für die Nachbarschaft.",
+         "Bern", 95, 1, "free", "test-fatima-2026"),
+    ]
+    expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
+    for email, username, display_name, bio, city, pts, hours, tier, token in test_users:
+        if c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
+            continue
+        c.execute(
+            "INSERT OR IGNORE INTO users (username,email,password_hash,display_name,bio,city,points_balance,volunteer_hours,subscription_tier) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (username, email, "TEST_NO_LOGIN", display_name, bio, city, pts, hours, tier)
+        )
+        uid = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()["id"]
+        c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
+                  (token, uid, expires))
+        # Seed some good deeds for Anna so she has a track record
+        if username == "anna_m":
+            for i in range(8):
+                try:
+                    c.execute("INSERT INTO good_deeds (user_id,category,description,city) VALUES (?,?,?,?)",
+                              (uid, ["neighbor","environment","senior"][i%3],
+                               ["Nachbarin beim Umzug geholfen","Mülltrennung im Quartier erklärt","Ältere Dame begleitet zum Arzt",
+                                "Pflanzen für Neuzugezogene gegossen","Park aufgeräumt","Kindern beim Schulprojekt geholfen",
+                                "Lebensmittel für Foodbank gespendet","Sprachkurs organisiert"][i], "Bern"))
+                except Exception: pass
+
     # Demo businesses with coupons
     businesses = [
         ("Bäckerei Müller", "Frische Backwaren täglich", "food", "Hauptstrasse 5", "Bern", 46.948, 7.447),
@@ -534,10 +570,16 @@ def require_auth(f):
     return decorated
 
 def award_points(user_id, delta, reason, ref_type=None, ref_id=None):
+    """Award points — Pro users earn 3× on everything."""
     with get_db() as c:
-        c.execute("UPDATE users SET points_balance = points_balance + ? WHERE id=?", (delta, user_id))
+        tier = c.execute("SELECT subscription_tier FROM users WHERE id=?", (user_id,)).fetchone()
+        multiplier = 3 if tier and tier["subscription_tier"] == "pro" else 1
+        actual = delta * multiplier
+        c.execute("UPDATE users SET points_balance = points_balance + ? WHERE id=?", (actual, user_id))
+        label = f"{reason} (3× Pro)" if multiplier == 3 else reason
         c.execute("INSERT INTO point_transactions (user_id,delta,reason,ref_type,ref_id) VALUES (?,?,?,?,?)",
-                  (user_id, delta, reason, ref_type, ref_id))
+                  (user_id, actual, label, ref_type, ref_id))
+    return actual
 
 # ── Static / Frontend ─────────────────────────────────────────────────────────
 
