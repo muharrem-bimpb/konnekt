@@ -787,6 +787,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
       <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
       <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
+      <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
       <div class="fpill" id="map-pill" onclick="showMapView(this)">🗺️ Karte</div>
       <div class="fpill" id="bubbles-pill" onclick="showBubblesView(this)" style="border-color:rgba(139,92,246,.4);color:var(--purple)">🫧 Bubbles</div>
     </div>
@@ -797,8 +798,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div id="events-map" style="width:100%;height:100%;min-height:300px"></div>
       <!-- Map mode toolbar -->
       <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem">
-        <button id="map-show-events-btn" onclick="setMapMode('events')" style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
-        <button id="map-show-bubbles-btn" onclick="setMapMode('bubbles')" style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
+        <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
+        <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
+        <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--orange);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🏪 Shops</button>
       </div>
     </div>
     <!-- Bubbles list view -->
@@ -822,13 +824,28 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div style="font-size:.72rem;color:var(--muted)">Durch Ehrenamt & gute Taten verdient</div>
       </div>
       <div class="neon-line" style="margin-bottom:.85rem"></div>
-      <div class="filter-row" id="coupon-filters">
-        <div class="fpill active" onclick="filterCoupons('',this)">Alle</div>
-        <div class="fpill" onclick="filterCoupons('food',this)">🍞 Essen</div>
-        <div class="fpill" onclick="filterCoupons('sport',this)">🏃 Sport</div>
-        <div class="fpill" onclick="filterCoupons('culture',this)">🎭 Kultur</div>
+      <!-- Coupon / Trail tab toggle -->
+      <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
+        <button type="button" id="reward-tab-coupons" onclick="switchRewardTab('coupons')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.8rem;font-weight:700;background:var(--accent);color:white;cursor:pointer">🎟️ Coupons</button>
+        <button type="button" id="reward-tab-trails"  onclick="switchRewardTab('trails')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.8rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🗺️ Trails</button>
       </div>
-      <div id="coupons-list"><div class="loading">Lade Coupons…</div></div>
+      <!-- Coupons pane -->
+      <div id="reward-pane-coupons">
+        <div class="filter-row" id="coupon-filters">
+          <div class="fpill active" onclick="filterCoupons('',this)">Alle</div>
+          <div class="fpill" onclick="filterCoupons('food',this)">🍞 Essen</div>
+          <div class="fpill" onclick="filterCoupons('sport',this)">🏃 Sport</div>
+          <div class="fpill" onclick="filterCoupons('culture',this)">🎭 Kultur</div>
+        </div>
+        <div id="coupons-list"><div class="loading">Lade Coupons…</div></div>
+      </div>
+      <!-- Trails pane -->
+      <div id="reward-pane-trails" style="display:none">
+        <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:12px;padding:.85rem;margin-bottom:.85rem;font-size:.78rem;color:var(--orange)">
+          🗺️ <b>Trails</b> — Besuche lokale Cafés & Shops in einer Route und verdiene Bonuspunkte. Neue Stammkunden für die Betriebe, neue Entdeckungen für dich.
+        </div>
+        <div id="trails-list"><div class="loading">Lade Trails…</div></div>
+      </div>
     </div>
   </div>
 
@@ -1062,11 +1079,15 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <div id="ev-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
     <!-- Event type toggle -->
     <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
-      <button type="button" id="ev-type-btn-volunteer" onclick="setEvType('volunteer')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.82rem;font-weight:700;background:var(--accent);color:white;cursor:pointer;transition:all .2s">🌱 Ehrenamt</button>
-      <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.82rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
+      <button type="button" id="ev-type-btn-volunteer" onclick="setEvType('volunteer')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:var(--accent);color:white;cursor:pointer;transition:all .2s">🌱 Ehrenamt</button>
+      <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
+      <button type="button" id="ev-type-btn-quartier" onclick="setEvType('quartier')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🏘️ Quartier</button>
     </div>
     <div id="ev-hangout-hint" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--purple);margin-bottom:.65rem">
       🎮 Hangout: Öffentliches Event — Leute in der Nähe sehen es auf der Karte und können anfragen mitzumachen. Du entscheidest wer rein darf.
+    </div>
+    <div id="ev-quartier-hint" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--orange);margin-bottom:.65rem">
+      🏘️ Quartier-Event: Für alle die ins Viertel ziehen oder schon hier wohnen. Zeig wer du bist, was du anbietest oder suchst. Perfekt um Nachbarn kennenzulernen.
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Titel *</div>
@@ -1082,6 +1103,11 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <option value="health">❤️ Gesundheit</option>
         <option value="education">📚 Bildung</option>
         <option value="sport">🏃 Sport</option>
+        <option value="astronomy">🔭 Astronomie / Teleskop</option>
+        <option value="gaming">🎮 Gaming / Spiellounge</option>
+        <option value="cooking">👨‍🍳 Kochen & Essen</option>
+        <option value="photography">📷 Fotografie</option>
+        <option value="hiking">🥾 Wandern & Natur</option>
         <option value="other">🎉 Anderes</option>
       </select>
     </div>
@@ -1337,6 +1363,14 @@ let currentZbType = 'offer';
 let deedCategory = 'neighbor';
 let currentEvType = 'volunteer';
 let leafletMap = null;
+let leafletTileLayer = null;
+
+const MAP_TILES = {
+  dark:  { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+           attr: '© <a href="https://openstreetmap.org">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>' },
+  light: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+           attr: '© <a href="https://openstreetmap.org">OpenStreetMap</a>' }
+};
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 const savedTheme = localStorage.getItem('konnekt_theme') || 'dark';
@@ -1357,6 +1391,15 @@ function updateThemeUI(theme) {
   btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   const meta = document.getElementById('theme-color-meta');
   if (meta) meta.content = theme === 'dark' ? '#0a0f1e' : '#f0f4f8';
+  updateMapTiles(theme);
+}
+
+function updateMapTiles(theme) {
+  if (!leafletMap) return;
+  const t = MAP_TILES[theme] || MAP_TILES.dark;
+  if (leafletTileLayer) leafletMap.removeLayer(leafletTileLayer);
+  leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
+  leafletTileLayer.addTo(leafletMap);
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────
@@ -1636,7 +1679,7 @@ async function loadEvents() {
     </div>`;
     return;
   }
-  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',other:'🎉'};
+  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',quartier:'🏘️',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾',other:'🎉'};
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.starts_at);
     const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
@@ -1667,7 +1710,10 @@ async function loadEvents() {
           <span>📍 ${esc(ev.city||ev.address||'')}</span>
           <span>👤 ${ev.participants_count||0}${ev.max_participants>0?' / '+ev.max_participants:''}</span>
         </div>
-        <div class="event-actions">${actionBtn}</div>
+        <div class="event-actions">
+          ${actionBtn}
+          <button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1712,10 +1758,10 @@ function initMap() {
   }
   // Default: Bern centre
   leafletMap = L.map('events-map', {zoomControl:true}).setView([46.9480, 7.4474], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-    maxZoom: 19
-  }).addTo(leafletMap);
+  const curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const t = MAP_TILES[curTheme] || MAP_TILES.dark;
+  leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
+  leafletTileLayer.addTo(leafletMap);
   // Try GPS location
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
@@ -1735,9 +1781,11 @@ async function loadMapEvents() {
     const events = await apiFetch(`/api/map/events?city=${encodeURIComponent(city)}`);
     events.forEach(ev => {
       if (!ev.lat || !ev.lng) return;
-      const isHangout = ev.type === 'hangout';
-      const bg = isHangout ? '#8b5cf6' : '#3b82f6';
-      const emoji = isHangout ? '🎮' : ({volunteer:'🌱',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',social:'👥'}[ev.category] || '🌱');
+      const isHangout  = ev.type === 'hangout';
+      const isQuartier = ev.type === 'quartier';
+      const bg = isHangout ? '#8b5cf6' : isQuartier ? '#f97316' : '#3b82f6';
+      const CAT_MAP = {volunteer:'🌱',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',social:'👥',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾'};
+      const emoji = isQuartier ? '🏘️' : (isHangout ? '🎮' : (CAT_MAP[ev.category] || '🌱'));
       const icon = L.divIcon({
         className: '',
         html: `<div style="background:${bg};color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 3px 10px rgba(0,0,0,.4);border:2.5px solid white;cursor:pointer">${emoji}</div>`,
@@ -1784,19 +1832,37 @@ async function joinRequest(id, btn) {
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
+async function flagEvent(id, btn) {
+  const reason = prompt('Warum möchtest du dieses Event melden?\n(spam / unangemessen / gefälschte Infos / anderes)', 'spam');
+  if (!reason) return;
+  try {
+    const r = await apiFetch(`/api/events/${id}/flag`, 'POST', {reason});
+    if (btn) { btn.textContent = '⚑ Gemeldet'; btn.disabled = true; btn.style.color = '#ef4444'; }
+    showToast('Event gemeldet. Danke!');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
 function setEvType(type) {
   currentEvType = type;
   const vBtn = document.getElementById('ev-type-btn-volunteer');
   const hBtn = document.getElementById('ev-type-btn-hangout');
-  const hint = document.getElementById('ev-hangout-hint');
+  const qBtn = document.getElementById('ev-type-btn-quartier');
+  const hangoutHint  = document.getElementById('ev-hangout-hint');
+  const quartierHint = document.getElementById('ev-quartier-hint');
+
+  // Reset all
+  [vBtn, hBtn, qBtn].forEach(b => { b.style.background = 'transparent'; b.style.color = 'var(--dim)'; });
+  hangoutHint.style.display = 'none';
+  quartierHint.style.display = 'none';
+
   if (type === 'volunteer') {
     vBtn.style.background = 'var(--accent)'; vBtn.style.color = 'white';
-    hBtn.style.background = 'transparent'; hBtn.style.color = 'var(--dim)';
-    hint.style.display = 'none';
-  } else {
+  } else if (type === 'hangout') {
     hBtn.style.background = 'var(--purple)'; hBtn.style.color = 'white';
-    vBtn.style.background = 'transparent'; vBtn.style.color = 'var(--dim)';
-    hint.style.display = '';
+    hangoutHint.style.display = '';
+  } else if (type === 'quartier') {
+    qBtn.style.background = 'var(--orange)'; qBtn.style.color = 'white';
+    quartierHint.style.display = '';
   }
 }
 
@@ -1844,6 +1910,8 @@ async function createEvent() {
     closeModal('modal-create-event');
     showToast('✓ Event erstellt! +20 Punkte');
     loadEvents();
+    // If map is visible, refresh it so the new pin appears
+    if (document.getElementById('map-container')?.style.display !== 'none') loadMapEvents();
     await refreshPoints();
   } catch(e) {
     errEl.textContent = e.message || 'Fehler beim Erstellen.';
@@ -1853,7 +1921,53 @@ async function createEvent() {
   }
 }
 
-// ── Coupons ───────────────────────────────────────────────────────────────
+// ── Coupons & Trails ─────────────────────────────────────────────────────────
+function switchRewardTab(tab) {
+  const isCoupons = tab === 'coupons';
+  document.getElementById('reward-pane-coupons').style.display = isCoupons ? '' : 'none';
+  document.getElementById('reward-pane-trails').style.display  = isCoupons ? 'none' : '';
+  const cTab = document.getElementById('reward-tab-coupons');
+  const tTab = document.getElementById('reward-tab-trails');
+  cTab.style.background = isCoupons ? 'var(--accent)' : 'transparent';
+  cTab.style.color = isCoupons ? 'white' : 'var(--dim)';
+  tTab.style.background = !isCoupons ? 'var(--orange)' : 'transparent';
+  tTab.style.color = !isCoupons ? 'white' : 'var(--dim)';
+  if (!isCoupons) loadTrails();
+}
+
+async function loadTrails() {
+  const city = currentUser?.city || '';
+  const list = document.getElementById('trails-list');
+  try {
+    const trails = await apiFetch(`/api/trails?city=${encodeURIComponent(city)}`);
+    if (!trails.length) { list.innerHTML = '<div class="empty">Noch keine Trails verfügbar.</div>'; return; }
+    list.innerHTML = trails.map(tr => {
+      const stopsHtml = tr.stops.map((s, i) => `
+        <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:var(--orange);color:white;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800">${i+1}</div>
+          <div>
+            <div style="font-size:.85rem;font-weight:700">${esc(s.biz_name)}</div>
+            <div style="font-size:.73rem;color:var(--dim)">${esc(s.task_hint||'')}</div>
+          </div>
+        </div>`).join('');
+      return `<div class="card" style="margin-bottom:.85rem">
+        <div class="card-body">
+          <div style="font-size:1rem;font-weight:800;margin-bottom:.25rem">${esc(tr.title)}</div>
+          <div style="font-size:.78rem;color:var(--dim);margin-bottom:.65rem">${esc(tr.description)}</div>
+          <div style="font-size:.78rem;color:var(--orange);font-weight:700;margin-bottom:.5rem">🏆 +${tr.bonus_points} Bonus-Punkte bei Abschluss</div>
+          ${stopsHtml}
+          <button class="btn-primary" style="margin-top:.75rem;font-size:.82rem" onclick="startTrail(${tr.id})">Trail starten →</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = '<div class="empty">Fehler beim Laden.</div>'; }
+}
+
+async function startTrail(trailId) {
+  showToast('Trail gestartet! Besuche die Stops und check ein.');
+  // Future: open a trail detail view with checkin buttons
+}
+
 async function loadCoupons() {
   const city = currentUser?.city || '';
   const url = `/api/coupons?city=${encodeURIComponent(city)}${currentCouponFilter?'&category='+currentCouponFilter:''}`;
@@ -2203,7 +2317,7 @@ async function apiFetch(path, method='GET', body=null) {
 }
 
 function catLabel(c) {
-  return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',hangout:'Hangout',other:'Event'}[c]||c;
+  return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',hangout:'Hangout',quartier:'Quartier',astronomy:'Astronomie',gaming:'Gaming',cooking:'Kochen',photography:'Fotografie',hiking:'Wandern',other:'Event'}[c]||c;
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -2576,32 +2690,57 @@ function showBubblesView(pill) {
 }
 
 // ── Map modes (events / bubbles) ───────────────────────────────────────────
-let bubbleMapMarkers = [];
-let eventMapMarkers  = [];
+let bubbleMapMarkers   = [];
+let eventMapMarkers    = [];
+let shopMapMarkers     = [];
 
 function setMapMode(mode) {
   currentMapMode = mode;
-  const evBtn  = document.getElementById('map-show-events-btn');
-  const buBtn  = document.getElementById('map-show-bubbles-btn');
+  const evBtn = document.getElementById('map-show-events-btn');
+  const buBtn = document.getElementById('map-show-bubbles-btn');
+  const shBtn = document.getElementById('map-show-shops-btn');
+
+  // Reset all buttons to inactive style
+  evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--accent)'; evBtn.style.border = '1px solid rgba(59,130,246,.4)';
+  buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--purple)'; buBtn.style.border = '1px solid rgba(139,92,246,.4)';
+  shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--orange)'; shBtn.style.border = '1px solid rgba(249,115,22,.4)';
+
+  // Clear all markers
+  eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
+  bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m)); bubbleMapMarkers = [];
+  shopMapMarkers.forEach(m => leafletMap.removeLayer(m)); shopMapMarkers = [];
+
   if (mode === 'events') {
-    evBtn.style.background = 'var(--accent)'; evBtn.style.color = 'white';
-    evBtn.style.border = 'none';
-    buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--purple)';
-    buBtn.style.border = '1px solid rgba(139,92,246,.4)';
-    // Show event markers, hide bubble markers
-    bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m));
-    bubbleMapMarkers = [];
+    evBtn.style.background = 'var(--accent)'; evBtn.style.color = 'white'; evBtn.style.border = 'none';
     loadMapEvents();
-  } else {
-    buBtn.style.background = 'var(--purple)'; buBtn.style.color = 'white';
-    buBtn.style.border = 'none';
-    evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--accent)';
-    evBtn.style.border = '1px solid rgba(59,130,246,.4)';
-    // Clear event markers and load bubbles
-    eventMapMarkers.forEach(m => leafletMap.removeLayer(m));
-    eventMapMarkers = [];
+  } else if (mode === 'bubbles') {
+    buBtn.style.background = 'var(--purple)'; buBtn.style.color = 'white'; buBtn.style.border = 'none';
     loadMapBubbles();
+  } else if (mode === 'shops') {
+    shBtn.style.background = 'var(--orange)'; shBtn.style.color = 'white'; shBtn.style.border = 'none';
+    loadMapShops();
   }
+}
+
+async function loadMapShops() {
+  if (!leafletMap) return;
+  try {
+    const city = currentUser?.city || '';
+    const shops = await apiFetch(`/api/businesses?city=${encodeURIComponent(city)}&limit=50`);
+    const BIZ_EMOJI = { food:'🍞', sport:'🏃', culture:'🎭', other:'🏪', cafe:'☕', gaming:'🎮', bar:'🍺' };
+    shops.forEach(s => {
+      if (!s.lat || !s.lng) return;
+      const emoji = BIZ_EMOJI[s.category] || '🏪';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:var(--orange, #f97316);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(0,0,0,.4);border:2.5px solid white;cursor:pointer">${emoji}</div>`,
+        iconSize: [38,38], iconAnchor: [19,19]
+      });
+      const marker = L.marker([s.lat, s.lng], {icon}).addTo(leafletMap);
+      shopMapMarkers.push(marker);
+      marker.bindPopup(`<div style="min-width:160px"><b>${s.name}</b><br><span style="font-size:.78rem;color:#666">${s.category}</span>${s.description ? '<br><span style="font-size:.78rem">'+s.description+'</span>' : ''}</div>`);
+    });
+  } catch(e) { console.warn('loadMapShops error', e); }
 }
 
 async function loadMapBubbles() {

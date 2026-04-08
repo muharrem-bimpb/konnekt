@@ -272,14 +272,64 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS trails (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            city TEXT DEFAULT '',
+            bonus_points INTEGER DEFAULT 100,
+            created_by INTEGER,
+            active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(created_by) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS trail_stops (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trail_id INTEGER NOT NULL,
+            business_id INTEGER NOT NULL,
+            stop_order INTEGER NOT NULL,
+            task_hint TEXT DEFAULT '',
+            FOREIGN KEY(trail_id) REFERENCES trails(id),
+            FOREIGN KEY(business_id) REFERENCES businesses(id)
+        );
+        CREATE TABLE IF NOT EXISTS trail_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trail_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            stop_id INTEGER NOT NULL,
+            checked_in_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(trail_id, user_id, stop_id),
+            FOREIGN KEY(trail_id) REFERENCES trails(id),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(stop_id) REFERENCES trail_stops(id)
+        );
+        CREATE TABLE IF NOT EXISTS event_flags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            reason TEXT DEFAULT 'spam',
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(event_id, user_id),
+            FOREIGN KEY(event_id) REFERENCES events(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS user_strikes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            ref_type TEXT DEFAULT 'event',
+            ref_id INTEGER,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         """)
         # Add subscription_tier column to users if not exists (migration)
         try:
             c.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
         except sqlite3.OperationalError:
             pass  # column already exists
-        # Add type + is_public columns to events (migration)
-        for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1")]:
+        # Add type + is_public + quartier columns to events (migration)
+        for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1"), ("is_quartier", "INTEGER DEFAULT 0")]:
             try:
                 c.execute(f"ALTER TABLE events ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
@@ -297,6 +347,9 @@ def init_db():
         # Seed demo bubbles if none active
         if c.execute("SELECT COUNT(*) FROM life_bubbles WHERE expires_at > datetime('now')").fetchone()[0] == 0:
             _seed_bubbles(c)
+        # Seed demo trail if none exists
+        if c.execute("SELECT COUNT(*) FROM trails").fetchone()[0] == 0:
+            _seed_trail(c)
 
 def _ensure_demo_token(c):
     """Create demo user + session on every boot if they don't exist."""
@@ -411,6 +464,24 @@ def _seed_bubbles(c):
                       (uid, title, emoji, desc, lat, lng, addr, city, expires))
         except Exception:
             pass
+
+def _seed_trail(c):
+    """Seed a demo Bern coffee trail."""
+    biz_rows = c.execute("SELECT id, name FROM businesses ORDER BY id LIMIT 3").fetchall()
+    if len(biz_rows) < 3:
+        return
+    try:
+        c.execute("INSERT INTO trails (title,description,city,bonus_points) VALUES (?,?,?,?)",
+                  ("Berner Kaffeeroute ☕", "Besuche 3 lokale Cafés in der Berner Altstadt und sammle Bonuspunkte. Jedes Café bietet dir etwas Besonderes!", "Bern", 150))
+        trail_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        hints = ["Bestell einen Kaffee und sag dem Team: 'Ich bin von Konnekt!'",
+                 "Schau dir die Auslage an und frag nach der Spezialität des Hauses.",
+                 "Verweile kurz und triff neue Leute — das ist der Sinn!"]
+        for i, biz in enumerate(biz_rows):
+            c.execute("INSERT INTO trail_stops (trail_id,business_id,stop_order,task_hint) VALUES (?,?,?,?)",
+                      (trail_id, biz["id"], i+1, hints[i]))
+    except Exception:
+        pass
 
 def geocode_address(address, city):
     """Use Nominatim (OSM) — free, no API key needed."""
@@ -869,17 +940,18 @@ def create_event():
     if not lat or not lng:
         addr = d.get("address","").strip()
         city = d.get("city","").strip()
-        if addr:  # only geocode when an actual address is given
+        if addr or city:  # geocode from address, or fall back to city centre
             lat, lng = geocode_address(addr, city)
-    ev_type = d.get("type", "volunteer")
-    is_pub  = 1 if ev_type == "hangout" else 0
+    ev_type     = d.get("type", "volunteer")
+    is_pub      = 1 if ev_type in ("hangout", "quartier") else 0
+    is_quartier = 1 if ev_type == "quartier" else 0
     with get_db() as c:
         c.execute("""
-            INSERT INTO events (organizer_id,title,description,category,type,is_public,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO events (organizer_id,title,description,category,type,is_public,is_quartier,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             g.user_id, d["title"], d.get("description",""), d.get("category","other"),
-            ev_type, is_pub,
+            ev_type, is_pub, is_quartier,
             d.get("address",""), d.get("city",""), lat, lng,
             d["starts_at"], d.get("ends_at"), d.get("max_participants",0),
             d.get("points_reward",50), json.dumps(d.get("tags",[]))
@@ -984,6 +1056,32 @@ def respond_join_request(eid, rid):
                 pass
             award_points(jq["user_id"], 10, "Hangout-Anfrage akzeptiert", "event", eid)
     return jsonify({"ok": True, "action": action})
+
+@app.post("/api/events/<int:eid>/flag")
+@require_auth
+def flag_event(eid):
+    """Flag an event as spam/inappropriate. Auto-hides at 3 flags."""
+    reason = (request.json or {}).get("reason", "spam")
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id, status FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev:
+            return jsonify({"error": "not found"}), 404
+        if ev["organizer_id"] == g.user_id:
+            return jsonify({"error": "Eigene Events können nicht gemeldet werden"}), 409
+        try:
+            c.execute("INSERT INTO event_flags (event_id,user_id,reason) VALUES (?,?,?)", (eid, g.user_id, reason))
+        except sqlite3.IntegrityError:
+            return jsonify({"error": "Bereits gemeldet"}), 409
+        flag_count = c.execute("SELECT COUNT(*) FROM event_flags WHERE event_id=?", (eid,)).fetchone()[0]
+        if flag_count >= 3:
+            c.execute("UPDATE events SET status='flagged' WHERE id=?", (eid,))
+            # Add a strike to the organizer
+            c.execute("INSERT INTO user_strikes (user_id,reason,ref_type,ref_id) VALUES (?,?,?,?)",
+                      (ev["organizer_id"], "Event automatisch ausgeblendet (3+ Meldungen)", "event", eid))
+            strikes = c.execute("SELECT COUNT(*) FROM user_strikes WHERE user_id=?", (ev["organizer_id"],)).fetchone()[0]
+            if strikes >= 3:
+                c.execute("UPDATE users SET is_verified=0 WHERE id=?", (ev["organizer_id"],))
+    return jsonify({"ok": True, "flag_count": flag_count})
 
 @app.get("/api/map/events")
 def map_events():
@@ -1116,6 +1214,145 @@ def get_dashboard():
             "total_signups": stats["total_signups"],
             "live_bubbles": stats["live_bubbles"],
         })
+
+# ── Businesses ───────────────────────────────────────────────────────────────
+
+@app.get("/api/businesses")
+def get_businesses():
+    city  = request.args.get("city", "")
+    limit = int(request.args.get("limit", 50))
+    with get_db() as c:
+        q = "SELECT * FROM businesses WHERE lat != 0 AND lng != 0"
+        params = []
+        if city:
+            q += " AND city LIKE ?"; params.append(f"%{city}%")
+        q += " ORDER BY name ASC LIMIT ?"
+        params.append(limit)
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+# ── Trails (cafe/shop stamp-card roadmap) ─────────────────────────────────────
+
+@app.get("/api/trails")
+def get_trails():
+    city = request.args.get("city","")
+    with get_db() as c:
+        q = "SELECT t.* FROM trails t WHERE t.active=1"
+        params = []
+        if city:
+            q += " AND t.city LIKE ?"; params.append(f"%{city}%")
+        q += " ORDER BY t.created_at DESC"
+        trails = c.execute(q, params).fetchall()
+        result = []
+        for tr in trails:
+            stops = c.execute("""
+                SELECT ts.*, b.name as biz_name, b.address, b.lat, b.lng, b.category
+                FROM trail_stops ts JOIN businesses b ON ts.business_id=b.id
+                WHERE ts.trail_id=? ORDER BY ts.stop_order ASC
+            """, (tr["id"],)).fetchall()
+            result.append({**dict(tr), "stops": [dict(s) for s in stops]})
+    return jsonify(result)
+
+@app.get("/api/trails/<int:tid>/progress")
+@require_auth
+def get_trail_progress(tid):
+    with get_db() as c:
+        checked = c.execute("""
+            SELECT tp.stop_id FROM trail_progress tp WHERE tp.trail_id=? AND tp.user_id=?
+        """, (tid, g.user_id)).fetchall()
+        stop_count = c.execute("SELECT COUNT(*) FROM trail_stops WHERE trail_id=?", (tid,)).fetchone()[0]
+        checked_ids = [r["stop_id"] for r in checked]
+        completed = len(checked_ids) == stop_count and stop_count > 0
+    return jsonify({"checked_stops": checked_ids, "completed": completed, "total_stops": stop_count})
+
+@app.post("/api/trails/<int:tid>/checkin/<int:sid>")
+@require_auth
+def trail_checkin(tid, sid):
+    """Check in at a trail stop (honour system — no GPS verification for now)."""
+    with get_db() as c:
+        tr = c.execute("SELECT * FROM trails WHERE id=? AND active=1", (tid,)).fetchone()
+        if not tr:
+            return jsonify({"error": "Trail nicht gefunden"}), 404
+        stop = c.execute("SELECT * FROM trail_stops WHERE id=? AND trail_id=?", (sid, tid)).fetchone()
+        if not stop:
+            return jsonify({"error": "Stop nicht gefunden"}), 404
+        try:
+            c.execute("INSERT INTO trail_progress (trail_id,user_id,stop_id) VALUES (?,?,?)", (tid, g.user_id, sid))
+        except sqlite3.IntegrityError:
+            return jsonify({"ok": True, "already_checked": True})
+        # Check if trail is now complete
+        checked = c.execute("SELECT COUNT(*) FROM trail_progress WHERE trail_id=? AND user_id=?", (tid, g.user_id)).fetchone()[0]
+        total   = c.execute("SELECT COUNT(*) FROM trail_stops WHERE trail_id=?", (tid,)).fetchone()[0]
+        completed = checked == total
+        if completed:
+            award_points(g.user_id, tr["bonus_points"], f"Trail abgeschlossen: {tr['title']}", "trail", tid)
+    return jsonify({"ok": True, "completed": completed, "stops_done": checked, "total_stops": total})
+
+# ── Business dashboard ────────────────────────────────────────────────────────
+
+@app.get("/api/business/dashboard")
+@require_auth
+def business_dashboard():
+    """Analytics overview for a business owner — redemptions, estimated value, new customers."""
+    with get_db() as c:
+        # Find businesses owned by this user
+        businesses = c.execute("SELECT * FROM businesses WHERE owner_id=?", (g.user_id,)).fetchall()
+        if not businesses:
+            return jsonify({"error": "Kein Unternehmen gefunden. Kontaktiere uns um dein Business zu verknüpfen."}), 404
+
+        biz_ids = [b["id"] for b in businesses]
+        placeholders = ",".join("?" * len(biz_ids))
+
+        # Per-coupon stats
+        coupon_stats = c.execute(f"""
+            SELECT c.id, c.title, c.points_cost, c.category,
+                   COUNT(cr.id) as total_redemptions,
+                   COUNT(DISTINCT cr.user_id) as unique_users,
+                   MIN(cr.redeemed_at) as first_redemption,
+                   MAX(cr.redeemed_at) as last_redemption
+            FROM coupons c
+            LEFT JOIN coupon_redemptions cr ON cr.coupon_id=c.id
+            WHERE c.business_id IN ({placeholders})
+            GROUP BY c.id
+        """, biz_ids).fetchall()
+
+        total_redemptions = sum(r["total_redemptions"] for r in coupon_stats)
+        total_points_given = sum(r["points_cost"] * r["total_redemptions"] for r in coupon_stats)
+        # Rough CHF estimate: 1 point ≈ 0.01 CHF (100pts = 1 CHF)
+        estimated_chf = round(total_points_given * 0.01, 2)
+
+        # New unique users who redeemed in last 30 days vs first time ever
+        new_customers = c.execute(f"""
+            SELECT COUNT(DISTINCT cr.user_id) as cnt FROM coupon_redemptions cr
+            JOIN coupons c ON cr.coupon_id=c.id
+            WHERE c.business_id IN ({placeholders})
+              AND cr.redeemed_at >= datetime('now','-30 days')
+        """, biz_ids).fetchone()["cnt"]
+
+        # Category breakdown
+        cat_breakdown = c.execute(f"""
+            SELECT c.category, SUM(cr_count) as total
+            FROM (SELECT c2.id, c2.category, COUNT(cr2.id) as cr_count
+                  FROM coupons c2 LEFT JOIN coupon_redemptions cr2 ON cr2.coupon_id=c2.id
+                  WHERE c2.business_id IN ({placeholders}) GROUP BY c2.id) c
+            GROUP BY c.category
+        """, biz_ids).fetchall()
+
+    return jsonify({
+        "businesses": [dict(b) for b in businesses],
+        "total_redemptions": total_redemptions,
+        "total_points_given": total_points_given,
+        "estimated_value_chf": estimated_chf,
+        "new_customers_30d": new_customers,
+        "coupons": [dict(r) for r in coupon_stats],
+        "category_breakdown": [dict(r) for r in cat_breakdown],
+        "pitch": (
+            f"Seit der Plattform haben {total_redemptions} Leute deine Coupons eingelöst — "
+            f"das entspricht ca. CHF {estimated_chf:.2f} Warenwert. "
+            f"Davon kamen {new_customers} neue Gesichter in den letzten 30 Tagen. "
+            f"Diese Leute wären ohne Konnekt nie zu dir gekommen."
+        )
+    })
 
 # ── Coupons ───────────────────────────────────────────────────────────────────
 
