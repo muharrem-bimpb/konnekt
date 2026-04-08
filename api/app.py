@@ -875,6 +875,22 @@ def impact_analytics():
 
 # ── Legal Request (address on request) ───────────────────────────────────────
 
+@app.post("/api/support/bug")
+@require_auth
+def report_bug():
+    d = request.json or {}
+    description = d.get("description","").strip()
+    url         = d.get("url","").strip()[:200]
+    if not description or len(description) < 10:
+        return jsonify({"error": "Beschreibung zu kurz"}), 400
+    # Store in legal_requests table (reusing existing table with org='bug_report')
+    with get_db() as c:
+        user = c.execute("SELECT username, email FROM users WHERE id=?", (g.user_id,)).fetchone()
+        c.execute("INSERT INTO legal_requests (requester_name,requester_org,requester_email,purpose) VALUES (?,?,?,?)",
+                  (user["username"] if user else str(g.user_id), "bug_report", user["email"] if user else "", f"{description} [URL: {url}]"))
+    print(f"[BUG REPORT] user={g.user_id} url={url} desc={description[:80]}", flush=True)
+    return jsonify({"ok": True})
+
 @app.post("/api/legal/address-request")
 def legal_address_request():
     d = request.json or {}
@@ -1363,7 +1379,9 @@ def get_coupons():
     with get_db() as c:
         q = """SELECT c.*, b.name as business_name, b.logo_url, b.city as business_city
                FROM coupons c JOIN businesses b ON c.business_id=b.id
-               WHERE c.status='active' AND (c.max_redemptions=0 OR c.redemptions_count < c.max_redemptions)"""
+               WHERE c.status='active'
+                 AND (c.max_redemptions=0 OR c.redemptions_count < c.max_redemptions)
+                 AND (c.valid_until IS NULL OR c.valid_until='' OR c.valid_until > datetime('now'))"""
         params = []
         if category:
             q += " AND c.category=?"; params.append(category)
@@ -1490,23 +1508,33 @@ def complete_visit(vid):
 @require_auth
 def log_good_deed():
     d = request.json or {}
-    category = d.get("category","neighbor")
+    category    = d.get("category","neighbor")
     description = d.get("description","").strip()
     if not description:
-        return jsonify({"error": "description erforderlich"}), 400
+        return jsonify({"error": "Beschreibung erforderlich"}), 400
+    if len(description) < 20:
+        return jsonify({"error": "Bitte etwas mehr beschreiben (mind. 20 Zeichen) — damit andere sehen was du wirklich getan hast!"}), 400
     with get_db() as c:
-        # Anti-cheat: max 5 good deeds per day per user
+        # Anti-cheat: max 3 good deeds per day per user
         today_count = c.execute(
             "SELECT COUNT(*) FROM good_deeds WHERE user_id=? AND date(created_at)=date('now')",
             (g.user_id,)
         ).fetchone()[0]
-        if today_count >= 5:
-            return jsonify({"error": "Tageslimit erreicht (5 Taten/Tag). Morgen geht's weiter! 🌱"}), 429
+        if today_count >= 3:
+            return jsonify({"error": "Tageslimit erreicht (3 Taten/Tag). Morgen geht's weiter! 🌱"}), 429
+        # Anti-cheat: same category max once per 2 hours
+        recent_same = c.execute(
+            "SELECT id FROM good_deeds WHERE user_id=? AND category=? AND created_at >= datetime('now','-2 hours')",
+            (g.user_id, category)
+        ).fetchone()
+        if recent_same:
+            return jsonify({"error": "Gleiche Kategorie nur einmal alle 2 Stunden möglich. Wähle eine andere Kategorie!"}), 429
         c.execute("INSERT INTO good_deeds (user_id,category,description,points_earned) VALUES (?,?,?,25)",
                   (g.user_id, category, description))
-        did = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        did   = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        remaining = max(0, 3 - today_count - 1)
     award_points(g.user_id, 25, "Gute Tat", "deed", did)
-    return jsonify({"ok": True, "points_earned": 25})
+    return jsonify({"ok": True, "points_earned": 25, "deeds_remaining_today": remaining})
 
 @app.get("/api/good-deeds/feed")
 def good_deeds_feed():

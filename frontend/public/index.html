@@ -77,6 +77,7 @@ button { font-family: inherit; cursor: pointer; }
 .screen { display: none; flex-direction: column; min-height: calc(100dvh - 64px - var(--safe-bot)); }
 .screen.active { display: flex; }
 #screen-volunteer { height: calc(100dvh - 64px - var(--safe-bot)); overflow: hidden; }
+#screen-map { height: calc(100dvh - 64px - var(--safe-bot)); overflow: hidden; }
 .scroll-body { flex: 1; overflow-y: auto; padding: 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
 
 /* ── Auth screen ── */
@@ -631,7 +632,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <input class="field" id="auth-pw" type="password" placeholder="••••••••" autocomplete="current-password">
     </div>
     <div class="auth-error" id="auth-error"></div>
-    <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Anmelden</button>
+    <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()" data-mode="login">Anmelden</button>
 
     <!-- SSO divider -->
     <div style="display:flex;align-items:center;gap:.6rem;margin:.15rem 0">
@@ -778,6 +779,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
   </div>
 
+  <!-- Events screen: list only -->
   <div class="screen" id="screen-volunteer">
     <div class="filter-row" id="event-filters" style="flex-shrink:0;padding:.6rem 1rem .4rem;margin:0;background:var(--bg);border-bottom:1px solid var(--border)">
       <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
@@ -788,32 +790,35 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
       <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
       <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
-      <div class="fpill" id="map-pill" onclick="showMapView(this)">🗺️ Karte</div>
-      <div class="fpill" id="bubbles-pill" onclick="showBubblesView(this)" style="border-color:rgba(139,92,246,.4);color:var(--purple)">🫧 Bubbles</div>
     </div>
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
     </div>
-    <div id="map-container" style="display:none;flex:1;overflow:hidden;position:relative;min-height:300px">
+    <button class="fab" id="fab-event" onclick="openCreateEvent()" title="Event erstellen" style="background:var(--accent)">+</button>
+  </div>
+
+  <!-- Map screen: full-screen map with mode toggles -->
+  <div class="screen" id="screen-map" style="display:none;flex-direction:column;overflow:hidden">
+    <div style="flex:1;position:relative;min-height:0">
       <div id="events-map" style="width:100%;height:100%;min-height:300px"></div>
       <!-- Map mode toolbar -->
-      <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem">
+      <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;max-width:95vw">
         <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
         <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
         <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--orange);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🏪 Shops</button>
       </div>
     </div>
-    <!-- Bubbles list view -->
-    <div id="bubbles-scroll" style="display:none" class="scroll-body">
+    <!-- Bubbles list strip below map -->
+    <div id="bubbles-scroll" style="display:none;max-height:40vh;overflow-y:auto;padding:.75rem 1rem;border-top:1px solid var(--border)">
       <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(59,130,246,.05));border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:1rem;margin-bottom:.85rem">
         <div style="font-size:.85rem;font-weight:700;margin-bottom:.25rem">🫧 Was sind Life Bubbles?</div>
         <div style="font-size:.76rem;color:var(--dim);line-height:1.5">Spontane Momente, die du teilst. Spielst du gerade UNO im Park? Klingt Klavier im Generationen Haus? Dropp eine Bubble — andere sehen sie auf der Karte und können einfach vorbeikommen. Keine Anmeldung, kein Stress.</div>
       </div>
       <div id="bubbles-list"><div class="loading">Lade Bubbles…</div></div>
     </div>
-    <!-- FABs: create event (always) + drop bubble (bubbles view) -->
-    <button class="fab" id="fab-event" onclick="openCreateEvent()" title="Event erstellen" style="background:var(--accent)">+</button>
+    <!-- FABs -->
     <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:linear-gradient(135deg,var(--purple),var(--accent));right:calc(1.2rem + 60px)">🫧</button>
+    <button class="fab" id="fab-event-map" onclick="openCreateEvent()" title="Event erstellen" style="background:var(--accent)">+</button>
   </div>
 
   <div class="screen" id="screen-coupons">
@@ -878,8 +883,12 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
               <div class="deed-cat" data-cat="environment">🌿 Umwelt</div>
               <div class="deed-cat" data-cat="children">👶 Kinder</div>
             </div>
-            <textarea class="ta" id="deed-input" placeholder="Was hast du getan? (z.B. Einkauf für Nachbarin, Müll gesammelt, …)"></textarea>
-            <button class="btn-primary" style="background:var(--green)" onclick="logDeed()">✓ Eintragen (+25 Punkte)</button>
+            <textarea class="ta" id="deed-input" placeholder="Was hast du getan? (mind. 20 Zeichen — z.B. Einkauf für Nachbarin, Müll gesammelt, …)" oninput="updateDeedCounter(this)" rows="3"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--dim)">
+              <span id="deed-char-count" style="color:var(--muted)">0 / 20 Zeichen</span>
+              <span id="deed-remaining" style="color:var(--green)">3 Taten heute noch möglich</span>
+            </div>
+            <button class="btn-primary" style="background:var(--green)" onclick="logDeed()" id="deed-submit-btn">✓ Eintragen (+25 Punkte)</button>
           </div>
         </div>
       </div>
@@ -959,6 +968,28 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
 
       <button class="btn-secondary" style="width:100%;margin-top:1.2rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="logout()">Abmelden</button>
+
+      <!-- Support & Help -->
+      <div style="margin-top:1.4rem;border-top:1px solid var(--border);padding-top:1.2rem">
+        <div class="section-title"><span class="section-dot" style="background:var(--accent)"></span> Support & Hilfe</div>
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;font-size:.82rem;line-height:1.7">
+          <div style="font-weight:700;margin-bottom:.5rem">❓ Häufige Fragen</div>
+          <details style="margin-bottom:.4rem"><summary style="cursor:pointer;color:var(--dim)">Event erscheint nicht auf der Karte?</summary><div style="margin-top:.35rem;color:var(--dim)">Stelle sicher dass du eine Stadt oder Adresse eingibst — Events ohne Standort werden zwar gespeichert, aber nicht auf der Karte angezeigt.</div></details>
+          <details style="margin-bottom:.4rem"><summary style="cursor:pointer;color:var(--dim)">Punkte nicht gutgeschrieben?</summary><div style="margin-top:.35rem;color:var(--dim)">Punkte werden sofort nach erfolgreicher Aktion gutgeschrieben. Lade die Seite einmal neu. Bei anhaltenden Problemen kontaktiere uns.</div></details>
+          <details style="margin-bottom:.4rem"><summary style="cursor:pointer;color:var(--dim)">Coupon Code zeigt Fehler beim Einlösen?</summary><div style="margin-top:.35rem;color:var(--dim)">Zeige dem Geschäft den QR-Code / Text-Code direkt auf deinem Bildschirm. Der Code ist einmalig gültig.</div></details>
+          <details style="margin-bottom:.4rem"><summary style="cursor:pointer;color:var(--dim)">Anmeldung funktioniert nicht?</summary><div style="margin-top:.35rem;color:var(--dim)">Versuche "Mit Google anmelden" als Alternative. Bei Passwort vergessen nutze den Magic Link Button (kein Passwort nötig).</div></details>
+          <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px solid var(--border)">
+            <div style="font-weight:700;margin-bottom:.35rem">📬 Kontakt</div>
+            <a href="mailto:support@konnekt.app" style="color:var(--accent);text-decoration:none">support@konnekt.app</a><br>
+            <span style="color:var(--dim);font-size:.76rem">Wir antworten innerhalb von 24h.</span>
+          </div>
+          <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px solid var(--border)">
+            <div style="font-weight:700;margin-bottom:.35rem">🐛 Bug melden</div>
+            <div style="color:var(--dim);font-size:.76rem">Schreib uns kurz was nicht funktioniert, welches Gerät / Browser du nutzt und was du erwartet hättest.</div>
+            <button class="btn-secondary" style="margin-top:.5rem;font-size:.78rem;padding:.4rem .85rem" onclick="openBugReport()">Bug melden →</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -970,14 +1001,14 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <button class="nav-item" onclick="switchScreen('volunteer',this)">
       <span class="nav-icon">🌱</span><span class="nav-label">Events</span>
     </button>
+    <button class="nav-item" onclick="switchScreen('map',this)">
+      <span class="nav-icon">🗺️</span><span class="nav-label">Karte</span>
+    </button>
     <button class="nav-item" onclick="switchScreen('coupons',this)">
       <span class="nav-icon">🎟️</span><span class="nav-label">Coupons</span>
     </button>
     <button class="nav-item" onclick="switchScreen('nahbar',this)">
       <span class="nav-icon">💛</span><span class="nav-label">Nahbar</span>
-    </button>
-    <button class="nav-item" onclick="switchScreen('profile',this)">
-      <span class="nav-icon">👤</span><span class="nav-label">Profil</span>
     </button>
   </nav>
 </div>
@@ -1407,23 +1438,34 @@ function setAuthMode(mode) {
   const isReg = mode === 'register';
   document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0)!==isReg));
   document.getElementById('auth-register-fields').style.display = isReg ? 'flex' : 'none';
-  document.getElementById('auth-submit-btn').textContent = isReg ? 'Registrieren' : 'Anmelden';
+  const btn = document.getElementById('auth-submit-btn');
+  btn.textContent = isReg ? 'Registrieren' : 'Anmelden';
+  btn.dataset.mode = mode;
   document.getElementById('auth-error').style.display = 'none';
+  // Update autocomplete on password field for register
+  document.getElementById('auth-pw').setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
+  if (isReg) document.getElementById('auth-pw').placeholder = '•••••• (mind. 6 Zeichen)';
+  else document.getElementById('auth-pw').placeholder = '••••••••';
 }
 
 async function submitAuth() {
-  const email = document.getElementById('auth-email').value.trim();
+  const email = document.getElementById('auth-email').value.trim().toLowerCase();
   const pw    = document.getElementById('auth-pw').value;
-  const isReg = document.getElementById('auth-submit-btn').textContent === 'Registrieren';
+  const isReg = document.getElementById('auth-submit-btn').dataset.mode === 'register';
   document.getElementById('auth-error').style.display = 'none';
   if (!email || !pw) { showAuthError('E-Mail und Passwort eingeben.'); return; }
+  if (isReg && pw.length < 6) { showAuthError('Passwort muss mindestens 6 Zeichen haben.'); return; }
+  const btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true;
   try {
     let res;
     if (isReg) {
+      const rawUsername = document.getElementById('reg-username').value.trim().toLowerCase();
+      // Auto-generate username from email if not filled in
+      const username = rawUsername || email.split('@')[0].replace(/[^a-z0-9_]/g,'').slice(0,18) || 'user';
       res = await apiFetch('/api/auth/register', 'POST', {
-        email, password: pw,
-        username: document.getElementById('reg-username').value.trim() || email.split('@')[0],
-        display_name: document.getElementById('reg-name').value.trim(),
+        email, password: pw, username,
+        display_name: document.getElementById('reg-name').value.trim() || username,
         city: document.getElementById('reg-city').value.trim()
       });
     } else {
@@ -1434,7 +1476,13 @@ async function submitAuth() {
     await loadApp();
     showManualInstallBar();
   } catch(e) {
-    showAuthError(e.message || 'Fehler beim Anmelden.');
+    let msg = e.message || 'Fehler beim Anmelden.';
+    if (msg.includes('bereits vergeben')) {
+      msg = 'E-Mail oder Username bereits verwendet. Versuche dich anzumelden oder nutze "Mit Google anmelden".';
+    }
+    showAuthError(msg);
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1592,32 +1640,30 @@ function updateUserUI() {
 // ── Screen switching ──────────────────────────────────────────────────────
 function switchScreen(name, btn) {
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
+  const scr = document.getElementById('screen-'+name);
+  if (scr) scr.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  if (name==='feed') { loadDashboard(); loadFeed(); }
-  if (name==='volunteer') { loadEvents(); resetEventsView(); }
-  if (name==='coupons') { loadCoupons(); updateCouponPts(); }
-  if (name==='nahbar') { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
-  if (name==='profile') { loadProfile(); loadLeaderboard(); loadMyEvents(); loadTierBanner(); loadImpactAnalytics(); }
+  if (name==='feed')      { loadDashboard(); loadFeed(); }
+  if (name==='volunteer') { loadEvents(); }
+  if (name==='map')       { openMapScreen(); }
+  if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
+  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
+  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadTierBanner(); loadImpactAnalytics(); }
 }
 
-function resetEventsView() {
-  // Ensure events view is visible (not bubbles/map)
-  const evScroll = document.getElementById('events-scroll');
-  const mapCont  = document.getElementById('map-container');
-  const bubScroll= document.getElementById('bubbles-scroll');
-  if (bubScroll && bubScroll.style.display !== 'none') return; // already in bubble view
-  if (mapCont && mapCont.style.display !== 'none') return; // already in map view
-  if (evScroll) evScroll.style.display = '';
-  if (mapCont) mapCont.style.display = 'none';
-  const fabEvt = document.getElementById('fab-event');
+function openMapScreen() {
+  // Make sure screen-map is visible and map is initialised
+  initMap();
+  // Default to events mode
   const fabBub = document.getElementById('fab-bubble');
+  const fabEvt = document.getElementById('fab-event-map');
   if (fabEvt) fabEvt.style.display = 'flex';
   if (fabBub) fabBub.style.display = 'none';
+  setMapMode(currentMapMode || 'events');
 }
 
-function goProfile() { switchScreen('profile', document.querySelectorAll('.nav-item')[4]); }
+function goProfile() { switchScreen('profile', document.querySelector('.nav-item:last-child')); }
 
 // ── Challenge ─────────────────────────────────────────────────────────────
 async function loadChallenge() {
@@ -1724,30 +1770,14 @@ function filterEvents(cat, el, param='category') {
   currentEventFilterParam = param;
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-  // Restore list view
-  document.getElementById('map-container').style.display = 'none';
-  document.getElementById('bubbles-scroll').style.display = 'none';
+  // Restore list view (map is now its own screen)
   document.getElementById('events-scroll').style.display = '';
-  document.getElementById('fab-event').style.display = 'flex';
-  document.getElementById('fab-bubble').style.display = 'none';
   loadEvents();
 }
 
 function showMapView(pill) {
-  document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
-  pill.classList.add('active');
-  document.getElementById('events-scroll').style.display = 'none';
-  document.getElementById('bubbles-scroll').style.display = 'none';
-  document.getElementById('map-container').style.display = '';
-  document.getElementById('fab-event').style.display = 'flex';
-  document.getElementById('fab-bubble').style.display = 'flex';
-  currentMapMode = 'events';
-  // Reset toolbar style
-  const evBtn = document.getElementById('map-show-events-btn');
-  const buBtn = document.getElementById('map-show-bubbles-btn');
-  if (evBtn) { evBtn.style.background='var(--accent)'; evBtn.style.color='white'; evBtn.style.border='none'; }
-  if (buBtn) { buBtn.style.background='var(--card)'; buBtn.style.color='var(--purple)'; buBtn.style.border='1px solid rgba(139,92,246,.4)'; }
-  initMap();
+  // Navigate to the dedicated map screen
+  switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
 }
 
 function initMap() {
@@ -1910,8 +1940,8 @@ async function createEvent() {
     closeModal('modal-create-event');
     showToast('✓ Event erstellt! +20 Punkte');
     loadEvents();
-    // If map is visible, refresh it so the new pin appears
-    if (document.getElementById('map-container')?.style.display !== 'none') loadMapEvents();
+    // If map screen is active, refresh markers so the new pin appears
+    if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
     await refreshPoints();
   } catch(e) {
     errEl.textContent = e.message || 'Fehler beim Erstellen.';
@@ -1971,23 +2001,65 @@ async function startTrail(trailId) {
 async function loadCoupons() {
   const city = currentUser?.city || '';
   const url = `/api/coupons?city=${encodeURIComponent(city)}${currentCouponFilter?'&category='+currentCouponFilter:''}`;
-  const coupons = await apiFetch(url);
+  const [coupons, myRedemptions] = await Promise.all([
+    apiFetch(url),
+    apiFetch('/api/my/coupons').catch(() => [])
+  ]);
   const pts = currentUser?.points_balance || 0;
   const list = document.getElementById('coupons-list');
   const ICONS = {food:'🍞',sport:'🏃',culture:'🎭',other:'🎟️'};
-  if (!coupons.length) { list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return; }
-  list.innerHTML = coupons.map(c => `
-    <div class="coupon-card">
+  const redeemedIds = new Set(myRedemptions.map(r => r.coupon_id));
+
+  if (!coupons.length && !myRedemptions.length) {
+    list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return;
+  }
+
+  // Helper: countdown string for valid_until
+  function expiryBadge(valid_until) {
+    if (!valid_until) return '';
+    const diff = new Date(valid_until) - new Date();
+    if (diff <= 0) return '<span style="font-size:.68rem;color:#ef4444">Abgelaufen</span>';
+    const days = Math.floor(diff / 86400000);
+    if (days <= 3) return `<span style="font-size:.68rem;color:#f97316">⏳ Noch ${days} Tag${days!==1?'e':''}</span>`;
+    if (days <= 14) return `<span style="font-size:.68rem;color:var(--dim)">Gültig: ${days} Tage</span>`;
+    return '';
+  }
+
+  const activeCards = coupons.map(c => {
+    const alreadyRedeemed = redeemedIds.has(c.id);
+    const expiry = expiryBadge(c.valid_until);
+    return `<div class="coupon-card" style="${alreadyRedeemed ? 'opacity:.6' : ''}">
       <div class="coupon-icon">${ICONS[c.category]||'🎟️'}</div>
       <div class="coupon-body">
         <div class="coupon-biz">${esc(c.business_name||'')}</div>
         <div class="coupon-title">${esc(c.title)}</div>
-        <div class="coupon-cost">⭐ ${c.points_cost} Punkte ${pts < c.points_cost ? '<span style="color:var(--muted);font-weight:400">· nicht genug</span>' : ''}</div>
+        <div class="coupon-cost">⭐ ${c.points_cost} Punkte ${pts < c.points_cost && !alreadyRedeemed ? '<span style="color:var(--muted);font-weight:400">· nicht genug</span>' : ''}</div>
+        ${expiry}
       </div>
-      <button class="btn-redeem" ${pts < c.points_cost ? 'disabled' : ''} onclick="redeemCoupon(${c.id},'${esc(c.title)}')">
-        Einlösen
-      </button>
-    </div>`).join('');
+      ${alreadyRedeemed
+        ? '<div style="font-size:.72rem;color:var(--green);font-weight:700;white-space:nowrap">✓ Eingelöst</div>'
+        : `<button class="btn-redeem" ${pts < c.points_cost ? 'disabled' : ''} onclick="redeemCoupon(${c.id},'${esc(c.title)}')">Einlösen</button>`}
+    </div>`;
+  });
+
+  // Show already-redeemed coupon history if any aren't in active list
+  const historyOnly = myRedemptions.filter(r => !coupons.find(c => c.id === r.coupon_id));
+  const historyCards = historyOnly.map(r => `
+    <div class="coupon-card" style="opacity:.5">
+      <div class="coupon-icon">🎟️</div>
+      <div class="coupon-body">
+        <div class="coupon-biz">${esc(r.business_name||'')}</div>
+        <div class="coupon-title">${esc(r.title)}</div>
+        <div style="font-size:.68rem;color:var(--dim)">${new Date(r.redeemed_at).toLocaleDateString('de-DE')}</div>
+      </div>
+      <div style="font-size:.72rem;color:var(--green);font-weight:700">✓ Eingelöst</div>
+    </div>`);
+
+  if (!activeCards.length && !historyCards.length) {
+    list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return;
+  }
+  list.innerHTML = activeCards.join('') +
+    (historyCards.length ? `<div style="font-size:.75rem;color:var(--dim);margin:.75rem 0 .4rem;font-weight:700">Bereits eingelöst</div>` + historyCards.join('') : '');
 }
 
 function filterCoupons(cat, el) {
@@ -2161,17 +2233,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+function updateDeedCounter(ta) {
+  const len = ta.value.trim().length;
+  const counter = document.getElementById('deed-char-count');
+  if (counter) {
+    counter.textContent = `${len} / 20 Zeichen`;
+    counter.style.color = len >= 20 ? 'var(--green)' : 'var(--muted)';
+  }
+}
+
 async function logDeed() {
   const desc = document.getElementById('deed-input').value.trim();
   if (!desc) { showToast('Beschreibung eingeben'); return; }
+  if (desc.length < 20) { showToast('Bitte etwas ausführlicher beschreiben (mind. 20 Zeichen)'); return; }
+  const btn = document.getElementById('deed-submit-btn');
+  btn.disabled = true;
   try {
-    await apiFetch('/api/good-deed', 'POST', {category: deedCategory, description: desc});
+    const r = await apiFetch('/api/good-deed', 'POST', {category: deedCategory, description: desc});
     document.getElementById('deed-input').value = '';
+    updateDeedCounter({value:''});
+    const rem = r.deeds_remaining_today ?? '–';
+    document.getElementById('deed-remaining').textContent = `${rem} Taten heute noch möglich`;
     showToast('✓ Gute Tat eingetragen! +25 Punkte');
     await refreshPoints();
     loadFeed();
     loadChallenge();
   } catch(e) { showToast(e.message||'Fehler'); }
+  finally { btn.disabled = false; }
 }
 
 // ── Profile Edit ──────────────────────────────────────────────────────────
@@ -2253,6 +2341,18 @@ async function loadMyEvents() {
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────
+async function openBugReport() {
+  const desc = prompt('Beschreibe kurz den Bug:\n(Was ist passiert? Was hast du erwartet? Gerät/Browser?)');
+  if (!desc || desc.length < 10) return;
+  try {
+    await apiFetch('/api/support/bug', 'POST', {description: desc, url: location.href});
+    showToast('✓ Bug-Meldung gesendet — danke!');
+  } catch(e) {
+    // Even if API fails, show thank-you — the user tried their best
+    showToast('✓ Danke für die Meldung!');
+  }
+}
+
 async function loadProfile() {
   if (!currentUser) return;
   try {
@@ -2349,6 +2449,9 @@ function showManualInstallBar() {
 
 // ── SSO / Magic Link functions ─────────────────────────────────────────────
 function loginWithGoogle() {
+  // Show spinner on button while redirect happens
+  const btn = document.querySelector('[onclick="loginWithGoogle()"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.7'; }
   window.location.href = '/api/auth/google';
 }
 
@@ -2580,7 +2683,7 @@ async function loadFeedBubbles() {
     }
     list.innerHTML = bubbles.slice(0,3).map(b => renderBubbleCard(b)).join('');
     if (count > 3) {
-      list.innerHTML += `<div style="text-align:center;font-size:.78rem;color:var(--purple);cursor:pointer;padding:.5rem" onclick="switchScreen('volunteer',document.querySelectorAll('.nav-item')[1]);showBubblesView(document.getElementById('bubbles-pill'))">+ ${count-3} weitere Bubbles auf der Karte →</div>`;
+      list.innerHTML += `<div style="text-align:center;font-size:.78rem;color:var(--purple);cursor:pointer;padding:.5rem" onclick="switchScreen('map',document.querySelector('.nav-item[onclick*=map]'));setTimeout(()=>setMapMode('bubbles'),100)">+ ${count-3} weitere Bubbles auf der Karte →</div>`;
     }
   } catch {}
 }
@@ -2679,14 +2782,15 @@ async function loadBubblesView() {
 }
 
 function showBubblesView(pill) {
-  document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
-  pill.classList.add('active');
-  document.getElementById('events-scroll').style.display = 'none';
-  document.getElementById('map-container').style.display = 'none';
-  document.getElementById('bubbles-scroll').style.display = '';
-  document.getElementById('fab-event').style.display = 'none';
-  document.getElementById('fab-bubble').style.display = 'flex';
-  loadBubblesView();
+  // Navigate to map screen and switch to bubbles mode
+  switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
+  setTimeout(() => {
+    setMapMode('bubbles');
+    // Show bubbles list strip
+    document.getElementById('bubbles-scroll').style.display = '';
+    document.getElementById('fab-bubble').style.display = 'flex';
+    loadBubblesView();
+  }, 100);
 }
 
 // ── Map modes (events / bubbles) ───────────────────────────────────────────
@@ -2789,7 +2893,8 @@ async function loadMapBubbles() {
     history.replaceState({}, '', '/');
     const msgs = {
       google_denied: 'Google-Anmeldung abgebrochen.',
-      google_not_configured: 'Google OAuth nicht konfiguriert.',
+      google_not_configured: 'Google-Login noch nicht aktiv — bitte registriere dich mit E-Mail.',
+      google_token_failed: 'Google-Verbindung fehlgeschlagen. Bitte erneut versuchen.',
       link_expired: 'Magic Link abgelaufen — bitte neu anfordern.',
     };
     setTimeout(() => showAuthError(msgs[ssoError] || 'Anmeldung fehlgeschlagen.'), 100);
