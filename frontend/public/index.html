@@ -799,8 +799,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Map screen: full-screen map with mode toggles -->
   <div class="screen active" id="screen-map" style="flex-direction:column;overflow:hidden">
-    <div style="flex:1;position:relative;min-height:0">
-      <div id="events-map" style="width:100%;height:100%;min-height:300px"></div>
+    <div style="flex:1;position:relative;min-height:0;overflow:hidden">
+      <!-- position:absolute+inset:0 is the only reliable way to make Leaflet fill a flex child -->
+      <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
       <!-- Map mode toolbar -->
       <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;max-width:95vw">
         <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
@@ -1789,9 +1790,9 @@ function showMapView(pill) {
 
 function initMap() {
   if (leafletMap) {
-    // Give the screen time to finish its flex layout before recalculating size
-    setTimeout(() => { leafletMap.invalidateSize(); }, 150);
-    loadMapEvents();
+    // Two-pass invalidate: first pass unblocks the layout, second pass measures correctly
+    leafletMap.invalidateSize();
+    setTimeout(() => { leafletMap.invalidateSize(); loadMapEvents(); }, 250);
     return;
   }
   // Default: Bern centre

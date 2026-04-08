@@ -1,5 +1,5 @@
 // Konnekt Service Worker — offline PWA support
-const CACHE = 'konnekt-v4';
+const CACHE = 'konnekt-v5';
 const STATIC = ['/', '/manifest.json'];
 
 self.addEventListener('install', e => {
