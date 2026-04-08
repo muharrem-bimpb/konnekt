@@ -1122,7 +1122,8 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Titel *</div>
-      <input class="field" id="ev-title" type="text" placeholder="Was findet statt?">
+      <input class="field" id="ev-title" type="text" placeholder="Was findet statt?" oninput="clearFieldErr('ev-title')">
+      <div id="ev-title-err" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem"></div>
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Kategorie</div>
@@ -1149,7 +1150,8 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem">
       <div class="field-group">
         <div class="field-label">Startzeit *</div>
-        <input class="field" id="ev-start" type="datetime-local">
+        <input class="field" id="ev-start" type="datetime-local" onchange="clearFieldErr('ev-start')">
+        <div id="ev-start-err" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem"></div>
       </div>
       <div class="field-group">
         <div class="field-label">Max. Teilnehmer</div>
@@ -1168,7 +1170,8 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
     <div class="field-group" style="margin-bottom:.85rem">
       <div class="field-label">Adresse</div>
-      <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort">
+      <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort" oninput="clearFieldErr('ev-city')">
+      <div id="ev-city-err" style="display:none;font-size:.75rem;color:#f0a500;margin-top:.25rem"></div>
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
   </div>
@@ -1729,7 +1732,7 @@ async function loadEvents() {
     </div>`;
     return;
   }
-  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',quartier:'🏘️',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾',other:'🎉'};
+  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'♻️',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',quartier:'🏘️',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾',other:'🎉'};
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.starts_at);
     const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
@@ -1915,14 +1918,54 @@ function openCreateEvent() {
   openModal('modal-create-event');
 }
 
+function showFieldErr(id, msg) {
+  const el = document.getElementById(id + '-err');
+  const field = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = ''; }
+  if (field) field.style.borderColor = '#f87171';
+}
+function clearFieldErr(id) {
+  const el = document.getElementById(id + '-err');
+  const field = document.getElementById(id);
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
+  if (field) field.style.borderColor = '';
+}
+
 async function createEvent() {
   const title = document.getElementById('ev-title').value.trim();
   const starts_at = document.getElementById('ev-start').value;
+  const city = document.getElementById('ev-city').value.trim() || currentUser?.city || '';
+  const addr = document.getElementById('ev-addr').value.trim();
   const errEl = document.getElementById('ev-error');
   const btn = document.getElementById('ev-submit-btn');
   errEl.style.display = 'none';
-  if (!title) { errEl.textContent = 'Bitte einen Titel eingeben.'; errEl.style.display = ''; return; }
-  if (!starts_at) { errEl.textContent = 'Bitte eine Startzeit wählen.'; errEl.style.display = ''; return; }
+
+  // Per-field validation — show exactly what's wrong inline
+  let hasErr = false;
+  if (!title) {
+    showFieldErr('ev-title', '⚠️ Bitte einen Titel eingeben.');
+    hasErr = true;
+  } else if (title.length < 5) {
+    showFieldErr('ev-title', `⚠️ Titel zu kurz — noch ${5 - title.length} Zeichen fehlen.`);
+    hasErr = true;
+  } else { clearFieldErr('ev-title'); }
+
+  if (!starts_at) {
+    showFieldErr('ev-start', '⚠️ Bitte eine Startzeit wählen.');
+    hasErr = true;
+  } else if (new Date(starts_at) <= new Date()) {
+    showFieldErr('ev-start', '⚠️ Startzeit muss in der Zukunft liegen.');
+    hasErr = true;
+  } else { clearFieldErr('ev-start'); }
+
+  if (!city && !addr) {
+    const cityErrEl = document.getElementById('ev-city-err');
+    if (cityErrEl) { cityErrEl.textContent = '📍 Ohne Stadt oder Adresse erscheint dein Event nicht auf der Karte.'; cityErrEl.style.display = ''; }
+    // not a blocker — just a warning, don't set hasErr
+  } else { clearFieldErr('ev-city'); }
+
+  if (hasErr) return;
+
   btn.disabled = true; btn.textContent = 'Wird erstellt…';
   try {
     await apiFetch('/api/events', 'POST', {
@@ -1933,19 +1976,18 @@ async function createEvent() {
       starts_at,
       points_reward: parseInt(document.getElementById('ev-pts').value)||50,
       max_participants: parseInt(document.getElementById('ev-max').value)||0,
-      address: document.getElementById('ev-addr').value.trim(),
-      city: document.getElementById('ev-city').value.trim() || currentUser?.city || ''
+      address: addr,
+      city
     });
-    // Reset form
-    ['ev-title','ev-desc','ev-addr'].forEach(id => document.getElementById(id).value = '');
+    ['ev-title','ev-desc','ev-addr'].forEach(id => { document.getElementById(id).value = ''; clearFieldErr(id); });
+    clearFieldErr('ev-start'); clearFieldErr('ev-city');
     document.getElementById('ev-pts').value = '50';
     document.getElementById('ev-max').value = '0';
     document.getElementById('ev-start').value = '';
-    setEvType('volunteer'); // reset type toggle
+    setEvType('volunteer');
     closeModal('modal-create-event');
     showToast('✓ Event erstellt! +20 Punkte');
     loadEvents();
-    // If map screen is active, refresh markers so the new pin appears
     if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
     await refreshPoints();
   } catch(e) {

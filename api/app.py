@@ -401,42 +401,52 @@ def _seed_events(c):
     """Seed demo events — hangouts + volunteer — so the map & list are never empty."""
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    # (title, description, category, ev_type, is_public, address, city, lat, lng, pts, max_p, days_ahead, hour)
+    # picsum.photos/seed/{word} gives a stable, themed-ish stock photo every time
+    P = "https://picsum.photos/seed/{}/800/300"
+    # (title, desc, cat, ev_type, is_pub, addr, city, lat, lng, pts, max_p, days, hour, img)
     evs = [
         ("UNO Spielabend 🃏 — Alle willkommen!",
          "Spontaner UNO-Abend im Rosengarten. Locals, Ausländer, Familien — alle herzlich willkommen! Bring your own snacks.",
-         "social","hangout",1,"Rosengarten Bern","Bern",46.9572,7.4542,0,8,1,14),
+         "social","hangout",1,"Rosengarten Bern","Bern",46.9572,7.4542,0,8,1,14,
+         P.format("cardgame")),
         ("Brettspiele Café — Offener Tisch 🎲",
          "Komm und spiel mit! Chess, Scrabble, Catan — alle Sprachen ok. Einfach reinkommen.",
-         "social","hangout",1,"Münstergasse 38, Bern","Bern",46.9473,7.4500,0,10,1,16),
+         "social","hangout",1,"Münstergasse 38, Bern","Bern",46.9473,7.4500,0,10,1,16,
+         P.format("boardgame")),
         ("Improv Theater — Join us! 🎭",
          "Improvisationstheater-Gruppe sucht neue Gesichter. Keine Erfahrung nötig, nur Lust am Spielen!",
-         "social","hangout",1,"Dampfzentrale, Bern","Bern",46.9455,7.4633,0,12,2,19),
+         "social","hangout",1,"Dampfzentrale, Bern","Bern",46.9455,7.4633,0,12,2,19,
+         P.format("theater")),
         ("Deutschkurs für Geflüchtete & Migranten",
          "Kostenloser wöchentlicher Deutschkurs. Alle Niveaus willkommen.",
-         "education","volunteer",0,"Heiliggeistkirche, Bern","Bern",46.9481,7.4408,100,20,2,9),
-        ("Quartierreinigung Länggasse 🌿",
+         "education","volunteer",0,"Heiliggeistkirche, Bern","Bern",46.9481,7.4408,100,20,2,9,
+         P.format("classroom")),
+        ("Quartierreinigung Länggasse ♻️",
          "Gemeinsam Müll sammeln und Strassen sauber halten. Material wird gestellt.",
-         "environment","volunteer",0,"Länggasse, Bern","Bern",46.9518,7.4196,80,30,3,9),
+         "environment","volunteer",0,"Länggasse, Bern","Bern",46.9518,7.4196,80,30,3,9,
+         ""),   # environment uses ♻️ emoji placeholder — no stock photo needed
         ("Senioren-Kaffeenachmittag ☕",
          "Besuche einsame Senioren im Altersheim für 1-2h Gesellschaft, Kaffee & Gespräch.",
-         "senior","volunteer",0,"Altersheim Brunnmatt, Bern","Bern",46.9459,7.4127,100,6,3,14),
+         "senior","volunteer",0,"Altersheim Brunnmatt, Bern","Bern",46.9459,7.4127,100,6,3,14,
+         P.format("seniors-coffee")),
         ("Park Yoga — Gratis für alle 🧘",
          "Outdoor-Yoga jeden Dienstagmorgen. Keine Vorkenntnisse nötig, Matte mitbringen.",
-         "health","volunteer",0,"Bundesgarten, Bern","Bern",46.9433,7.4348,50,20,4,7),
+         "health","volunteer",0,"Bundesgarten, Bern","Bern",46.9433,7.4348,50,20,4,7,
+         P.format("outdoor-yoga")),
         ("Sprachencafé — Multilingual Meetup 🌍",
          "Treffe Leute aus aller Welt. Übe Deutsch, Englisch, Französisch — alle willkommen!",
-         "social","hangout",1,"Café de la Grenette, Bern","Bern",46.9481,7.4476,0,15,4,17),
+         "social","hangout",1,"Café de la Grenette, Bern","Bern",46.9481,7.4476,0,15,4,17,
+         P.format("multicultural")),
     ]
-    for (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,pts,max_p,days,hour) in evs:
+    for (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,pts,max_p,days,hour,img) in evs:
         starts = (now + timedelta(days=days)).replace(hour=hour,minute=0,second=0,microsecond=0)
         try:
             c.execute("""INSERT INTO events
                 (organizer_id,title,description,category,type,is_public,address,city,lat,lng,
-                 starts_at,points_reward,max_participants,status)
-                VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
+                 starts_at,points_reward,max_participants,image_url,status)
+                VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
                 (title,desc,cat,ev_type,is_pub,addr,city,lat,lng,
-                 starts.strftime('%Y-%m-%dT%H:%M:%S'),pts,max_p))
+                 starts.strftime('%Y-%m-%dT%H:%M:%S'),pts,max_p,img))
         except Exception:
             pass
 
