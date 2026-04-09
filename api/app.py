@@ -1137,13 +1137,16 @@ def respond_join_request(eid, rid):
             return jsonify({"error": "not found"}), 404
         new_status = "accepted" if action == "accept" else "declined"
         c.execute("UPDATE event_join_requests SET status=? WHERE id=?", (new_status, rid))
+        jq_user_id = None
         if action == "accept":
             try:
                 c.execute("INSERT INTO event_registrations (event_id,user_id) VALUES (?,?)", (eid, jq["user_id"]))
                 c.execute("UPDATE events SET participants_count=participants_count+1 WHERE id=?", (eid,))
             except sqlite3.IntegrityError:
                 pass
-            award_points(jq["user_id"], 10, "Hangout-Anfrage akzeptiert", "event", eid)
+            jq_user_id = jq["user_id"]
+    if jq_user_id:
+        award_points(jq_user_id, 10, "Hangout-Anfrage akzeptiert", "event", eid)
     return jsonify({"ok": True, "action": action})
 
 @app.post("/api/events/<int:eid>/flag")
