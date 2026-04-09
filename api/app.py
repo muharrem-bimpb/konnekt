@@ -338,6 +338,8 @@ def init_db():
         _ensure_demo_token(c)
         # Always ensure test users exist and tokens are fresh (even on old DBs that predate them)
         _refresh_test_sessions(c)
+        # Always ensure demo seniors exist (needed for Nahbar visits flow)
+        _ensure_seniors(c)
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
@@ -420,6 +422,26 @@ def _refresh_test_sessions(c):
         if row:
             c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
                       (token, row["id"], expires))
+
+def _ensure_seniors(c):
+    """Create demo senior users if none exist — needed for Nahbar visit flow."""
+    if c.execute("SELECT COUNT(*) FROM users WHERE is_senior=1").fetchone()[0] > 0:
+        return
+    seniors = [
+        ("hildegard@konnekt.app", "hildegard_k", "Hildegard Koch",
+         "Rentnerin, 78. Mag Gesellschaft und Kartenspielen. Lebt allein seit 2 Jahren.", "Bern"),
+        ("ernst@konnekt.app", "ernst_w", "Ernst Weber",
+         "Pensionierter Lehrer, 82. Freut sich über Besuch und Gespräche über Geschichte.", "Bern"),
+        ("marie@konnekt.app", "marie_b", "Marie Brunner",
+         "72 Jahre, aktiv und neugierig. Sucht jemanden zum gemeinsamen Spaziergang.", "Bern"),
+    ]
+    for email, username, display_name, bio, city in seniors:
+        c.execute(
+            "INSERT OR IGNORE INTO users "
+            "(username,email,password_hash,display_name,bio,city,points_balance,is_senior,needs_visitor) "
+            "VALUES (?,?,?,?,?,?,?,1,1)",
+            (username, email, "SENIOR_NO_LOGIN", display_name, bio, city, 0)
+        )
 
 def _seed_demo(c):
     # ── Test users for Klopfen / UI testing ───────────────────────────────────
