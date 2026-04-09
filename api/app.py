@@ -336,12 +336,11 @@ def init_db():
                 pass
         # Always ensure demo token/user exists first (other seeds depend on having a user)
         _ensure_demo_token(c)
+        # Always ensure test users exist and tokens are fresh (even on old DBs that predate them)
+        _refresh_test_sessions(c)
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
-        else:
-            # Businesses exist — but always refresh test user sessions (survive redeploys)
-            _refresh_test_sessions(c)
         # Seed demo events independently; re-seed if all events are in the past
         total_ev = c.execute("SELECT COUNT(*) FROM events").fetchone()[0]
         future_ev = c.execute("SELECT COUNT(*) FROM events WHERE starts_at >= datetime('now')").fetchone()[0]
@@ -381,11 +380,43 @@ _TEST_TOKENS = [
     ("fatima@konnekt.app", "test-fatima-2026"),
 ]
 
+_TEST_USERS = [
+    # (email, username, display_name, bio, city, pts, hours, tier, token)
+    ("anna@konnekt.app", "anna_m", "Anna Müller",
+     "Ehrenamtlich seit 3 Jahren. Mag Brettspiele und Stadtgärten 🌱",
+     "Bern", 680, 12, "pro", "test-anna-2026"),
+    ("luca@konnekt.app", "luca_b", "Luca Bianchi",
+     "Neu in Bern, lerne Deutsch. Fotograf & Kaffeeliebhaber ☕",
+     "Bern", 210, 3, "free", "test-luca-2026"),
+    ("fatima@konnekt.app", "fatima_h", "Fatima Hassan",
+     "Sozialarbeiterin, 2 Kinder. Organisiere gerne kleine Events für die Nachbarschaft.",
+     "Bern", 95, 1, "free", "test-fatima-2026"),
+]
+
 def _refresh_test_sessions(c):
-    """Always keep test user tokens alive — called on every boot so redeploys don't break them."""
+    """Create test users if missing, always upsert their session tokens on every boot."""
     expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
-    for email, token in _TEST_TOKENS:
+    for email, username, display_name, bio, city, pts, hours, tier, token in _TEST_USERS:
         row = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not row:
+            c.execute(
+                "INSERT OR IGNORE INTO users "
+                "(username,email,password_hash,display_name,bio,city,points_balance,volunteer_hours,subscription_tier) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
+                (username, email, "TEST_NO_LOGIN", display_name, bio, city, pts, hours, tier)
+            )
+            row = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+            if row and username == "anna_m":
+                for i in range(8):
+                    try:
+                        c.execute("INSERT INTO good_deeds (user_id,category,description,city) VALUES (?,?,?,?)",
+                                  (row["id"], ["neighbor","environment","senior"][i%3],
+                                   ["Nachbarin beim Umzug geholfen","Mülltrennung im Quartier erklärt",
+                                    "Ältere Dame begleitet zum Arzt","Pflanzen für Neuzugezogene gegossen",
+                                    "Park aufgeräumt","Kindern beim Schulprojekt geholfen",
+                                    "Lebensmittel für Foodbank gespendet","Sprachkurs organisiert"][i], "Bern"))
+                    except Exception:
+                        pass
         if row:
             c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
                       (token, row["id"], expires))
