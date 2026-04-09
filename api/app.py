@@ -339,6 +339,9 @@ def init_db():
         # Seed demo data if empty
         if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
             _seed_demo(c)
+        else:
+            # Businesses exist — but always refresh test user sessions (survive redeploys)
+            _refresh_test_sessions(c)
         # Seed demo events independently; re-seed if all events are in the past
         total_ev = c.execute("SELECT COUNT(*) FROM events").fetchone()[0]
         future_ev = c.execute("SELECT COUNT(*) FROM events WHERE starts_at >= datetime('now')").fetchone()[0]
@@ -372,6 +375,21 @@ def _ensure_demo_token(c):
     c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
               (DEMO_TOKEN, demo_id, expires))
 
+_TEST_TOKENS = [
+    ("anna@konnekt.app",   "test-anna-2026"),
+    ("luca@konnekt.app",   "test-luca-2026"),
+    ("fatima@konnekt.app", "test-fatima-2026"),
+]
+
+def _refresh_test_sessions(c):
+    """Always keep test user tokens alive — called on every boot so redeploys don't break them."""
+    expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
+    for email, token in _TEST_TOKENS:
+        row = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if row:
+            c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
+                      (token, row["id"], expires))
+
 def _seed_demo(c):
     # ── Test users for Klopfen / UI testing ───────────────────────────────────
     test_users = [
@@ -388,26 +406,29 @@ def _seed_demo(c):
     ]
     expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
     for email, username, display_name, bio, city, pts, hours, tier, token in test_users:
-        if c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
-            continue
-        c.execute(
-            "INSERT OR IGNORE INTO users (username,email,password_hash,display_name,bio,city,points_balance,volunteer_hours,subscription_tier) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
-            (username, email, "TEST_NO_LOGIN", display_name, bio, city, pts, hours, tier)
-        )
-        uid = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()["id"]
+        existing = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if not existing:
+            c.execute(
+                "INSERT OR IGNORE INTO users (username,email,password_hash,display_name,bio,city,points_balance,volunteer_hours,subscription_tier) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
+                (username, email, "TEST_NO_LOGIN", display_name, bio, city, pts, hours, tier)
+            )
+            uid = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()["id"]
+            # Seed some good deeds for Anna so she has a track record
+            if username == "anna_m":
+                for i in range(8):
+                    try:
+                        c.execute("INSERT INTO good_deeds (user_id,category,description,city) VALUES (?,?,?,?)",
+                                  (uid, ["neighbor","environment","senior"][i%3],
+                                   ["Nachbarin beim Umzug geholfen","Mülltrennung im Quartier erklärt","Ältere Dame begleitet zum Arzt",
+                                    "Pflanzen für Neuzugezogene gegossen","Park aufgeräumt","Kindern beim Schulprojekt geholfen",
+                                    "Lebensmittel für Foodbank gespendet","Sprachkurs organisiert"][i], "Bern"))
+                    except Exception: pass
+        else:
+            uid = existing["id"]
+        # Always refresh the test session token (so it survives redeploys)
         c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
                   (token, uid, expires))
-        # Seed some good deeds for Anna so she has a track record
-        if username == "anna_m":
-            for i in range(8):
-                try:
-                    c.execute("INSERT INTO good_deeds (user_id,category,description,city) VALUES (?,?,?,?)",
-                              (uid, ["neighbor","environment","senior"][i%3],
-                               ["Nachbarin beim Umzug geholfen","Mülltrennung im Quartier erklärt","Ältere Dame begleitet zum Arzt",
-                                "Pflanzen für Neuzugezogene gegossen","Park aufgeräumt","Kindern beim Schulprojekt geholfen",
-                                "Lebensmittel für Foodbank gespendet","Sprachkurs organisiert"][i], "Bern"))
-                except Exception: pass
 
     # Demo businesses with coupons
     businesses = [
