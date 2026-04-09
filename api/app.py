@@ -1825,24 +1825,51 @@ def get_ngos():
 def feed():
     city = request.args.get("city","")
     with get_db() as c:
-        # Events
-        eq = "SELECT 'event' as type, id, title as content, city, starts_at as created_at, points_reward FROM events WHERE status='active'"
+        # Events — include organizer name, category, type, address
+        eq = """
+            SELECT 'event' as type, e.id, e.title as content, e.city, e.starts_at as created_at,
+                   e.points_reward, e.category, e.type as ev_type, e.address,
+                   e.participants_count, e.max_participants,
+                   u.display_name as author_name, u.volunteer_hours as author_hours
+            FROM events e JOIN users u ON e.organizer_id=u.id
+            WHERE e.status='active'
+        """
         ep = []
         if city:
-            eq += " AND city LIKE ?"; ep.append(f"%{city}%")
+            eq += " AND e.city LIKE ?"; ep.append(f"%{city}%")
 
-        # Good deeds
-        dq = "SELECT 'deed' as type, gd.id, gd.description as content, u.city, gd.created_at, 25 as points_reward FROM good_deeds gd JOIN users u ON gd.user_id=u.id"
+        # Good deeds — include author name, deed category
+        dq = """
+            SELECT 'deed' as type, gd.id, gd.description as content, gd.city, gd.created_at,
+                   25 as points_reward, gd.category, NULL as ev_type, NULL as address,
+                   0 as participants_count, 0 as max_participants,
+                   u.display_name as author_name, u.volunteer_hours as author_hours
+            FROM good_deeds gd JOIN users u ON gd.user_id=u.id
+        """
         dp = []
         if city:
-            dq += " WHERE u.city LIKE ?"; dp.append(f"%{city}%")
+            dq += " WHERE gd.city LIKE ?"; dp.append(f"%{city}%")
 
-        events = c.execute(eq + " ORDER BY created_at DESC LIMIT 10", ep).fetchall()
-        deeds  = c.execute(dq + " ORDER BY gd.created_at DESC LIMIT 10", dp).fetchall()
+        # Bubbles — live moments
+        bq = """
+            SELECT 'bubble' as type, lb.id, lb.title as content, lb.city, lb.created_at,
+                   0 as points_reward, NULL as category, NULL as ev_type, lb.address,
+                   0 as participants_count, 0 as max_participants,
+                   u.display_name as author_name, 0 as author_hours
+            FROM life_bubbles lb JOIN users u ON lb.user_id=u.id
+            WHERE lb.expires_at > datetime('now')
+        """
+        bp = []
+        if city:
+            bq += " AND lb.city LIKE ?"; bp.append(f"%{city}%")
 
-    items = [dict(r) for r in events] + [dict(r) for r in deeds]
+        events  = c.execute(eq + " ORDER BY created_at DESC LIMIT 8", ep).fetchall()
+        deeds   = c.execute(dq + " ORDER BY gd.created_at DESC LIMIT 6", dp).fetchall()
+        bubbles = c.execute(bq + " ORDER BY lb.created_at DESC LIMIT 4", bp).fetchall()
+
+    items = [dict(r) for r in events] + [dict(r) for r in deeds] + [dict(r) for r in bubbles]
     items.sort(key=lambda x: x.get("created_at",""), reverse=True)
-    return jsonify(items[:20])
+    return jsonify(items[:25])
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 

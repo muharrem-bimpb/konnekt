@@ -1419,6 +1419,30 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Join Request Send Modal -->
+<div class="modal-overlay" id="modal-join-request-send">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🙋 Mitmachen anfragen <button class="modal-close" onclick="closeModal('modal-join-request-send')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Optional: Kurze Nachricht an den Gastgeber</div>
+    <textarea class="ta" id="join-req-msg" rows="3" placeholder="Ich würde gerne dabei sein, weil…" style="margin-bottom:.5rem"></textarea>
+    <div id="join-req-err" style="display:none;font-size:.75rem;color:#f87171;margin-bottom:.5rem"></div>
+    <button class="btn-primary" id="join-req-send-btn" onclick="submitJoinRequest()">Anfrage senden</button>
+  </div>
+</div>
+
+<!-- Bug Report Modal -->
+<div class="modal-overlay" id="modal-bug-report">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🐛 Bug melden <button class="modal-close" onclick="closeModal('modal-bug-report')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Was ist passiert? Was hast du erwartet? Welches Gerät/Browser?</div>
+    <textarea class="ta" id="bug-report-desc" rows="4" placeholder="Beschreibe kurz den Fehler…" style="margin-bottom:.75rem"></textarea>
+    <div id="bug-report-err" style="display:none;font-size:.75rem;color:#f87171;margin-bottom:.5rem"></div>
+    <button class="btn-primary" id="bug-report-btn" onclick="submitBugReport()">Absenden</button>
+  </div>
+</div>
+
 <!-- Trail Checkin Modal -->
 <div class="modal-overlay" id="modal-trail-checkin">
   <div class="modal">
@@ -1741,20 +1765,80 @@ async function loadChallenge() {
 }
 
 // ── Feed ──────────────────────────────────────────────────────────────────
+function timeAgo(isoStr) {
+  if (!isoStr) return '';
+  const diff = (Date.now() - new Date(isoStr.replace(' ','T'))) / 1000;
+  if (diff < 60)   return 'gerade eben';
+  if (diff < 3600) return Math.floor(diff/60) + ' Min.';
+  if (diff < 86400) return Math.floor(diff/3600) + ' Std.';
+  if (diff < 604800) return Math.floor(diff/86400) + ' T.';
+  return new Date(isoStr.replace(' ','T')).toLocaleDateString('de-CH',{day:'numeric',month:'short'});
+}
+
+function catEmoji(cat) {
+  return {volunteer:'🌱',social:'💬',senior:'👴',environment:'♻️',health:'🏥',education:'📚',
+          sport:'⚽',children:'👶',neighbor:'🏠',crisis:'🆘',deed:'💛'}[cat] || '✨';
+}
+
 async function loadFeed() {
   const city = currentUser?.city || '';
-  const items = await apiFetch(`/api/feed?city=${encodeURIComponent(city)}`);
   const list = document.getElementById('feed-list');
-  if (!items.length) { list.innerHTML = '<div class="empty">Noch keine Aktivitäten.</div>'; return; }
+  let items;
+  try {
+    items = await apiFetch(`/api/feed?city=${encodeURIComponent(city)}`);
+  } catch { list.innerHTML = '<div class="empty">Feed konnte nicht geladen werden.</div>'; return; }
+  if (!items.length) { list.innerHTML = '<div class="empty">Noch keine Aktivitäten in deiner Stadt.</div>'; return; }
   list.innerHTML = items.map(item => {
-    const isEvent = item.type === 'event';
-    return `<div class="feed-item">
-      <div class="feed-type">${isEvent ? '🌱 Event' : '💛 Gute Tat'}</div>
-      <div class="feed-content">${esc(item.content||'')}</div>
-      <div class="feed-meta">${isEvent
-        ? '📍 ' + esc(item.city||'') + ' · ⭐ +' + (item.points_reward||50) + ' Punkte'
-        : '📍 ' + esc(item.city||'')}</div>
-    </div>`;
+    const initial = (item.author_name||'?')[0].toUpperCase();
+    const avatar = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));color:white;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0">${initial}</div>`;
+    if (item.type === 'event') {
+      const date = item.created_at ? new Date(item.created_at.replace(' ','T')).toLocaleDateString('de-CH',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      const spotsLeft = item.max_participants > 0 ? `· ${item.max_participants - item.participants_count} Plätze frei` : '';
+      const canJoin = currentUser && item.ev_type !== 'hangout';
+      return `<div class="feed-item">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          ${avatar}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
+              <span style="font-size:.72rem;font-weight:700;color:var(--accent)">🌱 Event · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
+            </div>
+            <div class="feed-content">${esc(item.content||'')}</div>
+            <div class="feed-meta">📅 ${date} · 📍 ${esc(item.city||'')} ${spotsLeft}</div>
+            ${canJoin ? `<button onclick="registerEvent(${item.id},this)" style="margin-top:.45rem;padding:.3rem .75rem;border-radius:99px;border:none;background:var(--accent);color:white;font-size:.72rem;font-weight:700;cursor:pointer">Mitmachen +${item.points_reward||50} Pkt</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    } else if (item.type === 'deed') {
+      return `<div class="feed-item">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          ${avatar}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
+              <span style="font-size:.72rem;font-weight:700;color:var(--green)">${catEmoji(item.category)} Gute Tat · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
+            </div>
+            <div class="feed-content">${esc(item.content||'')}</div>
+            <div class="feed-meta">📍 ${esc(item.city||'')} · ⭐ +25 Punkte</div>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      // bubble
+      return `<div class="feed-item" style="border-left:3px solid var(--purple)">
+        <div style="display:flex;gap:.6rem;align-items:flex-start">
+          ${avatar}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
+              <span style="font-size:.72rem;font-weight:700;color:var(--purple)">🫧 Life Bubble · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
+            </div>
+            <div class="feed-content">${esc(item.content||'')}</div>
+            <div class="feed-meta">📍 ${esc(item.city||item.address||'')}</div>
+          </div>
+        </div>
+      </div>`;
+    }
   }).join('');
 }
 
@@ -1956,14 +2040,31 @@ async function registerEvent(id, btn) {
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
-async function joinRequest(id, btn) {
+let _joinReqEventId = null, _joinReqBtn = null;
+function joinRequest(id, btn) {
+  _joinReqEventId = id; _joinReqBtn = btn;
+  document.getElementById('join-req-msg').value = '';
+  document.getElementById('join-req-err').style.display = 'none';
+  const sbtn = document.getElementById('join-req-send-btn');
+  if (sbtn) { sbtn.disabled = false; sbtn.textContent = 'Anfrage senden'; }
+  openModal('modal-join-request-send');
+}
+async function submitJoinRequest() {
+  const msg = document.getElementById('join-req-msg').value.trim();
+  const errEl = document.getElementById('join-req-err');
+  const btn = document.getElementById('join-req-send-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Wird gesendet…';
   try {
-    const msg = prompt('Optional: Kurze Nachricht an den Gastgeber (oder leer lassen)') ?? '';
-    if (msg === null) return; // cancelled
-    await apiFetch(`/api/events/${id}/join-request`, 'POST', {message: msg});
-    if (btn) { btn.textContent = '⏳ Anfrage gesendet'; btn.disabled = true; btn.classList.add('requested'); }
+    await apiFetch(`/api/events/${_joinReqEventId}/join-request`, 'POST', {message: msg});
+    if (_joinReqBtn) { _joinReqBtn.textContent = '⏳ Anfrage gesendet'; _joinReqBtn.disabled = true; _joinReqBtn.classList.add('requested'); }
+    closeModal('modal-join-request-send');
     showToast('✓ Anfrage gesendet! Gastgeber entscheidet.');
-  } catch(e) { showToast(e.message || 'Fehler'); }
+  } catch(e) {
+    errEl.textContent = e.message || 'Fehler';
+    errEl.style.display = '';
+    btn.disabled = false; btn.textContent = 'Anfrage senden';
+  }
 }
 
 async function flagEvent(id, btn) {
@@ -2072,7 +2173,9 @@ function openCreateEvent() {
   const startEl = document.getElementById('ev-start');
   if (startEl && !startEl.value) {
     const d = new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0);
-    startEl.value = d.toISOString().slice(0,16);
+    // datetime-local needs local time string, not UTC (toISOString returns UTC)
+    const pad = n => String(n).padStart(2,'0');
+    startEl.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
   document.getElementById('ev-error').style.display = 'none';
   openModal('modal-create-event');
@@ -2510,7 +2613,7 @@ async function sendSOS() {
   try {
     await apiFetch('/api/good-deed', 'POST', {
       category: 'crisis',
-      description: `🆘 NOTFALL (${type}): ${desc || 'Hilfe benötigt'} — Position: Bern`
+      description: `🆘 NOTFALL (${type}): ${desc || 'Hilfe benötigt'} — Position: ${currentUser?.city || 'unbekannt'}`
     });
   } catch {}
   closeModal('modal-sos');
@@ -2719,16 +2822,30 @@ async function loadMyRegistrations() {
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────
-async function openBugReport() {
-  const desc = prompt('Beschreibe kurz den Bug:\n(Was ist passiert? Was hast du erwartet? Gerät/Browser?)');
-  if (!desc || desc.length < 10) return;
+function openBugReport() {
+  document.getElementById('bug-report-desc').value = '';
+  document.getElementById('bug-report-err').style.display = 'none';
+  const btn = document.getElementById('bug-report-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Absenden'; }
+  openModal('modal-bug-report');
+}
+
+async function submitBugReport() {
+  const desc = document.getElementById('bug-report-desc').value.trim();
+  const errEl = document.getElementById('bug-report-err');
+  const btn = document.getElementById('bug-report-btn');
+  errEl.style.display = 'none';
+  if (desc.length < 10) {
+    errEl.textContent = 'Bitte mindestens 10 Zeichen eingeben.';
+    errEl.style.display = '';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Wird gesendet…';
   try {
     await apiFetch('/api/support/bug', 'POST', {description: desc, url: location.href});
-    showToast('✓ Bug-Meldung gesendet — danke!');
-  } catch(e) {
-    // Even if API fails, show thank-you — the user tried their best
-    showToast('✓ Danke für die Meldung!');
-  }
+  } catch {}
+  closeModal('modal-bug-report');
+  showToast('✓ Bug-Meldung gesendet — danke!');
 }
 
 async function loadProfile() {
@@ -3018,8 +3135,8 @@ function renderActivityBars(deeds, regs) {
     const deedH = Math.max(Math.round((d.count / maxVal) * 56), d.count > 0 ? 4 : 0);
     const regH  = Math.max(Math.round(((regs[i]?.count||0) / maxVal) * 56), (regs[i]?.count||0) > 0 ? 4 : 0);
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;height:60px;justify-content:flex-end">
-      <div class="dash-bar" style="width:100%;height:${deedH}px;background:linear-gradient(0deg,var(--green),rgba(16,185,129,.5))"></div>
-      <div class="dash-bar" style="width:100%;height:${regH}px;background:linear-gradient(0deg,var(--accent),rgba(59,130,246,.5))"></div>
+      <div style="width:100%;flex:none;height:${deedH}px;border-radius:3px 3px 0 0;background:linear-gradient(0deg,var(--green),rgba(16,185,129,.5))"></div>
+      <div style="width:100%;flex:none;height:${regH}px;border-radius:3px 3px 0 0;background:linear-gradient(0deg,var(--accent),rgba(59,130,246,.5))"></div>
     </div>`;
   }).join('');
 
