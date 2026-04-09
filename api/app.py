@@ -1838,9 +1838,9 @@ def feed():
         if city:
             eq += " AND e.city LIKE ?"; ep.append(f"%{city}%")
 
-        # Good deeds — include author name, deed category
+        # Good deeds — include author name, deed category (good_deeds has no city, use user's city)
         dq = """
-            SELECT 'deed' as type, gd.id, gd.description as content, gd.city, gd.created_at,
+            SELECT 'deed' as type, gd.id, gd.description as content, u.city, gd.created_at,
                    25 as points_reward, gd.category, NULL as ev_type, NULL as address,
                    0 as participants_count, 0 as max_participants,
                    u.display_name as author_name, u.volunteer_hours as author_hours
@@ -1848,7 +1848,7 @@ def feed():
         """
         dp = []
         if city:
-            dq += " WHERE gd.city LIKE ?"; dp.append(f"%{city}%")
+            dq += " WHERE u.city LIKE ?"; dp.append(f"%{city}%")
 
         # Bubbles — live moments
         bq = """
