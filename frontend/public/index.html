@@ -927,6 +927,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--pink)"></span> Senioren suchen Besuch</div>
       <div id="seniors-list"><div class="loading">Lade…</div></div>
 
+      <!-- My Visits -->
+      <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine geplanten Besuche</div>
+      <div id="my-visits-list"><div class="loading">Lade…</div></div>
+
       <!-- Nearby -->
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> In deiner Nähe</div>
       <div id="nearby-list"><div class="loading">Lade…</div></div>
@@ -975,8 +979,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
 
       <div style="margin-top:1.2rem">
-        <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Meine Events</div>
+        <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
         <div id="my-events-list"><div class="loading">Lade…</div></div>
+      </div>
+
+      <div style="margin-top:1.2rem">
+        <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Meine Anmeldungen</div>
+        <div id="my-registrations-list"><div class="loading">Lade…</div></div>
       </div>
 
       <div style="margin-top:1.2rem">
@@ -1400,6 +1409,26 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Join Requests Modal (organizer inbox for hangout events) -->
+<div class="modal-overlay" id="modal-join-requests">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👥 Beitrittsanfragen <button class="modal-close" onclick="closeModal('modal-join-requests')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Leute die mitmachen möchten. Du entscheidest wer in deine Runde kommt.</div>
+    <div id="join-req-list"><div class="loading">Lade…</div></div>
+  </div>
+</div>
+
+<!-- Trail Checkin Modal -->
+<div class="modal-overlay" id="modal-trail-checkin">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="trail-checkin-title">Trail <button class="modal-close" onclick="closeModal('modal-trail-checkin')">✕</button></div>
+    <div id="trail-checkin-bonus" style="font-size:.78rem;color:var(--orange);font-weight:700;margin-bottom:.75rem"></div>
+    <div id="trail-checkin-stops"></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1675,8 +1704,8 @@ function switchScreen(name, btn) {
   if (name==='volunteer') { loadEvents(); }
   if (name==='map')       { openMapScreen(); }
   if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
-  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); }
-  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadTierBanner(); loadImpactAnalytics(); }
+  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); }
+  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); loadImpactAnalytics(); }
 }
 
 function openMapScreen() {
@@ -1744,8 +1773,19 @@ async function loadEvents() {
   const city = currentUser?.city || '';
   const filterQ = currentEventFilter ? `&${currentEventFilterParam}=${currentEventFilter}` : '';
   const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${filterQ}`;
-  const events = await apiFetch(url);
   const list = document.getElementById('events-list');
+
+  let events, myRegs = [];
+  try {
+    [events, myRegs] = await Promise.all([
+      apiFetch(url),
+      currentUser ? apiFetch('/api/my/registrations').catch(() => []) : Promise.resolve([])
+    ]);
+  } catch(e) {
+    list.innerHTML = '<div class="empty">Events konnten nicht geladen werden. Bitte neu laden.</div>';
+    return;
+  }
+
   if (!events.length) {
     list.innerHTML = `<div class="empty">
       Keine kommenden Events gefunden.<br>
@@ -1753,23 +1793,58 @@ async function loadEvents() {
     </div>`;
     return;
   }
-  const CAT_EMOJI = {volunteer:'🌱',social:'👥',environment:'♻️',senior:'💛',health:'❤️',education:'📚',sport:'🏃',children:'👶',seasonal:'🎄',hangout:'🎮',quartier:'🏘️',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾',other:'🎉'};
+
+  // Build a map: event_id → {status, points_awarded}
+  const regMap = {};
+  (myRegs || []).forEach(r => { regMap[r.event_id] = {status: r.status, pts: r.points_awarded}; });
+
+  const now = new Date();
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.starts_at);
     const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
     const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    const isHangout = ev.type === 'hangout';
+    const isHangout  = ev.type === 'hangout';
+    const isQuartier = ev.type === 'quartier';
+    const isPast     = dt < now;
+    const isOrganizer = currentUser && ev.organizer_id === currentUser.id;
+    const reg = regMap[ev.id];
+    const isRegistered = !!reg;
+    const isCompleted  = reg?.status === 'completed';
+
     const catClass = isHangout ? 'hangout' : (ev.category||'other');
     const imgHtml = ev.image_url
       ? `<img class="event-img" src="${esc(ev.image_url)}" alt="${esc(ev.title)}" loading="lazy" onerror="this.style.display='none'">`
       : '';
     const hangoutBadge = isHangout
-      ? `<span class="hangout-badge">🎮 Hangout · Offen für alle</span>`
+      ? `<span class="hangout-badge">🎮 Hangout · Offen für alle</span>` : '';
+
+    // ── Action button: full state machine ──────────────────────────────────
+    let actionBtn;
+    if (isOrganizer && isHangout) {
+      // Hangout organiser: manage join requests
+      actionBtn = `<button class="btn-join" style="background:var(--purple)" onclick="openJoinRequests(${ev.id})">👥 Anfragen verwalten</button>`;
+    } else if (isOrganizer) {
+      // Own volunteer/quartier event — show participant count, no join button
+      actionBtn = `<span style="font-size:.78rem;color:var(--dim);padding:.4rem .6rem;border:1px solid var(--border);border-radius:99px">👤 Du organisierst</span>`;
+    } else if (isCompleted) {
+      actionBtn = `<button class="btn-join" disabled style="background:var(--green);opacity:.75;cursor:default">✓ Abgeschlossen</button>`;
+    } else if (isRegistered && isPast) {
+      // Was registered, event is done — let user confirm attendance
+      actionBtn = `<button class="btn-join" style="background:var(--green)" onclick="completeEvent(${ev.id},${ev.points_reward},this)">✓ Ich war dabei (+${ev.points_reward})</button>`;
+    } else if (isRegistered) {
+      // Registered, event is upcoming
+      actionBtn = `<button class="btn-join" disabled style="background:var(--green);opacity:.9;cursor:default">✓ Angemeldet</button>`;
+    } else if (isHangout) {
+      actionBtn = `<button class="btn-request" onclick="joinRequest(${ev.id}, this)">✋ Anfragen mitzumachen</button>`;
+    } else {
+      actionBtn = `<button class="btn-join" onclick="registerEvent(${ev.id}, this)">Mitmachen</button>`;
+    }
+
+    const pts = (isHangout && !isRegistered && !isCompleted) ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
+    const flagBtn = !isOrganizer
+      ? `<button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>`
       : '';
-    const actionBtn = isHangout
-      ? `<button class="btn-request" onclick="joinRequest(${ev.id}, this)">✋ Anfragen mitzumachen</button>`
-      : `<button class="btn-join" onclick="registerEvent(${ev.id}, this)">Mitmachen</button>`;
-    const pts = isHangout ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
+
     return `<div class="event-card">
       ${imgHtml}
       <div class="event-body">
@@ -1786,7 +1861,7 @@ async function loadEvents() {
         </div>
         <div class="event-actions">
           ${actionBtn}
-          <button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>
+          ${flagBtn}
         </div>
       </div>
     </div>`;
@@ -1899,6 +1974,70 @@ async function flagEvent(id, btn) {
     if (btn) { btn.textContent = '⚑ Gemeldet'; btn.disabled = true; btn.style.color = '#ef4444'; }
     showToast('Event gemeldet. Danke!');
   } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function completeEvent(id, pts, btn) {
+  if (!confirm(`Warst du dabei? Du erhältst ${ptMsg(pts)} für deine Teilnahme.`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await apiFetch(`/api/events/${id}/complete`, 'POST');
+    btn.textContent = '✓ Abgeschlossen';
+    btn.style.opacity = '.75';
+    showToast(`✓ Super! ${ptMsg(r.points_awarded)}`);
+    await refreshPoints();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = `✓ Ich war dabei (+${pts})`;
+    showToast(e.message || 'Fehler');
+  }
+}
+
+async function openJoinRequests(eventId) {
+  const list = document.getElementById('join-req-list');
+  list.innerHTML = '<div class="loading">Lade Anfragen…</div>';
+  openModal('modal-join-requests');
+  try {
+    const reqs = await apiFetch(`/api/events/${eventId}/join-requests`);
+    if (!reqs.length) {
+      list.innerHTML = '<div class="empty">Noch keine Anfragen.</div>';
+      return;
+    }
+    list.innerHTML = reqs.map(r => `
+      <div data-rid="${r.id}" style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">${(r.display_name||'?')[0].toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.9rem;font-weight:700">${esc(r.display_name)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">📍 ${esc(r.city||'')} · 🕐 ${r.volunteer_hours||0}h Ehrenamt · Pos. ${r.queue_position}</div>
+          </div>
+        </div>
+        ${r.message ? `<div style="font-size:.8rem;color:var(--dim);margin-bottom:.55rem;font-style:italic;line-height:1.4">"${esc(r.message)}"</div>` : ''}
+        <div style="display:flex;gap:.5rem">
+          <button class="btn-primary" style="flex:1;font-size:.82rem;padding:.45rem" onclick="respondJoinRequest(${eventId},${r.id},'accept',this)">✓ Akzeptieren</button>
+          <button class="btn-secondary" style="flex:1;font-size:.82rem;padding:.45rem" onclick="respondJoinRequest(${eventId},${r.id},'decline',this)">✗ Ablehnen</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty">${esc(e.message||'Fehler beim Laden')}</div>`;
+  }
+}
+
+async function respondJoinRequest(eventId, reqId, action, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/events/${eventId}/join-requests/${reqId}/respond`, 'POST', {action});
+    const card = btn.closest('[data-rid]');
+    if (card) {
+      card.style.opacity = '.5';
+      card.querySelector('.btn-primary')?.remove();
+      card.querySelector('.btn-secondary')?.remove();
+      const div = document.createElement('div');
+      div.style.cssText = `font-size:.78rem;font-weight:700;color:${action==='accept'?'var(--green)':'var(--red)'}`;
+      div.textContent = action === 'accept' ? '✓ Akzeptiert — angemeldet!' : '✗ Abgelehnt';
+      card.appendChild(div);
+    }
+    showToast(action === 'accept' ? '✓ Akzeptiert!' : '✗ Abgelehnt');
+  } catch(e) { btn.disabled = false; showToast(e.message||'Fehler'); }
 }
 
 function setEvType(type) {
@@ -2062,8 +2201,76 @@ async function loadTrails() {
 }
 
 async function startTrail(trailId) {
-  showToast('Trail gestartet! Besuche die Stops und check ein.');
-  // Future: open a trail detail view with checkin buttons
+  document.getElementById('trail-checkin-stops').innerHTML = '<div class="loading">Lade Trail…</div>';
+  document.getElementById('trail-checkin-title').textContent = 'Trail';
+  document.getElementById('trail-checkin-bonus').textContent = '';
+  openModal('modal-trail-checkin');
+  try {
+    const city = currentUser?.city || '';
+    const [trails, progress] = await Promise.all([
+      apiFetch(`/api/trails?city=${encodeURIComponent(city)}`),
+      apiFetch(`/api/trails/${trailId}/progress`).catch(() => ({checked_stops:[],completed:false,total_stops:0}))
+    ]);
+    const trail = trails.find(t => t.id === trailId);
+    if (!trail) { document.getElementById('trail-checkin-stops').innerHTML = '<div class="empty">Trail nicht gefunden.</div>'; return; }
+    document.getElementById('trail-checkin-title').textContent = trail.title;
+    document.getElementById('trail-checkin-bonus').textContent = `🏆 +${trail.bonus_points} Punkte bei Abschluss`;
+    const checkedIds = new Set(progress.checked_stops || []);
+    const allDone = progress.completed;
+
+    if (allDone) {
+      document.getElementById('trail-checkin-stops').innerHTML = `
+        <div style="text-align:center;padding:1.5rem 0">
+          <div style="font-size:2.5rem;margin-bottom:.5rem">🏆</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--green)">Trail abgeschlossen!</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:.35rem">+${trail.bonus_points} Bonuspunkte wurden dir gutgeschrieben.</div>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('trail-checkin-stops').innerHTML = trail.stops.map((s, i) => {
+      const done = checkedIds.has(s.id);
+      return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.65rem 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:30px;height:30px;border-radius:50%;background:${done?'var(--green)':'var(--orange)'};color:white;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0">${done?'✓':i+1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.9rem;font-weight:700">${esc(s.biz_name)}</div>
+          ${s.task_hint ? `<div style="font-size:.74rem;color:var(--dim);margin:.2rem 0 .45rem;line-height:1.4">${esc(s.task_hint)}</div>` : ''}
+          ${done
+            ? `<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Eingecheckt</span>`
+            : `<button class="btn-primary" style="font-size:.8rem;padding:.38rem .85rem;margin-top:.1rem" onclick="trailCheckin(${trailId},${s.id},${trail.bonus_points},this)">📍 Ich bin hier — Einchecken</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('trail-checkin-stops').innerHTML = `<div class="empty">${esc(e.message||'Fehler beim Laden')}</div>`;
+  }
+}
+
+async function trailCheckin(trailId, stopId, bonusPts, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await apiFetch(`/api/trails/${trailId}/checkin/${stopId}`, 'POST');
+    // Replace button with done indicator
+    const wrapper = btn.closest('div');
+    if (wrapper) {
+      const btnEl = wrapper.querySelector('button');
+      if (btnEl) btnEl.outerHTML = '<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Eingecheckt</span>';
+      const circle = wrapper.previousElementSibling;
+      if (circle) { circle.style.background = 'var(--green)'; circle.textContent = '✓'; }
+    }
+    if (r.completed) {
+      showToast(`🏆 Trail abgeschlossen! ${ptMsg(bonusPts)}`);
+      await refreshPoints();
+      // Refresh modal to show completion state
+      setTimeout(() => startTrail(trailId), 400);
+    } else {
+      showToast(`✓ Stop ${r.stops_done}/${r.total_stops} eingecheckt!`);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '📍 Ich bin hier — Einchecken';
+    showToast(e.message||'Fehler');
+  }
 }
 
 async function loadCoupons() {
@@ -2190,7 +2397,7 @@ async function loadSeniors() {
         <div class="person-bio">${esc(s.bio||'')}</div>
         <div class="person-badges"><span class="badge badge-senior">Senior</span></div>
       </div>
-      <button class="btn-connect" onclick="scheduleVisit(${s.id})">Besuchen +100</button>
+      <button class="btn-connect" onclick="scheduleVisit(${s.id},'${esc(s.display_name)}')">Besuchen +100</button>
     </div>`).join('');
 }
 
@@ -2234,13 +2441,63 @@ async function connectNeighbor(id, btn) {
   } catch(e) { showToast(e.message||'Fehler'); }
 }
 
-async function scheduleVisit(seniorId) {
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+async function scheduleVisit(seniorId, seniorName) {
+  // Default to tomorrow 14:00
+  const def = new Date(); def.setDate(def.getDate()+1); def.setHours(14,0,0,0);
+  const defStr = def.toISOString().slice(0,16);
+  const scheduled_at = prompt(`Wann möchtest du ${seniorName||'diesen Senior'} besuchen?\nDatum und Uhrzeit (TT.MM.JJJJ HH:MM) oder leer lassen für morgen 14:00:`, `${def.toLocaleDateString('de-DE')} 14:00`);
+  if (scheduled_at === null) return; // cancelled
+  let isoDate = defStr;
+  if (scheduled_at && scheduled_at.trim()) {
+    // Try to parse "DD.MM.YYYY HH:MM"
+    const m = scheduled_at.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/);
+    if (m) {
+      isoDate = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}T${m[4].padStart(2,'0')}:${m[5]}`;
+    }
+  }
   try {
-    await apiFetch('/api/nahbar/visit', 'POST', {senior_id: seniorId, scheduled_at: tomorrow.toISOString().slice(0,16)});
+    await apiFetch('/api/nahbar/visit', 'POST', {senior_id: seniorId, scheduled_at: isoDate});
     showToast(`✓ Besuch geplant! ${ptMsg(5)}`);
     await refreshPoints();
+    loadMyVisits(); // refresh visits list
   } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+async function loadMyVisits() {
+  const list = document.getElementById('my-visits-list');
+  if (!list) return;
+  try {
+    const visits = await apiFetch('/api/my/visits');
+    if (!visits.length) {
+      list.innerHTML = '<div class="empty" style="font-size:.82rem">Noch keine Besuche geplant. Klicke oben auf "Besuchen" um einen Termin zu vereinbaren.</div>';
+      return;
+    }
+    list.innerHTML = visits.map(v => {
+      const dt = new Date(v.scheduled_at);
+      const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      return `<div class="person-card">
+        <div class="person-avatar" style="background:var(--pink);font-size:1.3rem;font-weight:800">${(v.senior_name||'?')[0].toUpperCase()}</div>
+        <div class="person-info">
+          <div class="person-name">${esc(v.senior_name)}</div>
+          <div class="person-bio" style="font-size:.72rem;color:var(--dim)">📅 ${dateStr}</div>
+        </div>
+        ${v.completed
+          ? '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>'
+          : `<button class="btn-connect" style="background:var(--green);white-space:nowrap" onclick="completeVisit(${v.id},this)">✓ War dabei<br><span style="font-size:.65rem">+100</span></button>`}
+      </div>`;
+    }).join('');
+  } catch { if(list) list.innerHTML = '<div class="empty">–</div>'; }
+}
+
+async function completeVisit(visitId, btn) {
+  if (!confirm('Besuch wirklich als abgeschlossen markieren? Du erhältst +100 Punkte.')) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/nahbar/visit/${visitId}/complete`, 'POST');
+    btn.outerHTML = '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>';
+    showToast(`✓ Super! ${ptMsg(100)}`);
+    await refreshPoints();
+  } catch(e) { btn.disabled = false; showToast(e.message||'Fehler'); }
 }
 
 // ── SOS ───────────────────────────────────────────────────────────────────
@@ -2420,6 +2677,45 @@ async function loadMyEvents() {
         <span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:${e.status==='active'?'rgba(16,185,129,.15)':'var(--card)'};color:${e.status==='active'?'var(--green)':'var(--muted)'};border:1px solid ${e.status==='active'?'rgba(16,185,129,.3)':'var(--border)'}">${e.status==='active'?'Aktiv':'Beendet'}</span>
       </div>`).join('');
   } catch { document.getElementById('my-events-list').innerHTML = '<div class="empty">–</div>'; }
+}
+
+async function loadMyRegistrations() {
+  const list = document.getElementById('my-registrations-list');
+  if (!list) return;
+  try {
+    const regs = await apiFetch('/api/my/registrations');
+    if (!regs.length) {
+      list.innerHTML = '<div class="empty">Du hast dich noch bei keinem Event angemeldet.</div>';
+      return;
+    }
+    const now = new Date();
+    const CAT = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',hangout:'🎮',quartier:'🏘️',other:'🎉'};
+    list.innerHTML = regs.map(r => {
+      const dt = new Date(r.starts_at);
+      const isPast = dt < now;
+      const isCompleted = r.status === 'completed';
+      let badge, actionEl = '';
+      if (isCompleted) {
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)">✓ Abgeschlossen</span>`;
+      } else if (isPast) {
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(245,158,11,.1);color:var(--orange);border:1px solid rgba(245,158,11,.3)">War dabei?</span>`;
+        actionEl = `<button class="btn-primary" style="margin-top:.45rem;padding:.4rem .85rem;font-size:.78rem;background:var(--green)" onclick="completeEvent(${r.event_id},${r.points_reward},this)">✓ Ich war dabei (+${r.points_reward})</button>`;
+      } else {
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.3)">Angemeldet</span>`;
+      }
+      return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <div style="font-size:1.3rem;flex-shrink:0">${CAT[r.category]||'🎉'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.title)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${dt.toLocaleDateString('de-CH')} · ⭐${r.points_reward}pts</div>
+          </div>
+          ${badge}
+        </div>
+        ${actionEl}
+      </div>`;
+    }).join('');
+  } catch { if(list) list.innerHTML = '<div class="empty">–</div>'; }
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────

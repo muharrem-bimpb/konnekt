@@ -1686,6 +1686,37 @@ def my_points():
         ).fetchall()
     return jsonify({"balance": balance["points_balance"], "history": [dict(r) for r in history]})
 
+@app.get("/api/my/registrations")
+@require_auth
+def my_registrations():
+    """All events the current user registered for, with status."""
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT er.event_id, er.status, er.points_awarded,
+                   e.title, e.starts_at, e.ends_at, e.points_reward, e.type, e.category,
+                   e.organizer_id, e.city, e.address, e.image_url
+            FROM event_registrations er
+            JOIN events e ON er.event_id = e.id
+            WHERE er.user_id = ?
+            ORDER BY e.starts_at DESC LIMIT 50
+        """, (g.user_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.get("/api/my/visits")
+@require_auth
+def my_visits():
+    """Senior visits scheduled or completed by the current user."""
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT sv.id, sv.scheduled_at, sv.completed, sv.points_awarded,
+                   u.display_name as senior_name
+            FROM senior_visits sv
+            JOIN users u ON sv.senior_id = u.id
+            WHERE sv.visitor_id = ?
+            ORDER BY sv.scheduled_at DESC LIMIT 20
+        """, (g.user_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
 @app.get("/api/leaderboard")
 def leaderboard():
     city = request.args.get("city","")
