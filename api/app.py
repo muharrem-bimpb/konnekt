@@ -1008,8 +1008,12 @@ def stripe_webhook():
 @require_auth
 def impact_analytics():
     tier = get_user_tier(g.user_id)
+    # Free users get basic stats; full breakdown for pro+
     if tier not in ("pro","business","ngo"):
-        return jsonify({"error": "Pro required", "upgrade": True}), 403
+        with get_db() as c:
+            deeds = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (g.user_id,)).fetchone()[0]
+            events_done = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (g.user_id,)).fetchone()[0]
+        return jsonify({"deeds": deeds, "events_completed": events_done, "free_tier": True})
     with get_db() as c:
         total_pts   = c.execute("SELECT SUM(delta) FROM point_transactions WHERE user_id=? AND delta>0", (g.user_id,)).fetchone()[0] or 0
         deeds_count = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (g.user_id,)).fetchone()[0]

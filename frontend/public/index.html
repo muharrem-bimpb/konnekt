@@ -1020,9 +1020,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <button class="btn-primary" style="padding:.5rem 1rem;font-size:.8rem;white-space:nowrap" onclick="copyInviteLink()">📋 Link kopieren</button>
       </div>
 
-      <!-- Impact analytics (Pro) -->
-      <div id="impact-analytics" style="display:none">
-        <div class="section-title"><span class="section-dot" style="background:var(--accent2)"></span> Impact-Analyse ⭐ Pro</div>
+      <!-- Impact analytics -->
+      <div id="impact-analytics">
+        <div class="section-title"><span class="section-dot" style="background:var(--accent2)"></span> Dein Impact</div>
         <div id="impact-data" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem"></div>
       </div>
 
@@ -3271,39 +3271,88 @@ function loadTierBanner() {
 async function loadImpactAnalytics() {
   const tier = currentUser?.subscription_tier || 'free';
   const section = document.getElementById('impact-analytics');
-  if (!section) return;
-  if (tier === 'free') { section.style.display = 'none'; return; }
+  const box = document.getElementById('impact-data');
+  if (!section || !box) return;
   section.style.display = '';
-  try {
-    const d = await apiFetch('/api/analytics/impact');
-    document.getElementById('impact-data').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
-          <div style="font-size:1.3rem;font-weight:800;color:var(--neon)">${d.volunteer_hours_equiv}h</div>
-          <div style="font-size:.68rem;color:var(--muted)">Ehrenamtsstunden</div>
+
+  if (tier === 'free') {
+    // Show teaser with real basic stats from currentUser
+    const pts  = currentUser?.points_balance || 0;
+    const hrs  = currentUser?.volunteer_hours || 0;
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.85rem">
+        ${statTile(pts.toLocaleString(), 'Punkte gesamt', 'var(--orange)')}
+        ${statTile(hrs + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
+        ${statTile('?', 'Gute Taten', 'var(--accent)')}
+      </div>
+      <div style="position:relative;filter:blur(3px) brightness(.7);pointer-events:none;user-select:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+          ${statTile('12', 'Events', 'var(--purple)')}${statTile('3', 'Senior-Besuche', 'var(--pink)')}${statTile('4.7 kg', 'CO₂ gespart', 'var(--green)')}
         </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
-          <div style="font-size:1.3rem;font-weight:800;color:var(--green)">${d.co2_kg_saved_equiv} kg</div>
-          <div style="font-size:.68rem;color:var(--muted)">CO₂-Äquivalent</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
-          <div style="font-size:1.3rem;font-weight:800;color:var(--accent)">${d.deeds}</div>
-          <div style="font-size:.68rem;color:var(--muted)">Gute Taten</div>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
-          <div style="font-size:1.3rem;font-weight:800;color:var(--purple)">${d.events_completed}</div>
-          <div style="font-size:.68rem;color:var(--muted)">Events beendet</div>
+        <div style="height:50px;display:flex;gap:3px;align-items:flex-end">${[30,45,20,60,80,50].map(h=>`<div style="flex:1;background:var(--accent);border-radius:3px 3px 0 0;height:${h}%"></div>`).join('')}</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+        <div style="background:rgba(0,0,0,.55);border-radius:12px;padding:.6rem 1rem;text-align:center;backdrop-filter:blur(2px)">
+          <div style="font-size:.82rem;font-weight:700;color:white">⭐ Pro freischalten</div>
+          <div style="font-size:.7rem;color:rgba(255,255,255,.7)">Für vollständige Impact-Analyse</div>
         </div>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);text-align:center">Monatstrend (letzte 6 Monate)</div>
-      <div style="display:flex;gap:.3rem;align-items:flex-end;height:50px;margin-top:.4rem">
-        ${(d.monthly_breakdown||[]).reverse().map(m => {
-          const max = Math.max(...(d.monthly_breakdown||[{pts:1}]).map(x=>x.pts),1);
-          const h = Math.round((m.pts/max)*46)+4;
-          return `<div style="flex:1;background:linear-gradient(0deg,var(--accent),var(--neon));border-radius:4px 4px 0 0;height:${h}px;opacity:.8" title="${m.month}: ${m.pts}pts"></div>`;
-        }).join('')}
+      <div style="text-align:center;margin-top:.75rem">
+        <button class="btn-primary" style="font-size:.82rem;padding:.5rem 1.2rem" onclick="openPricing()">Pro — 9 CHF/Monat</button>
       </div>`;
-  } catch { section.style.display = 'none'; }
+    box.style.position = 'relative';
+    return;
+  }
+
+  box.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const d = await apiFetch('/api/analytics/impact');
+    const months = (d.monthly_breakdown || []).slice().reverse();
+    const maxPts = Math.max(...months.map(m => m.pts || 0), 1);
+    const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.85rem">
+        ${statTile((d.total_points_earned||0).toLocaleString(), 'Punkte verdient', 'var(--orange)')}
+        ${statTile(d.volunteer_hours_equiv + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
+        ${statTile(d.co2_kg_saved_equiv + ' kg', 'CO₂ gespart', 'var(--green)')}
+        ${statTile(d.deeds, 'Gute Taten', 'var(--accent)')}
+        ${statTile(d.events_completed, 'Events beendet', 'var(--purple)')}
+        ${statTile(d.events_organized, 'Events organisiert', 'var(--accent2)')}
+      </div>
+      ${d.senior_visits ? `<div style="background:linear-gradient(135deg,rgba(236,72,153,.1),rgba(236,72,153,.04));border:1px solid rgba(236,72,153,.25);border-radius:10px;padding:.6rem .85rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.6rem"><span style="font-size:1.3rem">💛</span><div><div style="font-size:.85rem;font-weight:700">${d.senior_visits} Senioren-Besuch${d.senior_visits!==1?'e':''}</div><div style="font-size:.7rem;color:var(--muted)">Jeder Besuch ist echte Verbindung</div></div></div>` : ''}
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Punkte der letzten ${months.length} Monate</div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:64px">
+        ${months.map(m => {
+          const h = Math.max(Math.round((m.pts/maxPts)*58), 4);
+          const label = MONTH_SHORT[(parseInt(m.month?.split('-')[1]||'1')-1)];
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="width:100%;background:linear-gradient(0deg,var(--accent),var(--neon));border-radius:3px 3px 0 0;height:${h}px;opacity:.85;cursor:default" title="${m.month}: ${m.pts} Pts"></div>
+            <div style="font-size:.55rem;color:var(--muted)">${label}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:.85rem;display:flex;gap:.5rem">
+        <button class="btn-secondary" style="flex:1;font-size:.78rem;padding:.5rem" onclick="shareImpact(${JSON.stringify(d).replace(/"/g,'&quot;')})">📤 Teilen</button>
+      </div>`;
+  } catch(e) { box.innerHTML = `<div class="empty">${esc(e.message||'Fehler')}</div>`; }
+}
+
+function statTile(val, label, color) {
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.65rem .5rem;text-align:center">
+    <div style="font-size:1.25rem;font-weight:800;color:${color};line-height:1">${val}</div>
+    <div style="font-size:.62rem;color:var(--muted);margin-top:.15rem;line-height:1.2">${label}</div>
+  </div>`;
+}
+
+function shareImpact(d) {
+  const text = `Mein Konnekt-Impact 🌱\n⭐ ${d.total_points_earned} Punkte\n🕐 ${d.volunteer_hours_equiv}h Ehrenamt\n❤️ ${d.deeds} gute Taten\n🌿 ${d.co2_kg_saved_equiv}kg CO₂ gespart\n\nkonnekt.app`;
+  if (navigator.share) {
+    navigator.share({title:'Mein Konnekt Impact', text}).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text);
+    showToast('Impact-Text kopiert!');
+  }
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
