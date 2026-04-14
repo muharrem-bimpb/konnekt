@@ -51,7 +51,7 @@ def get_db():
     data_dir = Path(os.getenv("DATA_DIR", "")) or Path(__file__).parent.parent / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     db_path = data_dir / "konnekt.db"
-    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
