@@ -690,12 +690,24 @@ def award_points(user_id, delta, reason, ref_type=None, ref_id=None):
 
 # ── Static / Frontend ─────────────────────────────────────────────────────────
 
+# Compute a content hash of index.html once at startup so every deploy
+# produces a unique ETag — forces browsers to revalidate even when cached.
+def _html_etag():
+    try:
+        p = Path(app.static_folder) / "index.html"
+        return hashlib.md5(p.read_bytes()).hexdigest()[:12]
+    except Exception:
+        return secrets.token_hex(6)
+
+_INDEX_ETAG = _html_etag()
+
 @app.route("/")
 def index():
     resp = send_from_directory(app.static_folder, "index.html")
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
+    resp.headers["ETag"] = f'"{_INDEX_ETAG}"'
     return resp
 
 @app.route("/<path:path>")
