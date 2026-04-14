@@ -194,6 +194,26 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 .nav-item .nav-icon { font-size: 1.3rem; line-height: 1; }
 .nav-item .nav-label { font-size: .62rem; font-weight: 600; letter-spacing: .02em; }
 
+/* ── Desktop sidebar nav ── */
+@media (min-width: 768px) {
+  body { padding-bottom: 0; padding-left: 72px; }
+  .bottom-nav {
+    flex-direction: column; width: 72px; height: 100dvh;
+    right: auto; top: 0; bottom: auto;
+    border-right: 1px solid var(--border); border-top: none;
+    justify-content: flex-start; align-items: center;
+    padding: 0; padding-top: calc(4.5rem + var(--safe-top));
+    gap: .25rem;
+  }
+  .nav-item { width: 100%; padding: .8rem .4rem; flex: 0 0 auto; }
+  .nav-item.active::after { top: auto; left: 0; bottom: 0; width: 3px; height: 100%; border-radius: 0 4px 4px 0; }
+  .screen { min-height: 100dvh; }
+  #screen-volunteer { height: 100dvh; }
+  #screen-map { height: 100dvh; }
+  .topbar { padding-left: calc(72px + 1rem); }
+  .fab { bottom: 1.5rem; right: 1.5rem; }
+}
+
 /* ── Cards ── */
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: 16px;
@@ -485,7 +505,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
 /* ── Modal ── */
 .modal-overlay {
-  display: none; position: fixed; inset: 0; z-index: 200;
+  display: none; position: fixed; inset: 0; z-index: 1100;
   background: rgba(0,0,0,.6); align-items: flex-end; justify-content: center;
   backdrop-filter: blur(4px);
 }
@@ -494,8 +514,12 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   background: var(--card); border: 1px solid var(--border); border-radius: 24px 24px 0 0;
   width: 100%; max-width: 600px; padding: 1.5rem 1.2rem;
   padding-bottom: calc(1.5rem + var(--safe-bot));
-  max-height: 90dvh; overflow-y: auto;
+  max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
   box-shadow: 0 -8px 40px rgba(0,0,0,.4);
+}
+@media (min-width: 768px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: 20px; max-height: 85dvh; max-width: 520px; }
 }
 .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 1rem; }
 .modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: space-between; }
@@ -673,7 +697,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 </div>
 
 <!-- Magic Link Panel (inline) -->
-<div id="magic-panel" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);align-items:center;justify-content:center;padding:2rem;flex-direction:column">
+<div id="magic-panel" style="display:none;position:fixed;inset:0;z-index:1100;background:var(--bg);align-items:center;justify-content:center;padding:2rem;flex-direction:column">
   <div style="width:100%;max-width:360px">
     <div style="font-size:2rem;text-align:center;margin-bottom:.5rem">✉️</div>
     <div style="font-size:1.2rem;font-weight:800;text-align:center;margin-bottom:.5rem">Magic Link</div>
@@ -797,15 +821,18 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Events screen: list only -->
   <div class="screen" id="screen-volunteer">
-    <div class="filter-row" id="event-filters" style="flex-shrink:0;padding:.6rem 1rem .4rem;margin:0;background:var(--bg);border-bottom:1px solid var(--border)">
-      <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
-      <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
-      <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
-      <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
-      <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
-      <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
-      <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
-      <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem .35rem;background:var(--bg);border-bottom:1px solid var(--border)">
+      <div class="filter-row" id="event-filters" style="flex:1;padding:0;margin:0;background:none;border:none">
+        <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
+        <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
+        <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
+        <div class="fpill" onclick="filterEvents('environment',this)">🌿 Umwelt</div>
+        <div class="fpill" onclick="filterEvents('senior',this)">💛 Senioren</div>
+        <div class="fpill" onclick="filterEvents('health',this)">❤️ Gesundheit</div>
+        <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
+        <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
+      </div>
+      <button onclick="openCreateEvent()" style="flex-shrink:0;background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:var(--shadow)">+ Erstellen</button>
     </div>
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
@@ -823,6 +850,8 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
         <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
         <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--orange);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🏪 Shops</button>
+        <button id="map-show-lonely-btn"    onclick="setMapMode('lonely')"    style="background:var(--card);color:#f97316;border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🤝 Nahbar</button>
+        <button onclick="openCreateEvent()" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">+ Event</button>
       </div>
     </div>
     <!-- Bubbles list strip below map -->
@@ -927,6 +956,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--pink)"></span> Senioren suchen Besuch</div>
       <div id="seniors-list"><div class="loading">Lade…</div></div>
 
+      <!-- Senior: visits pending MY confirmation -->
+      <div id="senior-confirm-section" style="display:none">
+        <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--orange)"></span> Besuche bestätigen</div>
+        <div style="font-size:.75rem;color:var(--dim);margin-bottom:.5rem">Jemand sagt, er war bei dir. Bitte bestätige oder ignoriere.</div>
+        <div id="senior-pending-list"><div class="loading">Lade…</div></div>
+      </div>
+
       <!-- My Visits -->
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine geplanten Besuche</div>
       <div id="my-visits-list"><div class="loading">Lade…</div></div>
@@ -958,6 +994,21 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
       <!-- Pro upgrade / current tier -->
       <div id="tier-banner" style="margin-bottom:1rem"></div>
+
+      <!-- Lonely map opt-in -->
+      <div id="lonely-map-toggle-card" style="background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
+        <div style="font-size:1.5rem">🤝</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:700">Auf Nahbar-Karte zeigen</div>
+          <div style="font-size:.73rem;color:var(--muted);line-height:1.4">Anonymisiert — nur dein Initial + Quartier. Andere sehen: "Diese Person könnte Verbindung brauchen." Kein Foto, kein genauer Standort.</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">
+          <input type="checkbox" id="lonely-map-opt-in" onchange="toggleLonelyMap(this.checked)" style="opacity:0;width:0;height:0;position:absolute">
+          <span id="lonely-map-slider" style="position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:24px;transition:.3s;display:flex;align-items:center;padding:2px">
+            <span style="width:20px;height:20px;background:white;border-radius:50%;transition:.3s;transform:translateX(0)"></span>
+          </span>
+        </label>
+      </div>
 
       <!-- Invite friends -->
       <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(0,255,136,.05));border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
@@ -1195,9 +1246,14 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <input class="field" id="ev-pts" type="number" value="50" min="10" max="500">
       </div>
     </div>
-    <div class="field-group" style="margin-bottom:.85rem">
-      <div class="field-label">Adresse</div>
-      <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort" oninput="clearFieldErr('ev-city')">
+    <div class="field-group" style="margin-bottom:.85rem;position:relative">
+      <div class="field-label">Adresse <span style="font-size:.68rem;color:var(--dim);font-weight:400">— tippe für Vorschläge</span></div>
+      <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort" autocomplete="off"
+             oninput="evAddrSearch(this.value);clearFieldErr('ev-city')"
+             onblur="setTimeout(()=>document.getElementById('ev-addr-suggestions').style.display='none',200)">
+      <input type="hidden" id="ev-lat" value="0">
+      <input type="hidden" id="ev-lng" value="0">
+      <div id="ev-addr-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);max-height:180px;overflow-y:auto"></div>
       <div id="ev-city-err" style="display:none;font-size:.75rem;color:#f0a500;margin-top:.25rem"></div>
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
@@ -1715,6 +1771,7 @@ function updateUserUI() {
     const proNote = tier === 'pro' ? ' · 3× Multiplikator aktiv' : '';
     streakEl.innerHTML = `<span class="streak-badge">🔥 ${hours} Ehrenamtsstunden${proNote}</span>`;
   }
+  syncLonelyMapToggle();
 }
 
 // ── Screen switching ──────────────────────────────────────────────────────
@@ -1728,7 +1785,7 @@ function switchScreen(name, btn) {
   if (name==='volunteer') { loadEvents(); }
   if (name==='map')       { openMapScreen(); }
   if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
-  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); }
+  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
   if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); loadImpactAnalytics(); }
 }
 
@@ -2070,10 +2127,11 @@ async function submitJoinRequest() {
 async function flagEvent(id, btn) {
   const reason = prompt('Warum möchtest du dieses Event melden?\n(spam / unangemessen / gefälschte Infos / anderes)', 'spam');
   if (!reason) return;
+  const details = prompt('Kurze Beschreibung (optional):', '') || '';
   try {
-    const r = await apiFetch(`/api/events/${id}/flag`, 'POST', {reason});
+    await apiFetch(`/api/events/${id}/flag`, 'POST', {reason, details});
     if (btn) { btn.textContent = '⚑ Gemeldet'; btn.disabled = true; btn.style.color = '#ef4444'; }
-    showToast('Event gemeldet. Danke!');
+    showToast('Meldung an Moderatoren weitergeleitet. Danke!');
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
@@ -2165,6 +2223,42 @@ function setEvType(type) {
   }
 }
 
+// ── Address autocomplete (Nominatim) ─────────────────────────────────────────
+let _addrSearchTimer = null;
+async function evAddrSearch(val) {
+  const sug = document.getElementById('ev-addr-suggestions');
+  if (!sug) return;
+  if (val.length < 3) { sug.style.display = 'none'; return; }
+  clearTimeout(_addrSearchTimer);
+  _addrSearchTimer = setTimeout(async () => {
+    try {
+      const city = document.getElementById('ev-city').value.trim() || currentUser?.city || 'Schweiz';
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val+' '+city)}&format=json&limit=5&addressdetails=1&accept-language=de`;
+      const res = await fetch(url, {headers:{'Accept-Language':'de'}});
+      const items = await res.json();
+      if (!items.length) { sug.style.display='none'; return; }
+      sug.innerHTML = items.map(it => {
+        const addr = it.display_name;
+        const lat  = parseFloat(it.lat);
+        const lng  = parseFloat(it.lon);
+        const shortLabel = [it.address?.road, it.address?.house_number, it.address?.city||it.address?.town||it.address?.village].filter(Boolean).join(' ');
+        return `<div style="padding:.55rem .85rem;font-size:.82rem;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text)"
+                     onmousedown="selectAddrSuggestion('${shortLabel||addr.slice(0,60)}','${it.address?.city||it.address?.town||it.address?.village||''}',${lat},${lng})"
+                     >${esc(shortLabel||addr.slice(0,70))}</div>`;
+      }).join('');
+      sug.style.display='';
+    } catch { sug.style.display='none'; }
+  }, 350);
+}
+function selectAddrSuggestion(addr, city, lat, lng) {
+  document.getElementById('ev-addr').value = addr;
+  document.getElementById('ev-lat').value  = lat;
+  document.getElementById('ev-lng').value  = lng;
+  if (city && !document.getElementById('ev-city').value) document.getElementById('ev-city').value = city;
+  document.getElementById('ev-addr-suggestions').style.display = 'none';
+  clearFieldErr('ev-city');
+}
+
 function openCreateEvent() {
   // Pre-fill city from user profile
   const cityEl = document.getElementById('ev-city');
@@ -2231,6 +2325,8 @@ async function createEvent() {
 
   btn.disabled = true; btn.textContent = 'Wird erstellt…';
   try {
+    const lat = parseFloat(document.getElementById('ev-lat').value) || 0;
+    const lng = parseFloat(document.getElementById('ev-lng').value) || 0;
     await apiFetch('/api/events', 'POST', {
       title,
       type: currentEvType,
@@ -2240,9 +2336,11 @@ async function createEvent() {
       points_reward: parseInt(document.getElementById('ev-pts').value)||50,
       max_participants: parseInt(document.getElementById('ev-max').value)||0,
       address: addr,
-      city
+      city,
+      ...(lat && lng ? {lat, lng} : {})
     });
     ['ev-title','ev-desc','ev-addr'].forEach(id => { document.getElementById(id).value = ''; clearFieldErr(id); });
+    document.getElementById('ev-lat').value = '0'; document.getElementById('ev-lng').value = '0';
     clearFieldErr('ev-start'); clearFieldErr('ev-city');
     document.getElementById('ev-pts').value = '50';
     document.getElementById('ev-max').value = '0';
@@ -2395,6 +2493,7 @@ async function loadCoupons() {
   const pts = currentUser?.points_balance || 0;
   const ICONS = {food:'🍞',sport:'🏃',culture:'🎭',other:'🎟️'};
   const redeemedIds = new Set(myRedemptions.map(r => r.coupon_id));
+  const redeemedMap = Object.fromEntries(myRedemptions.map(r => [r.coupon_id, r]));
 
   if (!coupons.length && !myRedemptions.length) {
     list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return;
@@ -2423,7 +2522,7 @@ async function loadCoupons() {
         ${expiry}
       </div>
       ${alreadyRedeemed
-        ? '<div style="font-size:.72rem;color:var(--green);font-weight:700;white-space:nowrap">✓ Eingelöst</div>'
+        ? (() => { const r=redeemedMap[c.id]; return r ? `<div style="text-align:right"><div style="font-size:.68rem;color:var(--green);font-weight:700">✓ Aktiviert</div><div onclick="navigator.clipboard?.writeText('${r.qr_code||''}');showToast('Code kopiert!')" style="font-size:.72rem;font-weight:800;font-family:monospace;letter-spacing:.06em;color:var(--text);background:var(--card2);padding:.15rem .4rem;border-radius:6px;cursor:pointer;border:1px solid var(--border)" title="Tippen zum Kopieren">${esc(r.qr_code||'')}</div></div>` : '<div style="font-size:.72rem;color:var(--green);font-weight:700;white-space:nowrap">✓ Eingelöst</div>'; })()
         : `<button class="btn-redeem" ${pts < c.points_cost ? 'disabled' : ''} onclick="redeemCoupon(${c.id},'${esc(c.title)}')">Einlösen</button>`}
     </div>`;
   });
@@ -2431,14 +2530,17 @@ async function loadCoupons() {
   // Show already-redeemed coupon history if any aren't in active list
   const historyOnly = myRedemptions.filter(r => !coupons.find(c => c.id === r.coupon_id));
   const historyCards = historyOnly.map(r => `
-    <div class="coupon-card" style="opacity:.5">
+    <div class="coupon-card" style="opacity:.65">
       <div class="coupon-icon">🎟️</div>
       <div class="coupon-body">
         <div class="coupon-biz">${esc(r.business_name||'')}</div>
         <div class="coupon-title">${esc(r.title)}</div>
         <div style="font-size:.68rem;color:var(--dim)">${new Date(r.redeemed_at).toLocaleDateString('de-DE')}</div>
       </div>
-      <div style="font-size:.72rem;color:var(--green);font-weight:700">✓ Eingelöst</div>
+      <div style="text-align:right">
+        <div style="font-size:.68rem;color:var(--green);font-weight:700">✓ Eingelöst</div>
+        ${r.qr_code ? `<div onclick="navigator.clipboard?.writeText('${r.qr_code}');showToast('Code kopiert!')" style="font-size:.72rem;font-weight:800;font-family:monospace;letter-spacing:.06em;color:var(--text);background:var(--card2);padding:.15rem .4rem;border-radius:6px;cursor:pointer;border:1px solid var(--border)" title="Tippen zum Kopieren">${esc(r.qr_code)}</div>` : ''}
+      </div>
     </div>`);
 
   if (!activeCards.length && !historyCards.length) {
@@ -2472,18 +2574,84 @@ async function updateCouponPts() {
   document.getElementById('coupon-pts').textContent = (currentUser?.points_balance||0).toLocaleString();
 }
 
+// ── Lonely / Nahbar Map ──────────────────────────────────────────────────────
+async function toggleLonelyMap(checked) {
+  const slider = document.getElementById('lonely-map-slider');
+  const handle = slider?.querySelector('span');
+  try {
+    await apiFetch('/api/profile/lonely-map-toggle', 'POST', {show: checked});
+    if (slider) slider.style.background = checked ? 'var(--orange,#f97316)' : 'var(--border)';
+    if (handle) handle.style.transform = checked ? 'translateX(20px)' : 'translateX(0)';
+    currentUser = await apiFetch('/api/auth/me');
+    showToast(checked ? '🤝 Du bist jetzt auf der Nahbar-Karte sichtbar' : 'Vom Nahbar-Map entfernt');
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+function syncLonelyMapToggle() {
+  const cb = document.getElementById('lonely-map-opt-in');
+  const slider = document.getElementById('lonely-map-slider');
+  const handle = slider?.querySelector('span');
+  const on = !!currentUser?.show_on_lonely_map;
+  if (cb) cb.checked = on;
+  if (slider) slider.style.background = on ? 'var(--orange,#f97316)' : 'var(--border)';
+  if (handle) handle.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+}
+
+let _lonelyMarkers = [];
+async function loadLonelyMapLayer() {
+  const city = currentUser?.city || '';
+  try {
+    const users = await apiFetch(`/api/map/loneliness?city=${encodeURIComponent(city)}`);
+    _lonelyMarkers.forEach(m => m.remove());
+    _lonelyMarkers = [];
+    users.forEach(u => {
+      if (!u.lat || !u.lng) return;
+      const conns = u.connection_count || 0;
+      const warmth = conns === 0 ? '#ef4444' : conns <= 1 ? '#f97316' : '#84cc16';
+      const size = 32;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${warmth};color:white;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer">${u.initial}</div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size/2],
+      });
+      const hint = conns === 0
+        ? 'Diese Person hat noch keine Nachbar-Verbindung'
+        : conns === 1
+          ? 'Hat 1 Verbindung — vielleicht magst du dich melden?'
+          : `Hat ${conns} Verbindungen`;
+      const m = L.marker([u.lat, u.lng], {icon})
+        .bindPopup(`<div style="font-size:.85rem;font-weight:700;margin-bottom:.25rem">${u.initial} · ${u.city}</div><div style="font-size:.78rem;color:#475569">${hint}</div><div style="font-size:.72rem;color:#94a3b8;margin-top:.25rem">🌱 ${u.events_done} Events abgeschlossen</div>`)
+        .addTo(leafletMap);
+      _lonelyMarkers.push(m);
+    });
+  } catch(e) { console.warn('lonely map error', e); }
+}
+
 // ── Nahbar ────────────────────────────────────────────────────────────────
 async function loadActivities() {
   const acts = await apiFetch('/api/activities/suggest?limit=4');
-  const CAT_ICONS = {outdoor:'🌿',social:'👥',volunteer:'🌱',senior:'💛',other:'✨'};
-  document.getElementById('activities-list').innerHTML = acts.map(a => `
-    <div class="activity-card">
-      <div class="act-icon">${CAT_ICONS[a.category]||'✨'}</div>
-      <div>
+  const CAT_ICONS = {outdoor:'🌿',social:'👥',volunteer:'🌱',senior:'💛',other:'✨',social:'👥'};
+  const CAT_COLORS = {outdoor:'var(--green)',social:'var(--accent)',volunteer:'var(--accent)',senior:'var(--pink)',other:'var(--purple)'};
+  const list = document.getElementById('activities-list');
+  if (!acts.length) { list.innerHTML = '<div class="empty">Keine Vorschläge.</div>'; return; }
+  list.innerHTML = acts.map(a => `
+    <div class="activity-card" style="cursor:pointer" onclick="filterEventsAndSwitch('${a.category}')">
+      <div class="act-icon" style="background:${CAT_COLORS[a.category]||'var(--accent)'}20;border-radius:10px;padding:.35rem">${CAT_ICONS[a.category]||'✨'}</div>
+      <div style="flex:1">
         <div class="act-title">${esc(a.title)}</div>
         <div class="act-desc">${esc(a.desc)}</div>
       </div>
+      <div style="font-size:.7rem;color:var(--accent);font-weight:700;white-space:nowrap">Events →</div>
     </div>`).join('');
+}
+
+function filterEventsAndSwitch(category) {
+  switchScreen('volunteer', document.querySelector('.nav-item[onclick*="volunteer"]'));
+  // Give the screen a moment to render, then apply filter
+  setTimeout(() => {
+    const pill = document.querySelector(`#event-filters .fpill[onclick*="'${category}'"]`);
+    if (pill) { filterEvents(category, pill); }
+  }, 100);
 }
 
 async function loadSeniors() {
@@ -2578,28 +2746,78 @@ async function loadMyVisits() {
     list.innerHTML = visits.map(v => {
       const dt = new Date(v.scheduled_at);
       const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      let action;
+      if (v.completed) {
+        action = '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>';
+      } else if (v.visitor_confirmed) {
+        action = '<span style="font-size:.73rem;color:var(--orange);font-weight:700;white-space:nowrap;text-align:right">⏳ Warte auf<br>Senior</span>';
+      } else {
+        action = `<button class="btn-connect" style="background:var(--green);white-space:nowrap;font-size:.75rem" onclick="completeVisit(${v.id},this)">✓ War dabei</button>`;
+      }
       return `<div class="person-card">
         <div class="person-avatar" style="background:var(--pink);font-size:1.3rem;font-weight:800">${(v.senior_name||'?')[0].toUpperCase()}</div>
         <div class="person-info">
           <div class="person-name">${esc(v.senior_name)}</div>
           <div class="person-bio" style="font-size:.72rem;color:var(--dim)">📅 ${dateStr}</div>
         </div>
-        ${v.completed
-          ? '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>'
-          : `<button class="btn-connect" style="background:var(--green);white-space:nowrap" onclick="completeVisit(${v.id},this)">✓ War dabei<br><span style="font-size:.65rem">+100</span></button>`}
+        ${action}
       </div>`;
     }).join('');
   } catch { if(list) list.innerHTML = '<div class="empty">–</div>'; }
 }
 
+async function loadSeniorPendingVisits() {
+  if (!currentUser?.is_senior) return;
+  const section = document.getElementById('senior-confirm-section');
+  const list = document.getElementById('senior-pending-list');
+  if (!section || !list) return;
+  try {
+    const visits = await apiFetch('/api/nahbar/pending-confirms');
+    if (!visits.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    list.innerHTML = visits.map(v => {
+      const dt = new Date(v.scheduled_at);
+      const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+      const statusBadge = v.visitor_confirmed
+        ? '<span style="font-size:.68rem;color:var(--orange)">✋ Besucher sagt: war da</span>'
+        : '<span style="font-size:.68rem;color:var(--dim)">Noch kein Check-in</span>';
+      return `<div class="person-card">
+        <div class="person-avatar" style="background:var(--accent);font-size:1.1rem;font-weight:800">${(v.visitor_name||'?')[0].toUpperCase()}</div>
+        <div class="person-info" style="flex:1">
+          <div class="person-name">${esc(v.visitor_name)}</div>
+          <div class="person-bio">📅 ${dateStr} · ${statusBadge}</div>
+        </div>
+        ${v.visitor_confirmed && !v.senior_confirmed
+          ? `<button class="btn-connect" style="background:var(--green);font-size:.73rem;white-space:nowrap" onclick="seniorConfirmVisit(${v.id},this)">✓ Bestätigen</button>`
+          : ''}
+      </div>`;
+    }).join('');
+  } catch { if(section) section.style.display = 'none'; }
+}
+
 async function completeVisit(visitId, btn) {
-  if (!confirm('Besuch wirklich als abgeschlossen markieren? Du erhältst +100 Punkte.')) return;
+  if (!confirm('Besuch als abgeschlossen markieren? Dein Senior muss danach noch bestätigen, dann erhältst du +100 Punkte.')) return;
   btn.disabled = true;
   try {
-    await apiFetch(`/api/nahbar/visit/${visitId}/complete`, 'POST');
-    btn.outerHTML = '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>';
-    showToast(`✓ Super! ${ptMsg(100)}`);
-    await refreshPoints();
+    const r = await apiFetch(`/api/nahbar/visit/${visitId}/complete`, 'POST');
+    if (r.awaiting_senior) {
+      btn.outerHTML = '<span style="font-size:.73rem;color:var(--orange);font-weight:700;white-space:nowrap;text-align:right">⏳ Warte auf<br>Senior</span>';
+      showToast('✓ Eingetragen! Warte auf Bestätigung des Seniors.');
+    } else {
+      btn.outerHTML = '<span style="font-size:.73rem;color:var(--green);font-weight:700;white-space:nowrap">✓ +100 Pts</span>';
+      showToast(`✓ Super! ${ptMsg(100)}`);
+      await refreshPoints();
+    }
+  } catch(e) { btn.disabled = false; showToast(e.message||'Fehler'); }
+}
+
+async function seniorConfirmVisit(visitId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/nahbar/visit/${visitId}/senior-confirm`, 'POST');
+    btn.outerHTML = '<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Bestätigt</span>';
+    showToast('✓ Besuch bestätigt! Der Besucher erhält seine Punkte.');
+    loadSeniorPendingVisits();
   } catch(e) { btn.disabled = false; showToast(e.message||'Fehler'); }
 }
 
@@ -2850,6 +3068,7 @@ async function submitBugReport() {
 
 async function loadProfile() {
   if (!currentUser) return;
+  syncLonelyMapToggle();
   try {
     const profile = await apiFetch(`/api/profile/${currentUser.id}`);
     document.getElementById('prof-deeds').textContent = profile.deeds_count || 0;
@@ -3310,16 +3529,19 @@ function setMapMode(mode) {
   const evBtn = document.getElementById('map-show-events-btn');
   const buBtn = document.getElementById('map-show-bubbles-btn');
   const shBtn = document.getElementById('map-show-shops-btn');
+  const loBtn = document.getElementById('map-show-lonely-btn');
 
   // Reset all buttons to inactive style
   evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--accent)'; evBtn.style.border = '1px solid rgba(59,130,246,.4)';
   buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--purple)'; buBtn.style.border = '1px solid rgba(139,92,246,.4)';
   shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--orange)'; shBtn.style.border = '1px solid rgba(249,115,22,.4)';
+  if (loBtn) { loBtn.style.background = 'var(--card)'; loBtn.style.color = '#f97316'; loBtn.style.border = '1px solid rgba(249,115,22,.4)'; }
 
   // Clear all markers
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
   bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m)); bubbleMapMarkers = [];
   shopMapMarkers.forEach(m => leafletMap.removeLayer(m)); shopMapMarkers = [];
+  _lonelyMarkers.forEach(m => m.remove()); _lonelyMarkers = [];
 
   if (mode === 'events') {
     evBtn.style.background = 'var(--accent)'; evBtn.style.color = 'white'; evBtn.style.border = 'none';
@@ -3330,6 +3552,9 @@ function setMapMode(mode) {
   } else if (mode === 'shops') {
     shBtn.style.background = 'var(--orange)'; shBtn.style.color = 'white'; shBtn.style.border = 'none';
     loadMapShops();
+  } else if (mode === 'lonely') {
+    if (loBtn) { loBtn.style.background = '#f97316'; loBtn.style.color = 'white'; loBtn.style.border = 'none'; }
+    loadLonelyMapLayer();
   }
 }
 
@@ -3472,9 +3697,13 @@ async function submitKlopf(emoji) {
   if (!_klopfTargetId) return;
   const errEl = document.getElementById('klopf-send-error');
   try {
-    await apiFetch('/api/klopf', 'POST', { to_id: _klopfTargetId, emoji, context: _klopfContext });
+    const r = await apiFetch('/api/klopf', 'POST', { to_id: _klopfTargetId, emoji, context: _klopfContext });
     closeModal('modal-klopf-send');
-    showToast(`${emoji} Klopf gesendet!`);
+    if (r.matched) {
+      setTimeout(() => showToast('🎉 Gegenseitiges Klopfen! Ihr seid jetzt Nachbarn verbunden.'), 200);
+    } else {
+      showToast(`${emoji} Klopf gesendet!`);
+    }
   } catch(e) {
     errEl.textContent = e.message || 'Fehler';
     errEl.style.display = '';

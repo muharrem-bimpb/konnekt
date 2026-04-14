@@ -322,6 +322,20 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reporter_id INTEGER NOT NULL,
+            target_type TEXT NOT NULL,  -- 'event', 'user', 'deed', 'comment'
+            target_id INTEGER NOT NULL,
+            reason TEXT NOT NULL DEFAULT 'spam',
+            details TEXT DEFAULT '',
+            status TEXT DEFAULT 'pending',  -- 'pending', 'resolved', 'dismissed'
+            assigned_city TEXT DEFAULT '',
+            resolved_by INTEGER,
+            resolved_at TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(reporter_id) REFERENCES users(id)
+        );
         """)
         # Add subscription_tier column to users if not exists (migration)
         try:
@@ -334,6 +348,25 @@ def init_db():
                 c.execute(f"ALTER TABLE events ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
                 pass
+        # Add is_admin / is_moderator to users (migration)
+        for col, defn in [("is_admin", "INTEGER DEFAULT 0"), ("is_moderator", "INTEGER DEFAULT 0")]:
+            try:
+                c.execute(f"ALTER TABLE users ADD COLUMN {col} {defn}")
+            except sqlite3.OperationalError:
+                pass
+        # Add loneliness map opt-in to users (migration)
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN show_on_lonely_map INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        # Add two-phase confirmation to senior_visits (migration)
+        for col, defn in [("visitor_confirmed", "INTEGER DEFAULT 0"), ("senior_confirmed", "INTEGER DEFAULT 0")]:
+            try:
+                c.execute(f"ALTER TABLE senior_visits ADD COLUMN {col} {defn}")
+            except sqlite3.OperationalError:
+                pass
+        # Back-fill: any already-completed visits count as both confirmed
+        c.execute("UPDATE senior_visits SET visitor_confirmed=1, senior_confirmed=1 WHERE completed=1")
         # Always ensure demo token/user exists first (other seeds depend on having a user)
         _ensure_demo_token(c)
         # Always ensure test users exist and tokens are fresh (even on old DBs that predate them)
@@ -738,7 +771,7 @@ def login():
 def me():
     with get_db() as c:
         user = c.execute(
-            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified,subscription_tier FROM users WHERE id=?",
+            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified,subscription_tier,show_on_lonely_map FROM users WHERE id=?",
             (g.user_id,)
         ).fetchone()
     return jsonify(dict(user))
@@ -911,8 +944,9 @@ def upgrade_subscription():
     tier = (request.json or {}).get("tier","pro")
     if tier not in ("pro","business"):
         return jsonify({"error": "invalid tier"}), 400
-    if not STRIPE_SECRET_KEY:
-        # No Stripe configured: grant tier for free (beta/demo)
+    price_id = STRIPE_PRO_PRICE_ID if tier == "pro" else STRIPE_BUSINESS_PRICE_ID
+    if not STRIPE_SECRET_KEY or not price_id:
+        # No Stripe configured (or price IDs not set): grant tier for free (beta/demo)
         with get_db() as c:
             c.execute("UPDATE users SET subscription_tier=? WHERE id=?", (tier, g.user_id))
             existing = c.execute("SELECT id FROM subscriptions WHERE user_id=?", (g.user_id,)).fetchone()
@@ -922,7 +956,6 @@ def upgrade_subscription():
                 c.execute("INSERT INTO subscriptions (user_id,tier) VALUES (?,?)", (g.user_id, tier))
         return jsonify({"ok": True, "tier": tier, "method": "beta_free"})
     # With Stripe: create checkout session
-    price_id = STRIPE_PRO_PRICE_ID if tier == "pro" else STRIPE_BUSINESS_PRICE_ID
     try:
         checkout = req.post("https://api.stripe.com/v1/checkout/sessions",
             headers={"Authorization": f"Bearer {STRIPE_SECRET_KEY}"},
@@ -1205,10 +1238,11 @@ def respond_join_request(eid, rid):
 @app.post("/api/events/<int:eid>/flag")
 @require_auth
 def flag_event(eid):
-    """Flag an event as spam/inappropriate. Auto-hides at 3 flags."""
+    """Flag an event as spam/inappropriate. Auto-hides at 3 flags. Also routes to moderation queue."""
     reason = (request.json or {}).get("reason", "spam")
+    details = (request.json or {}).get("details", "")
     with get_db() as c:
-        ev = c.execute("SELECT organizer_id, status FROM events WHERE id=?", (eid,)).fetchone()
+        ev = c.execute("SELECT organizer_id, status, city FROM events WHERE id=?", (eid,)).fetchone()
         if not ev:
             return jsonify({"error": "not found"}), 404
         if ev["organizer_id"] == g.user_id:
@@ -1217,16 +1251,121 @@ def flag_event(eid):
             c.execute("INSERT INTO event_flags (event_id,user_id,reason) VALUES (?,?,?)", (eid, g.user_id, reason))
         except sqlite3.IntegrityError:
             return jsonify({"error": "Bereits gemeldet"}), 409
+        # Also route to moderation queue
+        try:
+            c.execute("INSERT INTO reports (reporter_id,target_type,target_id,reason,details,assigned_city) VALUES (?,?,?,?,?,?)",
+                      (g.user_id, "event", eid, reason, details, ev["city"] or ""))
+        except Exception:
+            pass
         flag_count = c.execute("SELECT COUNT(*) FROM event_flags WHERE event_id=?", (eid,)).fetchone()[0]
         if flag_count >= 3:
             c.execute("UPDATE events SET status='flagged' WHERE id=?", (eid,))
-            # Add a strike to the organizer
             c.execute("INSERT INTO user_strikes (user_id,reason,ref_type,ref_id) VALUES (?,?,?,?)",
                       (ev["organizer_id"], "Event automatisch ausgeblendet (3+ Meldungen)", "event", eid))
             strikes = c.execute("SELECT COUNT(*) FROM user_strikes WHERE user_id=?", (ev["organizer_id"],)).fetchone()[0]
             if strikes >= 3:
                 c.execute("UPDATE users SET is_verified=0 WHERE id=?", (ev["organizer_id"],))
     return jsonify({"ok": True, "flag_count": flag_count})
+
+@app.post("/api/reports")
+@require_auth
+def submit_report():
+    """Generic content report — goes to city moderators."""
+    d = request.json or {}
+    target_type = d.get("target_type", "")
+    target_id   = int(d.get("target_id", 0))
+    reason      = d.get("reason", "spam")
+    details     = d.get("details", "").strip()[:500]
+    city        = d.get("city", "")
+    if not target_type or not target_id:
+        return jsonify({"error": "target_type und target_id erforderlich"}), 400
+    if target_type not in ("event","user","deed","comment","other"):
+        return jsonify({"error": "invalid target_type"}), 400
+    with get_db() as c:
+        c.execute("INSERT INTO reports (reporter_id,target_type,target_id,reason,details,assigned_city) VALUES (?,?,?,?,?,?)",
+                  (g.user_id, target_type, target_id, reason, details, city))
+        rid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "id": rid})
+
+@app.get("/api/admin/queue")
+@require_auth
+def admin_queue():
+    """Moderation queue. Accessible to admins and city moderators."""
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin, is_moderator, city FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or (not caller["is_admin"] and not caller["is_moderator"]):
+            return jsonify({"error": "Nicht autorisiert"}), 403
+        city_filter = "" if caller["is_admin"] else caller["city"]
+        q = """
+            SELECT r.*, u.display_name as reporter_name
+            FROM reports r
+            LEFT JOIN users u ON r.reporter_id = u.id
+            WHERE r.status = 'pending'
+        """
+        params = []
+        if city_filter:
+            q += " AND (r.assigned_city = '' OR r.assigned_city LIKE ?)"
+            params.append(f"%{city_filter}%")
+        q += " ORDER BY r.created_at DESC LIMIT 100"
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/admin/queue/<int:rid>/resolve")
+@require_auth
+def resolve_report(rid):
+    """Resolve or dismiss a report."""
+    d = request.json or {}
+    action = d.get("action", "resolved")  # 'resolved' or 'dismissed'
+    if action not in ("resolved","dismissed"):
+        return jsonify({"error": "invalid action"}), 400
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin, is_moderator FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or (not caller["is_admin"] and not caller["is_moderator"]):
+            return jsonify({"error": "Nicht autorisiert"}), 403
+        r = c.execute("SELECT * FROM reports WHERE id=?", (rid,)).fetchone()
+        if not r:
+            return jsonify({"error": "not found"}), 404
+        c.execute("UPDATE reports SET status=?, resolved_by=?, resolved_at=datetime('now') WHERE id=?",
+                  (action, g.user_id, rid))
+        # If resolved and target is event: flag it
+        if action == "resolved" and r["target_type"] == "event":
+            c.execute("UPDATE events SET status='flagged' WHERE id=?", (r["target_id"],))
+    return jsonify({"ok": True})
+
+@app.get("/api/map/loneliness")
+def map_loneliness():
+    """Returns users who opted in to show on the loneliness map.
+    Privacy: coordinates jittered ±300m, only initial shown, no photos."""
+    city = request.args.get("city","")
+    with get_db() as c:
+        q = """
+            SELECT u.id, u.display_name, u.city, u.lat, u.lng, u.points_balance,
+                   (SELECT COUNT(*) FROM neighbor_connections
+                    WHERE (user_a=u.id OR user_b=u.id) AND status='active') as connection_count,
+                   (SELECT COUNT(*) FROM event_registrations WHERE user_id=u.id AND status='completed') as events_done
+            FROM users u
+            WHERE u.show_on_lonely_map=1 AND u.lat != 0 AND u.lng != 0
+        """
+        params = []
+        if city:
+            q += " AND u.city LIKE ?"; params.append(f"%{city}%")
+        q += " LIMIT 80"
+        rows = c.execute(q, params).fetchall()
+    import random as _rnd
+    result = []
+    for r in rows:
+        jitter_lat = r["lat"] + _rnd.uniform(-0.003, 0.003)
+        jitter_lng = r["lng"] + _rnd.uniform(-0.003, 0.003)
+        result.append({
+            "id": r["id"],
+            "initial": (r["display_name"] or "?")[0].upper(),
+            "city": r["city"],
+            "lat": round(jitter_lat, 5),
+            "lng": round(jitter_lng, 5),
+            "connection_count": r["connection_count"],
+            "events_done": r["events_done"],
+        })
+    return jsonify(result)
 
 @app.get("/api/map/events")
 def map_events():
@@ -1629,13 +1768,68 @@ def schedule_visit():
 @app.post("/api/nahbar/visit/<int:vid>/complete")
 @require_auth
 def complete_visit(vid):
+    """Visitor marks visit as done. Points awarded only after senior confirmation."""
     with get_db() as c:
         v = c.execute("SELECT * FROM senior_visits WHERE id=? AND visitor_id=?", (vid, g.user_id)).fetchone()
         if not v:
             return jsonify({"error": "not found"}), 404
-        c.execute("UPDATE senior_visits SET completed=1, points_awarded=100 WHERE id=?", (vid,))
-    award_points(g.user_id, 100, "Senior-Besuch abgeschlossen", "visit", vid)
-    return jsonify({"ok": True, "points_awarded": 100})
+        if v["visitor_confirmed"]:
+            return jsonify({"error": "bereits markiert"}), 409
+        c.execute("UPDATE senior_visits SET visitor_confirmed=1 WHERE id=?", (vid,))
+        # If senior already confirmed beforehand (rare), finalize immediately
+        if v["senior_confirmed"]:
+            c.execute("UPDATE senior_visits SET completed=1, points_awarded=100 WHERE id=?", (vid,))
+            award_points(g.user_id, 100, "Senior-Besuch abgeschlossen", "visit", vid)
+            return jsonify({"ok": True, "points_awarded": 100, "awaiting_senior": False})
+    return jsonify({"ok": True, "points_awarded": 0, "awaiting_senior": True})
+
+@app.post("/api/nahbar/visit/<int:vid>/senior-confirm")
+@require_auth
+def senior_confirm_visit(vid):
+    """Senior (or trusted city-member) confirms the visit happened.
+    Points are awarded to the visitor once both sides confirmed.
+    Anti-theft: caller must be the senior, or a user in the same city with ≥50 pts who is not the visitor."""
+    with get_db() as c:
+        v = c.execute("SELECT * FROM senior_visits WHERE id=?", (vid,)).fetchone()
+        if not v:
+            return jsonify({"error": "not found"}), 404
+        if v["senior_confirmed"]:
+            return jsonify({"error": "bereits bestätigt"}), 409
+        if g.user_id == v["visitor_id"]:
+            return jsonify({"error": "Du kannst deinen eigenen Besuch nicht bestätigen"}), 403
+        # Verify caller is the senior or a city-neighbour with ≥50 pts
+        caller = c.execute("SELECT city, points_balance FROM users WHERE id=?", (g.user_id,)).fetchone()
+        senior = c.execute("SELECT city FROM users WHERE id=?", (v["senior_id"],)).fetchone()
+        is_the_senior = (g.user_id == v["senior_id"])
+        trusted_friend = (
+            caller and senior and
+            caller["city"].lower() == senior["city"].lower() and
+            caller["points_balance"] >= 50
+        )
+        if not is_the_senior and not trusted_friend:
+            return jsonify({"error": "Nur der Senior oder ein bekannter Nachbar kann bestätigen"}), 403
+        c.execute("UPDATE senior_visits SET senior_confirmed=1 WHERE id=?", (vid,))
+        # Finalize if visitor already confirmed
+        if v["visitor_confirmed"]:
+            c.execute("UPDATE senior_visits SET completed=1, points_awarded=100 WHERE id=?", (vid,))
+            award_points(v["visitor_id"], 100, "Senior-Besuch bestätigt", "visit", vid)
+            return jsonify({"ok": True, "points_awarded": 100, "completed": True})
+    return jsonify({"ok": True, "awaiting_visitor": True})
+
+@app.get("/api/nahbar/pending-confirms")
+@require_auth
+def pending_senior_confirms():
+    """Returns visits that need the current senior user's confirmation."""
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT sv.id, sv.scheduled_at, sv.visitor_confirmed, sv.senior_confirmed,
+                   sv.completed, u.display_name as visitor_name, u.city as visitor_city
+            FROM senior_visits sv
+            JOIN users u ON sv.visitor_id = u.id
+            WHERE sv.senior_id = ? AND sv.completed = 0
+            ORDER BY sv.scheduled_at DESC LIMIT 20
+        """, (g.user_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 @app.post("/api/good-deed")
 @require_auth
@@ -1700,13 +1894,53 @@ ACTIVITY_DB = [
 
 @app.get("/api/activities/suggest")
 def suggest_activities():
-    category = request.args.get("category","")
-    limit = int(request.args.get("limit",5))
-    import random
-    acts = ACTIVITY_DB.copy()
-    if category:
-        acts = [a for a in acts if a["category"] == category]
-    random.shuffle(acts)
+    """Personalized activity suggestions based on user history.
+    Falls back to random for unauthenticated users."""
+    import random as _rnd
+    from datetime import datetime as _dt
+    limit = int(request.args.get("limit", 5))
+    month = _dt.now().month
+    season = "winter" if month in (12,1,2) else "spring" if month in (3,4,5) else "summer" if month in (6,7,8) else "fall"
+
+    acts = []
+    for a in ACTIVITY_DB:
+        s = a.get("season","all")
+        if s == "all" or season in s:
+            acts.append(a)
+
+    # If authenticated, personalize
+    token = request.headers.get("Authorization","").replace("Bearer ","").strip()
+    if token:
+        with get_db() as c:
+            sess = c.execute("SELECT user_id FROM sessions WHERE token=? AND expires_at > datetime('now')", (token,)).fetchone()
+            if sess:
+                uid = sess["user_id"]
+                # Categories the user has attended events in
+                attended_cats = [r[0] for r in c.execute(
+                    "SELECT DISTINCT e.category FROM event_registrations er JOIN events e ON er.event_id=e.id WHERE er.user_id=? AND er.status='completed' LIMIT 20",
+                    (uid,)
+                ).fetchall()]
+                # Deed categories
+                deed_cats = [r[0] for r in c.execute(
+                    "SELECT DISTINCT category FROM good_deeds WHERE user_id=? LIMIT 10",
+                    (uid,)
+                ).fetchall()]
+                # Has the user done senior visits?
+                has_visits = c.execute("SELECT 1 FROM senior_visits WHERE visitor_id=? LIMIT 1", (uid,)).fetchone()
+
+                def score(a):
+                    s = 0
+                    cat = a["category"]
+                    if cat in attended_cats: s += 3
+                    if cat in deed_cats: s += 2
+                    if cat == "senior" and has_visits: s += 2
+                    if cat == "senior" and not has_visits: s += 4  # nudge toward senior visits
+                    return s + _rnd.random()  # add randomness so same score shuffles
+
+                acts.sort(key=score, reverse=True)
+                return jsonify(acts[:limit])
+
+    _rnd.shuffle(acts)
     return jsonify(acts[:limit])
 
 # ── Profile + Points ──────────────────────────────────────────────────────────
@@ -1741,6 +1975,22 @@ def update_profile():
             (g.user_id,)
         ).fetchone()
     return jsonify(dict(user))
+
+@app.post("/api/profile/lonely-map-toggle")
+@require_auth
+def toggle_lonely_map():
+    """Opt in/out of the Nahbar loneliness map."""
+    show = bool((request.json or {}).get("show", False))
+    with get_db() as c:
+        c.execute("UPDATE users SET show_on_lonely_map=? WHERE id=?", (1 if show else 0, g.user_id))
+        # If opting in and no coords, geocode from city
+        if show:
+            user = c.execute("SELECT lat, lng, city FROM users WHERE id=?", (g.user_id,)).fetchone()
+            if user and (not user["lat"] or user["lat"] == 0) and user["city"]:
+                lat, lng = geocode_address("", user["city"])
+                if lat:
+                    c.execute("UPDATE users SET lat=?, lng=? WHERE id=?", (lat, lng, g.user_id))
+    return jsonify({"ok": True, "show": show})
 
 @app.get("/api/my/events")
 @require_auth
@@ -1786,6 +2036,7 @@ def my_visits():
     with get_db() as c:
         rows = c.execute("""
             SELECT sv.id, sv.scheduled_at, sv.completed, sv.points_awarded,
+                   sv.visitor_confirmed, sv.senior_confirmed,
                    u.display_name as senior_name
             FROM senior_visits sv
             JOIN users u ON sv.senior_id = u.id
@@ -2009,6 +2260,7 @@ def send_klopf():
     if emoji not in KLOPF_EMOJIS:
         emoji = "👋"
     # Max 1 klopf per sender→receiver per hour (anti-spam)
+    matched = False
     with get_db() as c:
         recent = c.execute(
             "SELECT id FROM klopf WHERE from_id=? AND to_id=? AND created_at > datetime('now','-1 hour')",
@@ -2019,7 +2271,20 @@ def send_klopf():
         c.execute("INSERT INTO klopf (from_id,to_id,emoji,context) VALUES (?,?,?,?)",
                   (g.user_id, to_id, emoji, context))
         kid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
-    return jsonify({"ok": True, "id": kid})
+        # Check mutual klopf — if target has klopfed sender in the last 7 days, connect them
+        mutual = c.execute(
+            "SELECT id FROM klopf WHERE from_id=? AND to_id=? AND created_at > datetime('now','-7 days')",
+            (to_id, g.user_id)
+        ).fetchone()
+        if mutual:
+            a, b = min(g.user_id, to_id), max(g.user_id, to_id)
+            try:
+                c.execute("INSERT INTO neighbor_connections (user_a,user_b,status,connection_type) VALUES (?,?,'active','klopf')",
+                          (a, b))
+                matched = True
+            except sqlite3.IntegrityError:
+                matched = True  # already connected
+    return jsonify({"ok": True, "id": kid, "matched": matched})
 
 @app.get("/api/klopf/inbox")
 @require_auth
