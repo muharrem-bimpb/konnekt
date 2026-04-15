@@ -2158,6 +2158,17 @@ const WORLDS = ['nahbar', 'map', 'feed'];
 const WORLD_LABELS = ['💛 Nahbar', '🗺️ Karte', '🌱 Community'];
 let _worldIdx = 1; // start at map
 
+// Track last load time per screen to avoid reload on every swipe
+const _screenLoaded = {};
+const SCREEN_TTL = 120_000; // 2 min — re-fetch after this
+
+function _screenStale(name) {
+  const t = _screenLoaded[name];
+  return !t || (Date.now() - t) > SCREEN_TTL;
+}
+function _markLoaded(name) { _screenLoaded[name] = Date.now(); }
+function invalidateScreen(name) { delete _screenLoaded[name]; } // call after mutations
+
 function switchScreen(name, btn, swipeDir) {
   document.querySelectorAll('#app .screen').forEach(s => {
     s.classList.remove('active', 'slide-left', 'slide-right');
@@ -2165,25 +2176,30 @@ function switchScreen(name, btn, swipeDir) {
   const scr = document.getElementById('screen-'+name);
   if (scr) {
     scr.classList.add('active');
-    // Apply directional animation from swipe
     if (swipeDir === 'right') {
-      // Coming from left side — slide from right
       scr.classList.add('slide-right');
       setTimeout(() => scr.classList.remove('slide-right'), 350);
     } else if (swipeDir === 'left') {
-      // Coming from right side — slide from left
       scr.classList.add('slide-left');
       setTimeout(() => scr.classList.remove('slide-left'), 350);
     }
   }
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  if (name==='feed')      { loadDashboard(); loadFeed(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
-  if (name==='volunteer') { loadEvents(); }
+
+  const stale = _screenStale(name);
+  if (stale) _markLoaded(name);
+
+  // Map always re-inits (Leaflet needs it), others only reload when stale
   if (name==='map')       { openMapScreen(); }
-  if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
-  if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
-  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
+  if (stale) {
+    if (name==='feed')      { loadDashboard(); loadFeed(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
+    if (name==='volunteer') { loadEvents(); }
+    if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
+    if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
+    if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
+  }
+
   // Sync world indicator dots
   const wi = WORLDS.indexOf(name);
   if (wi >= 0) { _worldIdx = wi; _updateWorldIndicator(); }
@@ -2901,6 +2917,7 @@ async function completeEvent(id, pts, btn) {
     btn.style.opacity = '.75';
     showToast(`✓ Super! ${ptMsg(r.points_awarded)}`);
     await refreshPoints();
+    invalidateScreen('profile'); invalidateScreen('feed');
     // Prompt rating after a short delay
     setTimeout(() => openRatingModal(id, 'participant'), 900);
   } catch(e) {
@@ -3246,6 +3263,7 @@ async function createEvent() {
     localStorage.removeItem('konnekt_ev_draft');
     closeModal('modal-create-event');
     showToast(`✓ Event erstellt! ${ptMsg(20)}`);
+    invalidateScreen('volunteer'); invalidateScreen('feed');
     loadEvents();
     if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
     await refreshPoints();
@@ -3886,6 +3904,7 @@ async function logDeed() {
     document.getElementById('deed-remaining').textContent = `${rem} Taten heute noch möglich`;
     showToast(`✓ Gute Tat eingetragen! ${ptMsg(25)}`);
     await refreshPoints();
+    invalidateScreen('feed'); invalidateScreen('nahbar');
     loadFeed();
     loadChallenge();
   } catch(e) { showToast(e.message||'Fehler'); }
@@ -5225,6 +5244,7 @@ async function submitDropBubble() {
     document.getElementById('bubble-desc').value = '';
     closeModal('modal-drop-bubble');
     showToast('🫧 Bubble gedroppt! Leute in der Nähe sehen sie jetzt.');
+    invalidateScreen('feed');
     loadFeedBubbles();
     // If bubbles view is open, reload
     if (document.getElementById('bubbles-scroll').style.display !== 'none') {
