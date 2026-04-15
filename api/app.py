@@ -473,18 +473,9 @@ def _ensure_admin_user(c):
 
 
 def _purge_test_accounts(c):
-    ids = [r[0] for r in c.execute(
-        "SELECT id FROM users WHERE password_hash IN ('TEST_NO_LOGIN','DEMO_NO_LOGIN')"
-    ).fetchall()]
-    if not ids:
-        return
-    c.execute("PRAGMA foreign_keys = OFF")
-    try:
-        placeholders = ','.join('?' * len(ids))
-        c.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
-        c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
-    finally:
-        c.execute("PRAGMA foreign_keys = ON")
+    """Kill sessions and lock backdoor accounts without touching FK'd child rows."""
+    c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
+    c.execute("UPDATE users SET password_hash='LOCKED',email=email||'.locked' WHERE password_hash IN ('TEST_NO_LOGIN','DEMO_NO_LOGIN')")
 
 def _ensure_seniors(c):
     """Create demo senior users if none exist — needed for Nahbar visit flow."""
