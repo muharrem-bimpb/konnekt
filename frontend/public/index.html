@@ -16,72 +16,87 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <title>Konnekt</title>
 <style>
-/* ── Theme tokens ── */
+/* ── Theme tokens v2 — Precision Lines ── */
 :root[data-theme="dark"] {
-  --bg:        #0a0f1e;
-  --card:      #111827;
-  --card2:     #1a2235;
-  --border:    #1e2d45;
-  --accent:    #3b82f6;
-  --accent2:   #06b6d4;
-  --green:     #10b981;
-  --neon:      #00ff88;
-  --purple:    #8b5cf6;
-  --orange:    #f59e0b;
-  --pink:      #ec4899;
-  --red:       #ef4444;
-  --text:      #f1f5f9;
-  --muted:     #475569;
-  --dim:       #94a3b8;
-  --shadow-sm: 0 2px 8px rgba(0,0,0,.35);
-  --shadow:    0 4px 20px rgba(0,0,0,.45);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,.6);
+  --bg:        #0a0a0a;
+  --card:      #111111;
+  --card2:     #181818;
+  --border:    #252525;
+  --accent:    #4afa8c;
+  --accent2:   #38d9a9;
+  --green:     #4afa8c;
+  --neon:      #4afa8c;
+  --purple:    #a78bfa;
+  --orange:    #fb923c;
+  --pink:      #f472b6;
+  --red:       #f87171;
+  --text:      #efefef;
+  --muted:     #484848;
+  --dim:       #777777;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.6);
+  --shadow:    0 2px 12px rgba(0,0,0,.7);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.8);
+  --radius:    8px;
+  --radius-lg: 12px;
   --safe-top:  env(safe-area-inset-top, 0px);
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
 :root[data-theme="light"] {
-  --bg:        #f0f4f8;
+  --bg:        #f5f5f5;
   --card:      #ffffff;
-  --card2:     #f8faff;
-  --border:    #e2e8f0;
-  --accent:    #00c853;
-  --accent2:   #00e676;
-  --green:     #00c853;
-  --neon:      #00ff88;
+  --card2:     #fafafa;
+  --border:    #e0e0e0;
+  --accent:    #16a34a;
+  --accent2:   #15803d;
+  --green:     #16a34a;
+  --neon:      #4afa8c;
   --purple:    #7c3aed;
   --orange:    #d97706;
   --pink:      #db2777;
   --red:       #dc2626;
-  --text:      #1a2235;
-  --muted:     #6b7280;
-  --dim:       #9ca3af;
-  --shadow-sm: 0 2px 8px rgba(0,200,80,.08), 0 1px 3px rgba(0,0,0,.06);
-  --shadow:    0 4px 24px rgba(0,200,80,.1), 0 2px 8px rgba(0,0,0,.08);
-  --shadow-lg: 0 8px 40px rgba(0,200,80,.15), 0 4px 16px rgba(0,0,0,.1);
+  --text:      #111111;
+  --muted:     #888888;
+  --dim:       #aaaaaa;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+  --shadow:    0 2px 10px rgba(0,0,0,.1);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,.12);
+  --radius:    8px;
+  --radius-lg: 12px;
   --safe-top:  env(safe-area-inset-top, 0px);
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { font-size: 16px; }
+html { font-size: 16px; height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg); color: var(--text);
-  min-height: 100dvh; display: flex; flex-direction: column;
-  padding-bottom: calc(64px + var(--safe-bot));
-  overflow-x: hidden;
+  height: 100dvh; display: flex; flex-direction: column;
+  padding-top: calc(50px + var(--safe-top));
+  padding-bottom: calc(58px + var(--safe-bot));
+  overflow: hidden;
   transition: background .25s, color .25s;
 }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 
 /* ── Screen system ── */
-.screen { display: none; flex-direction: column; min-height: calc(100dvh - 64px - var(--safe-bot)); }
-.screen.active { display: flex; }
-#screen-volunteer { height: calc(100dvh - 64px - var(--safe-bot)); overflow: hidden; }
-#screen-map { height: calc(100dvh - 64px - var(--safe-bot)); overflow: hidden; }
-.scroll-body { flex: 1; overflow-y: auto; padding: 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes screenOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.screen { display: none; flex-direction: column; min-height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); }
+.screen.active { display: flex; animation: screenIn .2s cubic-bezier(.25,.8,.4,1); }
+#screen-volunteer { height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
+#screen-map       { height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
+.scroll-body { flex: 1; overflow-y: auto; padding: .85rem 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
+/* Scroll momentum on iOS */
+.scroll-body, #events-scroll, .modal-body { -webkit-overflow-scrolling: touch; }
 
 /* ── Auth screen ── */
 #screen-auth {
@@ -103,7 +118,7 @@ button { font-family: inherit; cursor: pointer; }
   flex: 1; padding: .6rem; text-align: center; font-size: .85rem; font-weight: 600;
   border-radius: 9px; cursor: pointer; color: var(--dim); transition: all .2s;
 }
-.auth-tab.active { background: var(--accent); color: white; }
+.auth-tab.active { background: var(--accent); color: #000; }
 .field-group { display: flex; flex-direction: column; gap: .4rem; }
 .field-label { font-size: .73rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 input.field, select.field {
@@ -114,11 +129,10 @@ input.field, select.field {
 }
 input.field:focus, select.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb,59,130,246),.15); }
 .btn-primary {
-  background: var(--accent); color: white; border: none; border-radius: 12px;
-  padding: .9rem; font-size: .95rem; font-weight: 700; transition: all .2s;
-  box-shadow: 0 4px 14px rgba(0,0,0,.2);
+  background: var(--accent); color: #000; border: none; border-radius: var(--radius);
+  padding: .85rem; font-size: .92rem; font-weight: 800; transition: opacity .15s;
 }
-.btn-primary:active { transform: scale(.97); }
+.btn-primary:active { opacity: .75; }
 .btn-secondary {
   background: var(--card2); color: var(--dim); border: 1px solid var(--border);
   border-radius: 12px; padding: .8rem; font-size: .88rem; font-weight: 600; transition: all .2s;
@@ -129,118 +143,110 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 
 /* ── Top bar ── */
 .topbar {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(10,15,30,.92); backdrop-filter: blur(16px);
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: .75rem 1rem;
-  padding-top: calc(.75rem + var(--safe-top));
-  box-shadow: var(--shadow-sm);
-  transition: background .25s;
+  height: calc(50px + var(--safe-top));
+  padding: 0 1rem;
+  padding-top: var(--safe-top);
+  transition: border-color .25s;
 }
-[data-theme="light"] .topbar { background: rgba(255,255,255,.92); }
-.topbar-brand { font-weight: 800; font-size: 1.1rem; letter-spacing: -.01em; }
-.topbar-brand span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.topbar-right { display: flex; align-items: center; gap: .5rem; }
+.topbar-brand {
+  font-weight: 800; font-size: 1rem; letter-spacing: -.03em; color: var(--text);
+  display: flex; align-items: center; gap: .35rem;
+}
+.topbar-brand .brand-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); display: inline-block; flex-shrink: 0; }
+.topbar-brand span { color: var(--text); }
+.topbar-right { display: flex; align-items: center; gap: .4rem; }
 .points-badge {
-  background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3);
-  border-radius: 99px; padding: .25rem .7rem; font-size: .75rem; font-weight: 700; color: var(--orange);
-  display: flex; align-items: center; gap: .3rem; box-shadow: var(--shadow-sm);
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; padding: .2rem .6rem; font-size: .72rem; font-weight: 700; color: var(--orange);
+  display: flex; align-items: center; gap: .25rem;
 }
 .avatar-btn {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--accent); color: white; border: 2px solid var(--accent);
-  font-size: .82rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
-  overflow: hidden; box-shadow: var(--shadow-sm);
+  width: 30px; height: 30px; border-radius: 6px;
+  background: var(--accent); color: #000; border: none;
+  font-size: .78rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
 .avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ── Theme toggle ── */
 .theme-toggle {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: var(--card2); border: 1px solid var(--border);
+  width: 30px; height: 30px; border-radius: 6px;
+  background: transparent; border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; transition: all .2s; box-shadow: var(--shadow-sm);
+  font-size: .9rem; transition: border-color .2s;
 }
-.theme-toggle:active { transform: scale(.9); }
+.theme-toggle:active { opacity: .7; }
 
-/* ── Neon accent line ── */
-.neon-line {
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--neon), transparent);
-  opacity: .6;
-  border-radius: 99px;
-  margin: .1rem 0;
-}
+/* ── Neon accent line (kept for legacy compat, hidden) ── */
+.neon-line { display: none; }
 
 /* ── Bottom nav ── */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  background: var(--card); backdrop-filter: blur(16px);
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: var(--bg);
   border-top: 1px solid var(--border);
-  display: flex; align-items: center;
+  display: flex; align-items: stretch;
+  height: calc(58px + var(--safe-bot));
   padding-bottom: var(--safe-bot);
-  box-shadow: 0 -4px 20px rgba(0,0,0,.15);
-  transition: background .25s;
+  transition: border-color .25s;
 }
-[data-theme="dark"] .bottom-nav { background: rgba(10,15,30,.95); }
 .nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: .6rem .4rem; cursor: pointer; transition: color .2s;
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: .45rem .4rem; cursor: pointer; transition: color .15s;
   color: var(--muted); border: none; background: none; position: relative;
 }
 .nav-item.active { color: var(--accent); }
 .nav-item.active::after {
-  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 24px; height: 2px; background: var(--accent); border-radius: 0 0 4px 4px;
+  content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 18px; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
 }
-.nav-item .nav-icon { font-size: 1.3rem; line-height: 1; }
-.nav-item .nav-label { font-size: .62rem; font-weight: 600; letter-spacing: .02em; }
+.nav-item .nav-icon { font-size: 1.2rem; line-height: 1; }
+.nav-item .nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .03em; }
 
 /* ── Desktop sidebar nav ── */
 @media (min-width: 768px) {
-  body { padding-bottom: 0; padding-left: 72px; }
+  body { padding-bottom: 0; padding-left: 64px; }
   .bottom-nav {
-    flex-direction: column; width: 72px; height: 100dvh;
+    flex-direction: column; width: 64px; height: 100dvh;
     right: auto; top: 0; bottom: auto;
     border-right: 1px solid var(--border); border-top: none;
     justify-content: flex-start; align-items: center;
     padding: 0; padding-top: calc(4.5rem + var(--safe-top));
-    gap: .25rem;
+    gap: .1rem;
   }
-  .nav-item { width: 100%; padding: .8rem .4rem; flex: 0 0 auto; }
-  .nav-item.active::after { top: auto; left: 0; bottom: 0; width: 3px; height: 100%; border-radius: 0 4px 4px 0; }
-  .screen { min-height: 100dvh; }
-  #screen-volunteer { height: 100dvh; }
-  #screen-map { height: 100dvh; }
-  .topbar { padding-left: calc(72px + 1rem); }
+  .nav-item { width: 100%; padding: .75rem .4rem; flex: 0 0 auto; }
+  .nav-item.active::after { bottom: auto; top: 50%; transform: translateY(-50%); left: 0; width: 2px; height: 18px; border-radius: 0 2px 2px 0; }
+  .screen { min-height: calc(100dvh - 50px - var(--safe-top)); }
+  #screen-volunteer { height: calc(100dvh - 50px - var(--safe-top)); }
+  #screen-map       { height: calc(100dvh - 50px - var(--safe-top)); }
+  .topbar { padding-left: calc(64px + 1rem); left: 64px; }
   .fab { bottom: 1.5rem; right: 1.5rem; }
 }
 
 /* ── Cards ── */
 .card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-  overflow: hidden; box-shadow: var(--shadow);
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
   transition: background .25s, border-color .25s;
 }
-.card-body { padding: 1rem; }
+.card-body { padding: .85rem; }
 .section-title {
-  font-size: .73rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
-  margin-bottom: .75rem; display: flex; align-items: center; gap: .4rem;
+  font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+  margin-bottom: .65rem; display: flex; align-items: center; gap: .5rem;
 }
-.section-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.section-dot { width: 4px; height: 12px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
 
 /* ── Challenge widget ── */
 .challenge-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-  padding: 1.1rem; margin-bottom: 1rem; box-shadow: var(--shadow);
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius);
+  padding: .9rem; margin-bottom: .85rem;
   position: relative; overflow: hidden;
 }
-.challenge-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--neon), var(--accent2));
-}
+.challenge-card::before { display: none; }
 .challenge-month { font-size: .68rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
 .challenge-title { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
 .challenge-sub { font-size: .78rem; color: var(--dim); margin-bottom: .85rem; }
@@ -271,11 +277,25 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 
 /* ── Event cards ── */
 .event-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 18px;
-  margin-bottom: .85rem; overflow: hidden; box-shadow: var(--shadow);
-  transition: transform .15s, box-shadow .15s, background .25s;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: .6rem; overflow: hidden;
+  transition: border-color .15s, background .25s;
+  position: relative;
 }
-.event-card:active { transform: scale(.99); }
+.card-ribbon {
+  position: absolute; top: 0; right: 0; width: 0; height: 0;
+  border-style: solid; border-width: 0 52px 52px 0;
+  border-color: transparent currentColor transparent transparent;
+  z-index: 2; pointer-events: none;
+}
+.card-ribbon-emoji {
+  position: absolute; top: 6px; right: 6px; font-size: .85rem;
+  line-height: 1; z-index: 3; pointer-events: none;
+}
+.card-color-strip {
+  height: 4px; width: 100%; display: block;
+}
+.event-card:active { opacity: .75; }
 .event-img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--card2); }
 .event-img-placeholder { width: 100%; height: 150px; background: linear-gradient(135deg, var(--card2), var(--border)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
 .event-body { padding: .9rem; }
@@ -299,15 +319,14 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 .btn-request { flex:1; background:var(--purple); color:white; border:none; border-radius:10px; padding:.65rem; font-size:.83rem; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.2); transition:all .15s; }
 .btn-request:active { transform:scale(.97); }
 .btn-request.requested { background:var(--card2); color:var(--purple); border:1px solid rgba(139,92,246,.3); box-shadow:none; }
-.event-pts { font-size: .78rem; font-weight: 700; color: var(--orange); display: flex; align-items: center; gap: .25rem; }
+.event-pts { font-size: .78rem; font-weight: 700; color: var(--orange); display: flex; align-items: center; gap: .25rem; margin-right: 2.2rem; }
 .event-title { font-size: .98rem; font-weight: 700; margin-bottom: .35rem; line-height: 1.3; }
 .event-meta { font-size: .75rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
 .event-meta span { display: flex; align-items: center; gap: .2rem; }
 .event-actions { display: flex; gap: .5rem; }
 .btn-join {
-  flex: 1; background: var(--accent); color: white; border: none; border-radius: 10px;
-  padding: .65rem; font-size: .83rem; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0,0,0,.2); transition: all .15s;
+  flex: 1; background: var(--accent); color: #000; border: none; border-radius: var(--radius);
+  padding: .6rem; font-size: .83rem; font-weight: 700; transition: opacity .15s;
 }
 .btn-join:active { transform: scale(.97); }
 .btn-join.joined { background: var(--card2); color: var(--green); border: 1px solid rgba(16,185,129,.3); box-shadow: none; }
@@ -332,9 +351,9 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 
 /* ── Feed ── */
 .feed-item {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: .9rem; margin-bottom: .6rem; box-shadow: var(--shadow-sm);
-  transition: background .25s;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .8rem; margin-bottom: .5rem;
+  transition: background .25s; border-left-width: 3px;
 }
 .feed-type { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .4rem; }
 .feed-content { font-size: .88rem; line-height: 1.5; }
@@ -357,7 +376,7 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 }
 .person-avatar {
   width: 46px; height: 46px; border-radius: 50%;
-  background: var(--accent); color: white; display: flex; align-items: center;
+  background: var(--accent); color: #000; display: flex; align-items: center;
   justify-content: center; font-weight: 700; font-size: .95rem; flex-shrink: 0;
   overflow: hidden; box-shadow: var(--shadow-sm);
 }
@@ -379,7 +398,7 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 /* ── Zeitbank ── */
 .zeitbank-tabs { display: flex; background: var(--card2); border-radius: 10px; padding: 3px; margin-bottom: .75rem; border: 1px solid var(--border); }
 .zb-tab { flex: 1; padding: .45rem; text-align: center; font-size: .78rem; font-weight: 600; border-radius: 8px; color: var(--dim); cursor: pointer; transition: all .2s; }
-.zb-tab.active { background: var(--accent); color: white; }
+.zb-tab.active { background: var(--accent); color: #000; }
 .zb-card {
   background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
   padding: .8rem; margin-bottom: .55rem; box-shadow: var(--shadow-sm);
@@ -428,7 +447,7 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
 }
 .profile-avatar {
   width: 72px; height: 72px; border-radius: 50%;
-  background: var(--accent); color: white; display: flex; align-items: center;
+  background: var(--accent); color: #000; display: flex; align-items: center;
   justify-content: center; font-size: 1.5rem; font-weight: 800;
   margin: 0 auto .75rem; overflow: hidden;
   box-shadow: 0 4px 20px rgba(0,0,0,.25), 0 0 0 3px var(--accent);
@@ -476,57 +495,54 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
 /* ── Toast ── */
 .toast {
-  position: fixed; bottom: calc(80px + var(--safe-bot)); left: 50%; transform: translateX(-50%);
-  background: var(--accent); color: white; padding: .7rem 1.4rem; border-radius: 99px;
-  font-size: .85rem; font-weight: 700; z-index: 999; opacity: 0;
-  transition: opacity .3s, transform .3s; white-space: nowrap;
-  pointer-events: none; box-shadow: var(--shadow);
+  position: fixed; bottom: calc(72px + var(--safe-bot) + .5rem); left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: .55rem 1.1rem; border-radius: 6px;
+  font-size: .82rem; font-weight: 700; z-index: 1300; opacity: 0;
+  transition: opacity .25s, transform .25s; white-space: nowrap;
+  pointer-events: none; border: 1px solid var(--border);
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-3px); }
 
 /* ── Filter pills ── */
 .filter-row { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: none; margin-bottom: .85rem; }
 .filter-row::-webkit-scrollbar { display: none; }
 .fpill {
-  flex-shrink: 0; background: var(--card2); border: 1px solid var(--border);
-  border-radius: 99px; padding: .35rem .85rem; font-size: .75rem; color: var(--dim);
-  cursor: pointer; transition: all .2s; white-space: nowrap; box-shadow: var(--shadow-sm);
+  flex-shrink: 0; background: transparent; border: 1px solid var(--border);
+  border-radius: 5px; padding: .3rem .75rem; font-size: .72rem; color: var(--dim);
+  cursor: pointer; transition: border-color .15s, color .15s; white-space: nowrap;
 }
-.fpill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,80,.06); }
-[data-theme="dark"] .fpill.active { background: rgba(59,130,246,.08); }
+.fpill.active { border-color: var(--accent); color: var(--accent); }
 
 /* ── FAB ── */
 .fab {
-  position: fixed; right: 1.2rem; bottom: calc(80px + var(--safe-bot) + .75rem);
-  width: 52px; height: 52px; border-radius: 50%;
-  background: var(--accent); color: white; border: none;
-  font-size: 1.4rem; z-index: 90; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,.3), 0 0 0 3px rgba(var(--accent-rgb,59,130,246),.2);
-  transition: transform .15s;
+  position: fixed; right: 1rem; bottom: calc(72px + var(--safe-bot) + .65rem);
+  width: 46px; height: 46px; border-radius: 10px;
+  background: var(--accent); color: #000; border: none;
+  font-size: 1.25rem; z-index: 90; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,.5);
+  transition: opacity .15s;
 }
-.fab:active { transform: scale(.93); }
+.fab:active { opacity: .7; }
 
 /* ── Modal ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 1100;
-  background: rgba(0,0,0,.6); align-items: flex-end; justify-content: center;
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,.7); align-items: flex-end; justify-content: center;
 }
-.modal-overlay.active { display: flex; }
+.modal-overlay.active { display: flex; animation: screenIn .18s cubic-bezier(.25,.8,.4,1); }
 .modal {
-  background: var(--card); border: 1px solid var(--border); border-radius: 24px 24px 0 0;
-  width: 100%; max-width: 600px; padding: 1.5rem 1.2rem;
-  padding-bottom: calc(1.5rem + var(--safe-bot));
+  background: var(--card); border: 1px solid var(--border); border-top: 2px solid var(--border); border-radius: 12px 12px 0 0;
+  width: 100%; max-width: 600px; padding: 1.25rem 1.1rem;
+  padding-bottom: calc(1.25rem + var(--safe-bot));
   max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.4);
 }
 @media (min-width: 768px) {
   .modal-overlay { align-items: center; }
-  .modal { border-radius: 20px; max-height: 85dvh; max-width: 520px; }
+  .modal { border-radius: 12px; max-height: 85dvh; max-width: 520px; border-top: 1px solid var(--border); }
 }
 .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 1rem; }
-.modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: space-between; }
-.modal-close { background: var(--card2); border: none; color: var(--dim); border-radius: 8px; padding: .35rem .65rem; font-size: .85rem; }
+.modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.2rem; position: relative; text-align: center; padding: 0 2.2rem; }
+.modal-close { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: var(--card2); border: none; color: var(--dim); border-radius: 8px; padding: .35rem .65rem; font-size: .85rem; cursor: pointer; }
 .modal .field-group { margin-bottom: .65rem; }
 
 /* ── QR display ── */
@@ -565,6 +581,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 .dash-stat-lbl { font-size: .62rem; color: var(--muted); margin-top: .15rem; }
 
 /* ── Life Bubbles ── */
+@keyframes pulseDot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:.4; transform:scale(1.4); }
+}
 @keyframes bubblePulse {
   0%   { box-shadow: 0 0 0 0 rgba(139,92,246,.6), 0 3px 10px rgba(0,0,0,.4); }
   70%  { box-shadow: 0 0 0 12px rgba(139,92,246,0), 0 3px 10px rgba(0,0,0,.4); }
@@ -694,6 +714,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <button onclick="testLogin('test-fatima-2026','Fatima Hassan')" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;color:var(--text);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
           <span>👩 Fatima Hassan</span><span style="color:var(--muted);font-size:.68rem">Free · 95 Pts · 1h</span>
         </button>
+        <button onclick="testLogin('admin-token-konnekt-2026','Konnekt Admin')" style="background:linear-gradient(90deg,rgba(239,68,68,.15),rgba(239,68,68,.05));border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;color:var(--text);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span>🔐 Konnekt Admin</span><span style="color:#f87171;font-size:.68rem">Admin · 9999 Pts</span>
+        </button>
       </div>
     </div>
   </div>
@@ -722,13 +745,17 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 </div>
 
 <!-- ══ APP ══ -->
-<div id="app" style="display:none;flex-direction:column;min-height:100dvh">
+<div id="app" style="display:none;flex-direction:column;height:100%">
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="topbar-brand">🌐 <span>Konnekt</span> <sup style="font-size:.55rem;font-weight:700;color:var(--purple);letter-spacing:.04em;vertical-align:super">v1</sup></div>
+    <div class="topbar-brand" onclick="goProfile()" style="cursor:pointer"><span class="brand-dot"></span><span>Konnekt</span><span id="topbar-city" style="font-size:.58rem;font-weight:600;color:var(--muted);margin-left:.3rem"></span></div>
     <div class="topbar-right">
       <div class="points-badge">⭐ <span id="hdr-points">0</span></div>
+      <button id="notif-btn" onclick="openNotifications()" title="Benachrichtigungen" style="position:relative;background:none;border:none;font-size:1.2rem;cursor:pointer;padding:.2rem .3rem;line-height:1">
+        🔔
+        <span id="notif-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--red,#ef4444);color:white;border-radius:99px;font-size:.55rem;font-weight:800;min-width:14px;height:14px;align-items:center;justify-content:center;padding:0 3px">0</span>
+      </button>
       <button class="klopf-inbox-btn" id="klopf-inbox-btn" onclick="openKlopfInbox()" title="Klopf Inbox" style="position:relative;background:none;border:none;font-size:1.2rem;cursor:pointer;padding:.2rem .3rem;line-height:1">
         👋
         <span id="klopf-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--red,#ef4444);color:white;border-radius:99px;font-size:.55rem;font-weight:800;min-width:14px;height:14px;display:none;align-items:center;justify-content:center;padding:0 3px">0</span>
@@ -756,56 +783,30 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div class="challenge-milestones" id="challenge-milestones"></div>
       </div>
 
-      <!-- Dashboard stats -->
-      <div class="section-title"><span class="section-dot"></span> Community Insights</div>
-      <div class="dash-stat-row" id="dash-stats">
-        <div class="dash-stat"><div class="dash-stat-num" id="dash-users" style="color:var(--accent)">–</div><div class="dash-stat-lbl">Mitglieder</div></div>
-        <div class="dash-stat"><div class="dash-stat-num" id="dash-deeds" style="color:var(--green)">–</div><div class="dash-stat-lbl">Gute Taten</div></div>
-        <div class="dash-stat"><div class="dash-stat-num" id="dash-events" style="color:var(--orange)">–</div><div class="dash-stat-lbl">Aktive Events</div></div>
-        <div class="dash-stat"><div class="dash-stat-num" id="dash-bubbles" style="color:var(--purple)">–</div><div class="dash-stat-lbl">Live Bubbles</div></div>
+      <!-- Compact community pulse — hidden data anchors kept for JS compat -->
+      <div id="dash-stats" style="display:none">
+        <div id="dash-users"></div><div id="dash-deeds"></div>
+        <div id="dash-events"></div><div id="dash-bubbles"></div>
       </div>
-
-      <!-- Charts row -->
-      <div class="dash-charts">
-        <!-- Activity bar chart (full width) -->
-        <div class="dash-chart-card dash-wide">
-          <div class="dash-chart-title">📈 Aktivität der letzten 7 Tage</div>
-          <div class="dash-bar-chart" id="dash-bar-chart"></div>
-          <div class="dash-bar-labels" id="dash-bar-labels"></div>
-          <div style="display:flex;gap:1rem;margin-top:.4rem">
-            <div style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:var(--green)"></div>Gute Taten</div>
-            <div style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></div>Event-Anmeldungen</div>
-          </div>
-        </div>
-
-        <!-- Category donut -->
-        <div class="dash-chart-card">
-          <div class="dash-chart-title">🌱 Events nach Typ</div>
-          <canvas id="dash-donut" width="140" height="140" class="dash-chart-canvas"></canvas>
-        </div>
-
-        <!-- Weekly summary -->
-        <div class="dash-chart-card" style="display:flex;flex-direction:column;justify-content:space-between">
-          <div class="dash-chart-title">⭐ Dein Beitrag</div>
-          <div id="dash-personal" style="display:flex;flex-direction:column;gap:.4rem">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:.72rem;color:var(--dim)">Punkte</span>
-              <span id="dash-my-pts" style="font-size:1rem;font-weight:800;color:var(--orange)">–</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:.72rem;color:var(--dim)">Stunden</span>
-              <span id="dash-my-hours" style="font-size:1rem;font-weight:800;color:var(--green)">–</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:.72rem;color:var(--dim)">Taten</span>
-              <span id="dash-my-deeds" style="font-size:1rem;font-weight:800;color:var(--purple)">–</span>
-            </div>
-          </div>
-          <div style="height:4px;background:linear-gradient(90deg,var(--purple),var(--accent),var(--neon));border-radius:99px;margin-top:.6rem"></div>
-        </div>
+      <div id="dash-bar-chart" style="display:none"></div>
+      <div id="dash-bar-labels" style="display:none"></div>
+      <canvas id="dash-donut" style="display:none" width="1" height="1"></canvas>
+      <div id="dash-personal" style="display:none">
+        <span id="dash-my-pts"></span><span id="dash-my-hours"></span><span id="dash-my-deeds"></span>
       </div>
-
-      <div class="neon-line" style="margin-bottom:.85rem"></div>
+      <!-- Live pulse strip -->
+      <div id="feed-pulse-strip" style="display:flex;gap:.75rem;align-items:center;padding:.55rem 0;margin-bottom:.75rem;border-bottom:1px solid var(--border);overflow:hidden">
+        <span style="font-size:.65rem;color:var(--muted);white-space:nowrap">Community live</span>
+        <span style="flex:1;height:1px;background:var(--border)"></span>
+        <span style="font-size:.7rem;font-weight:700;color:var(--accent)" id="pulse-events">–</span>
+        <span style="font-size:.65rem;color:var(--muted)">Events</span>
+        <span style="font-size:.65rem;color:var(--muted)">·</span>
+        <span style="font-size:.7rem;font-weight:700;color:var(--orange)" id="pulse-deeds">–</span>
+        <span style="font-size:.65rem;color:var(--muted)">Taten</span>
+        <span style="font-size:.65rem;color:var(--muted)">·</span>
+        <span style="font-size:.7rem;font-weight:700;color:var(--purple)" id="pulse-bubbles">–</span>
+        <span style="font-size:.65rem;color:var(--muted)">Bubbles</span>
+      </div>
 
       <!-- Live Bubbles preview -->
       <div class="section-title" style="margin-top:.5rem">
@@ -817,6 +818,38 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <button class="bubble-drop-btn" onclick="openDropBubble()">🫧 Eigene Bubble droppen — sag wer du bist & was du tust!</button>
 
       <div class="neon-line" style="margin-bottom:.85rem"></div>
+
+      <!-- Quick action strip -->
+      <div style="display:flex;gap:.4rem;margin-bottom:.85rem">
+        <button onclick="switchScreen('nahbar',document.querySelector('.nav-item[onclick*=nahbar]'));setTimeout(()=>document.getElementById('deed-form')?.scrollIntoView({behavior:'smooth'}),300)" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);cursor:pointer;color:var(--text)">
+          <span style="font-size:.85rem">💚</span>
+          <span style="font-size:.7rem;font-weight:700">Gute Tat</span>
+        </button>
+        <button onclick="openCreateEventOrBubble()" id="feed-create-btn" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius);cursor:pointer;color:var(--text)">
+          <span style="font-size:.85rem">🫧</span>
+          <span id="feed-create-label" style="font-size:.7rem;font-weight:700">Bubble</span>
+        </button>
+        <button onclick="openDropBubble()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius);cursor:pointer;color:var(--text)">
+          <span style="font-size:.85rem">🫧</span>
+          <span style="font-size:.7rem;font-weight:700">Bubble</span>
+        </button>
+      </div>
+
+      <!-- Upcoming reminder strip -->
+      <div id="upcoming-reminder" style="display:none;margin-bottom:.5rem"></div>
+
+      <!-- For You: personalized events strip -->
+      <div id="for-you-section" style="display:none;margin-bottom:.25rem">
+        <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--purple)"></span> Für dich</div>
+        <div id="for-you-list" style="display:flex;gap:.6rem;overflow-x:auto;padding:.1rem 0 .5rem;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+      </div>
+
+      <!-- Trending events strip -->
+      <div id="trending-section" style="display:none;margin-bottom:.25rem">
+        <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--orange)"></span> 🔥 Trending</div>
+        <div id="trending-list" style="display:flex;gap:.6rem;overflow-x:auto;padding:.1rem 0 .5rem;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+      </div>
+
       <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> Aktuelle Aktivitäten</div>
       <div id="feed-list"><div class="loading">Lade Feed…</div></div>
     </div>
@@ -824,7 +857,18 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Events screen: list only -->
   <div class="screen" id="screen-volunteer">
-    <div style="flex-shrink:0;display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem .35rem;background:var(--bg);border-bottom:1px solid var(--border)">
+    <!-- Search bar row -->
+    <div style="flex-shrink:0;padding:.45rem .75rem .3rem;background:var(--bg);border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:.5rem;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.35rem .75rem">
+        <span style="color:var(--muted);font-size:.9rem">🔍</span>
+        <input id="ev-search-input" type="search" placeholder="Events suchen…"
+          oninput="onEventSearch(this.value)"
+          style="flex:1;background:none;border:none;outline:none;color:var(--text);font-size:.85rem;min-width:0">
+        <button id="ev-search-clear" onclick="clearEventSearch()" style="display:none;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0;line-height:1">✕</button>
+      </div>
+    </div>
+    <!-- Filter pills row -->
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem .35rem;background:var(--bg);border-bottom:1px solid var(--border)">
       <div class="filter-row" id="event-filters" style="flex:1;padding:0;margin:0;background:none;border:none">
         <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
         <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
@@ -835,12 +879,17 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
         <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
       </div>
-      <button onclick="openCreateEvent()" style="flex-shrink:0;background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:var(--shadow)">+ Erstellen</button>
+      <button id="ev-header-create-btn" onclick="openCreateEventOrBubble()" style="flex-shrink:0;background:var(--purple);color:#fff;border:none;border-radius:6px;padding:.4rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">🫧 Bubble</button>
+    </div>
+    <!-- community note: hidden for NGO/admin, shown for regular users -->
+    <div id="events-community-note" style="display:none;flex-shrink:0;padding:.4rem .85rem;font-size:.72rem;color:var(--muted);background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem">
+      <span>💬</span>
+      <span>Spontane Treffen als Bubble teilen · Offizielle Events kommen von Organisationen &amp; NGOs</span>
     </div>
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
     </div>
-    <button class="fab" id="fab-event" onclick="openCreateEvent()" title="Event erstellen" style="background:var(--accent)">+</button>
+    <button class="fab" id="fab-event" onclick="openCreateEventOrBubble()" title="Bubble teilen" style="background:var(--purple)">🫧</button>
   </div>
 
   <!-- Map screen: full-screen map with mode toggles -->
@@ -850,11 +899,26 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
       <!-- Map mode toolbar -->
       <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;max-width:95vw">
-        <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:white;border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🌱 Events</button>
+        <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer">🌱 Events</button>
         <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
         <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--orange);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🏪 Shops</button>
         <button id="map-show-lonely-btn"    onclick="setMapMode('lonely')"    style="background:var(--card);color:#f97316;border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🤝 Nahbar</button>
-        <button onclick="openCreateEvent()" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">+ Event</button>
+        <button id="map-create-btn" onclick="openCreateEventOrBubble()" style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubble</button>
+        <button onclick="locateMeOnMap()" title="Mein Standort" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .75rem;font-size:.75rem;cursor:pointer;box-shadow:var(--shadow)">📍</button>
+      </div>
+      <!-- Map info panel (collapsible) -->
+      <div id="map-info-panel" style="position:absolute;bottom:.65rem;left:.65rem;z-index:500">
+        <button id="map-info-toggle" onclick="toggleMapInfoPanel()" style="display:flex;align-items:center;gap:.4rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.3rem .65rem;font-size:.7rem;font-weight:700;color:var(--text);cursor:pointer;min-width:44px">
+          <span id="map-counter-dot" style="width:6px;height:6px;border-radius:2px;background:var(--accent);display:inline-block;animation:pulseDot 1.8s infinite;flex-shrink:0"></span>
+          <span id="map-counter-text">…</span>
+          <span id="map-info-arrow" style="font-size:.6rem;color:var(--muted);transition:transform .2s">›</span>
+        </button>
+        <div id="map-info-detail" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;margin-top:.3rem;min-width:160px">
+          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Auf der Karte</div>
+          <div id="map-detail-events" style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--dim)">Events</span><span id="map-d-events" style="font-weight:700;color:var(--accent)">–</span></div>
+          <div id="map-detail-bubbles" style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--dim)">Bubbles</span><span id="map-d-bubbles" style="font-weight:700;color:var(--purple)">–</span></div>
+          <div id="map-detail-shops" style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0"><span style="color:var(--dim)">Shops</span><span id="map-d-shops" style="font-weight:700;color:var(--orange)">–</span></div>
+        </div>
       </div>
     </div>
     <!-- Bubbles list strip below map -->
@@ -866,7 +930,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div id="bubbles-list"><div class="loading">Lade Bubbles…</div></div>
     </div>
     <!-- FABs -->
-    <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:linear-gradient(135deg,var(--purple),var(--accent))">🫧</button>
+    <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:var(--purple);color:white">🫧</button>
   </div>
 
   <div class="screen" id="screen-coupons">
@@ -877,10 +941,11 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div style="font-size:.72rem;color:var(--muted)">Durch Ehrenamt & gute Taten verdient</div>
       </div>
       <div class="neon-line" style="margin-bottom:.85rem"></div>
-      <!-- Coupon / Trail tab toggle -->
+      <!-- Coupon / Trail / Redeemed tab toggle -->
       <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
-        <button type="button" id="reward-tab-coupons" onclick="switchRewardTab('coupons')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.8rem;font-weight:700;background:var(--accent);color:white;cursor:pointer">🎟️ Coupons</button>
-        <button type="button" id="reward-tab-trails"  onclick="switchRewardTab('trails')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.8rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🗺️ Trails</button>
+        <button type="button" id="reward-tab-coupons"  onclick="switchRewardTab('coupons')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:var(--accent);color:#000;cursor:pointer">🎟️ Coupons</button>
+        <button type="button" id="reward-tab-trails"   onclick="switchRewardTab('trails')"   style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🗺️ Trails</button>
+        <button type="button" id="reward-tab-redeemed" onclick="switchRewardTab('redeemed')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">📦 Eingelöst</button>
       </div>
       <!-- Coupons pane -->
       <div id="reward-pane-coupons">
@@ -898,6 +963,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
           🗺️ <b>Trails</b> — Besuche lokale Cafés & Shops in einer Route und verdiene Bonuspunkte. Neue Stammkunden für die Betriebe, neue Entdeckungen für dich.
         </div>
         <div id="trails-list"><div class="loading">Lade Trails…</div></div>
+      </div>
+      <!-- My Redeemed pane -->
+      <div id="reward-pane-redeemed" style="display:none">
+        <div id="my-redemptions-list"><div class="loading">Lade…</div></div>
       </div>
     </div>
   </div>
@@ -936,7 +1005,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
               <span id="deed-char-count" style="color:var(--muted)">0 / 20 Zeichen</span>
               <span id="deed-remaining" style="color:var(--green)">3 Taten heute noch möglich</span>
             </div>
-            <button class="btn-primary" style="background:var(--green)" onclick="logDeed()" id="deed-submit-btn">✓ Eintragen (+25 Punkte)</button>
+            <button class="btn-primary" style="background:var(--green);color:#000" onclick="logDeed()" id="deed-submit-btn">✓ Eintragen (+25 Punkte)</button>
           </div>
         </div>
       </div>
@@ -1022,28 +1091,91 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <button class="btn-primary" style="padding:.5rem 1rem;font-size:.8rem;white-space:nowrap" onclick="copyInviteLink()">📋 Link kopieren</button>
       </div>
 
-      <!-- Impact analytics -->
-      <div id="impact-analytics">
-        <div class="section-title"><span class="section-dot" style="background:var(--accent2)"></span> Dein Impact</div>
-        <div id="impact-data" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem"></div>
+      <!-- Event Manager card — only for NGO/admin -->
+      <div id="ngo-event-manager-card" style="display:none;background:linear-gradient(135deg,rgba(74,250,140,.08),rgba(74,250,140,.03));border:1px solid rgba(74,250,140,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
+        <div style="font-size:1.5rem">🗂️</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:700">Event Manager</div>
+          <div style="font-size:.73rem;color:var(--muted);line-height:1.4">Erstelle und verwalte offizielle Events für deine Organisation</div>
+        </div>
+        <button class="btn-primary" style="padding:.5rem 1rem;font-size:.8rem;white-space:nowrap;flex-shrink:0" onclick="openCreateEvent()">+ Event</button>
       </div>
 
-      <div class="section-title"><span class="section-dot" style="background:var(--orange)"></span> Punkte-Verlauf</div>
-      <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
-
-      <div style="margin-top:1.2rem">
-        <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
-        <div id="my-events-list"><div class="loading">Lade…</div></div>
+      <!-- Profile tabs -->
+      <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:1rem">
+        <button type="button" id="ptab-btn-profile" onclick="switchProfileTab('profile')" style="flex:1;padding:.55rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:var(--accent);color:#000;cursor:pointer;transition:all .2s">👤 Profil</button>
+        <button type="button" id="ptab-btn-analytics" onclick="switchProfileTab('analytics')" style="flex:1;padding:.55rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">📊 Analytics</button>
       </div>
 
-      <div style="margin-top:1.2rem">
-        <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Meine Anmeldungen</div>
-        <div id="my-registrations-list"><div class="loading">Lade…</div></div>
+      <!-- Tab: Profil content -->
+      <div id="ptab-profile">
+        <div class="section-title"><span class="section-dot" style="background:var(--orange)"></span> Punkte-Verlauf</div>
+        <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
+
+        <div style="margin-top:1.2rem">
+          <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
+          <div id="my-events-list"><div class="loading">Lade…</div></div>
+        </div>
+
+        <div style="margin-top:1.2rem">
+          <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Meine Anmeldungen</div>
+          <div id="my-registrations-list"><div class="loading">Lade…</div></div>
+        </div>
+
+        <div style="margin-top:1.2rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+            <div class="section-title" style="margin-bottom:0"><span class="section-dot" style="background:var(--accent)"></span> Rangliste</div>
+            <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:2px">
+              <button type="button" id="lb-btn-all" onclick="switchLeaderboardPeriod('all')" style="padding:.25rem .55rem;border-radius:6px;border:none;font-size:.7rem;font-weight:700;background:var(--accent);color:#000;cursor:pointer">Gesamt</button>
+              <button type="button" id="lb-btn-month" onclick="switchLeaderboardPeriod('month')" style="padding:.25rem .55rem;border-radius:6px;border:none;font-size:.7rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">Monat</button>
+            </div>
+          </div>
+          <div id="leaderboard-list"><div class="loading">Lade…</div></div>
+        </div>
       </div>
 
-      <div style="margin-top:1.2rem">
-        <div class="section-title"><span class="section-dot" style="background:var(--accent)"></span> Rangliste Bern</div>
-        <div id="leaderboard-list"><div class="loading">Lade…</div></div>
+      <!-- Tab: Analytics content -->
+      <div id="ptab-analytics" style="display:none">
+        <div id="impact-analytics">
+          <div id="impact-data" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem"></div>
+        </div>
+        <!-- Achievements -->
+        <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--orange)"></span> Achievements</div>
+        <div id="achievements-list" style="margin-bottom:1rem"><div class="loading">Lade…</div></div>
+        <!-- Certificate -->
+        <button onclick="window.open('/api/certificate?token='+encodeURIComponent(token),'_blank')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.65rem;background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(16,185,129,.06));border:1px solid rgba(59,130,246,.25);border-radius:12px;font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer;margin-bottom:1rem">
+          📜 Ehrenamtszertifikat herunterladen
+        </button>
+      </div>
+
+      <!-- Register business CTA (non-business users) -->
+      <div id="biz-reg-cta" style="display:none;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
+        <div style="font-size:1.5rem">🏪</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:700">Hast du ein Geschäft?</div>
+          <div style="font-size:.73rem;color:var(--muted);line-height:1.4">Coupon anbieten, neue Stammkunden gewinnen — kostet dich CHF 1–5 pro Einlösung.</div>
+        </div>
+        <button class="btn-primary" style="padding:.5rem .85rem;font-size:.78rem;white-space:nowrap" onclick="openModal('modal-business-reg')">Anmelden</button>
+      </div>
+
+      <!-- Business pending review status (shown after registration, before verification) -->
+      <div id="biz-pending-card" style="display:none;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
+        <div style="font-size:1.5rem">⏳</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:700;color:var(--orange)">Geschäft in Prüfung</div>
+          <div id="biz-pending-name" style="font-size:.78rem;font-weight:600;margin:.15rem 0"></div>
+          <div style="font-size:.72rem;color:var(--muted);line-height:1.4">Deine Anmeldung wurde eingereicht und wird bald freigeschaltet. Du wirst benachrichtigt.</div>
+        </div>
+      </div>
+
+      <!-- Business dashboard button — only visible to verified business owners -->
+      <div id="biz-dashboard-btn-wrap" style="display:none;margin-top:.75rem">
+        <button class="btn-secondary" style="width:100%;font-weight:700;border-color:rgba(249,115,22,.4);color:var(--orange)" onclick="openBizDashboard()">📊 Business Dashboard</button>
+      </div>
+
+      <!-- Admin panel button — only visible to admins/moderators -->
+      <div id="admin-panel-btn-wrap" style="display:none;margin-top:.5rem">
+        <button class="btn-secondary" style="width:100%;font-weight:700;border-color:rgba(239,68,68,.4);color:var(--red)" onclick="openAdminPanel()">🔐 Admin-Panel öffnen</button>
       </div>
 
       <button class="btn-secondary" style="width:100%;margin-top:1.2rem;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="logout()">Abmelden</button>
@@ -1090,6 +1222,131 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <span class="nav-icon">💛</span><span class="nav-label">Nahbar</span>
     </button>
   </nav>
+</div>
+
+<!-- ══ EVENT DETAIL MODAL ══ -->
+<div class="modal-overlay" id="modal-event-detail">
+  <div class="modal" style="max-height:92dvh">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="evd-title">Event <button class="modal-close" onclick="closeModal('modal-event-detail')">✕</button></div>
+    <div id="evd-body" style="overflow-y:auto;flex:1"></div>
+    <div id="evd-comment-box" style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.5rem">
+      <div style="display:flex;gap:.5rem">
+        <input class="field" id="evd-comment-input" type="text" placeholder="Kommentar schreiben…" style="flex:1;padding:.55rem .75rem;font-size:.82rem" onkeydown="if(event.key==='Enter')postEventComment()">
+        <button onclick="postEventComment()" style="background:var(--accent);color:#000;border:none;border-radius:10px;padding:.55rem .9rem;font-weight:700;font-size:.82rem;cursor:pointer">→</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTIFICATIONS MODAL ══ -->
+<div class="modal-overlay" id="modal-notifications">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔔 Benachrichtigungen <button class="modal-close" onclick="closeModal('modal-notifications')">✕</button></div>
+    <div id="notif-list"><div class="loading">Lade…</div></div>
+  </div>
+</div>
+
+<!-- ══ USER PROFILE MODAL ══ -->
+<div class="modal-overlay" id="modal-user-profile">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Profil <button class="modal-close" onclick="closeModal('modal-user-profile')">✕</button></div>
+    <div id="uprofile-body"></div>
+  </div>
+</div>
+
+<!-- ══ BUSINESS REGISTRATION MODAL ══ -->
+<div class="modal-overlay" id="modal-business-reg">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏪 Geschäft anmelden <button class="modal-close" onclick="closeModal('modal-business-reg')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:.85rem;line-height:1.5">Erstell dein Geschäftsprofil. Dein Coupon-Angebot kostet dich CHF 1–5 und bringt dir neue Stammkunden die über Community-Vertrauen zu dir kommen.</div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Geschäftsname *</div>
+      <input class="field" id="biz-name" type="text" placeholder="Bäckerei Müller">
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Kategorie</div>
+      <select class="field" id="biz-cat">
+        <option value="food">🍞 Essen & Getränke</option>
+        <option value="sport">🏃 Sport & Fitness</option>
+        <option value="culture">🎭 Kultur & Events</option>
+        <option value="health">❤️ Gesundheit</option>
+        <option value="services">🔧 Dienstleistungen</option>
+        <option value="other">🏪 Anderes</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:.65rem">
+      <div class="field-label">Beschreibung</div>
+      <textarea class="ta" id="biz-desc" rows="2" placeholder="Was machst du? Was bietest du an?"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem">
+      <div class="field-group">
+        <div class="field-label">Stadt *</div>
+        <input class="field" id="biz-city" type="text" placeholder="Bern">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Adresse</div>
+        <input class="field" id="biz-addr" type="text" placeholder="Hauptstrasse 5">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="submitBusinessReg()">📋 Geschäft einreichen</button>
+    <div id="biz-reg-msg" style="display:none;margin-top:.65rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:.65rem;font-size:.82rem;color:#34d399"></div>
+  </div>
+</div>
+
+<!-- ══ ADMIN PANEL (full-screen overlay) ══ -->
+<div id="admin-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);overflow-y:auto;padding:1.2rem 1rem 2rem">
+  <div style="max-width:600px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <div style="font-size:1.1rem;font-weight:800">🔐 Admin-Panel</div>
+      <button onclick="closeAdminPanel()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.4rem .8rem;color:var(--dim);font-size:.85rem">✕</button>
+    </div>
+    <!-- Admin tabs -->
+    <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:1rem">
+      <button type="button" id="atab-btn-queue"  onclick="switchAdminTab('queue')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:var(--red);color:white;cursor:pointer">📋 Meldungen</button>
+      <button type="button" id="atab-btn-biz"    onclick="switchAdminTab('biz')"    style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🏪 Geschäfte</button>
+      <button type="button" id="atab-btn-events" onclick="switchAdminTab('events')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🔍 KI</button>
+      <button type="button" id="atab-btn-fraud"  onclick="switchAdminTab('fraud')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">⚠️ Betrug</button>
+      <button type="button" id="atab-btn-stats"  onclick="switchAdminTab('stats')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">📊 Stats</button>
+    </div>
+    <!-- Queue tab -->
+    <div id="atab-queue">
+      <div id="admin-queue-list"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- Businesses tab -->
+    <div id="atab-biz" style="display:none">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Geschäfte prüfen und freischalten. Ausstehende Anmeldungen sind oben.</div>
+      <div id="admin-biz-list"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- AI Events tab -->
+    <div id="atab-events" style="display:none">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Regel-basierter KI-Scanner: Erkennt Spam, Links, Keyword-Missbrauch und schnelle Erstellung.</div>
+      <div id="admin-events-list"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- Fraud tab -->
+    <div id="atab-fraud" style="display:none">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Punkt-Geschwindigkeits-Analyse: Nutzer mit ungewöhnlichen Mustern in der Punkt-Historie.</div>
+      <div id="admin-fraud-list"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- Platform Stats tab -->
+    <div id="atab-stats" style="display:none">
+      <div id="admin-stats-content"><div class="loading">Lade…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BUSINESS DASHBOARD OVERLAY ══ -->
+<div id="biz-dashboard-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);overflow-y:auto;padding:1.2rem 1rem 2rem">
+  <div style="max-width:560px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <div style="font-size:1.1rem;font-weight:800">🏪 Business Dashboard</div>
+      <button onclick="document.getElementById('biz-dashboard-overlay').style.display='none'" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.4rem .8rem;color:var(--dim);font-size:.85rem">✕</button>
+    </div>
+    <div id="biz-dashboard-content"><div class="loading">Lade Dashboard…</div></div>
+  </div>
 </div>
 
 <!-- ══ PRICING OVERLAY (full-screen) ══ -->
@@ -1189,7 +1446,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <div class="modal-title">Event erstellen <button class="modal-close" onclick="closeModal('modal-create-event')">✕</button></div>
     <!-- Event type toggle -->
     <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
-      <button type="button" id="ev-type-btn-volunteer" onclick="setEvType('volunteer')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:var(--accent);color:white;cursor:pointer;transition:all .2s">🌱 Ehrenamt</button>
+      <button type="button" id="ev-type-btn-volunteer" onclick="setEvType('volunteer')" style="flex:1;padding:.6rem;border-radius:6px;border:none;font-size:.75rem;font-weight:700;background:var(--accent);color:#000;cursor:pointer;transition:all .2s">🌱 Ehrenamt</button>
       <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
       <button type="button" id="ev-type-btn-quartier" onclick="setEvType('quartier')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🏘️ Quartier</button>
     </div>
@@ -1259,6 +1516,18 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
     <div id="ev-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-top:.65rem"></div>
+  </div>
+</div>
+
+<!-- Rating Modal -->
+<div class="modal-overlay" id="modal-rating">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ Qualitätsbewertung <button class="modal-close" onclick="closeModal('modal-rating')">✕</button></div>
+    <div style="font-size:.75rem;color:var(--dim);text-align:center;margin-bottom:.85rem;line-height:1.5">
+      Deine Bewertung gibt dem anderen Bonus-Punkte — <strong>Qualität zählt mehr als Quantität.</strong>
+    </div>
+    <div id="rating-modal-inner"></div>
   </div>
 </div>
 
@@ -1440,6 +1709,19 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Bug Report Modal -->
+<div class="modal-overlay" id="modal-bug-report">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🐛 Bug melden <button class="modal-close" onclick="closeModal('modal-bug-report')">✕</button></div>
+    <div style="font-size:.8rem;color:var(--dim);margin-bottom:.85rem">Beschreibe kurz was nicht funktioniert. Wir melden uns wenn es behoben ist.</div>
+    <textarea id="bug-desc" placeholder="Was ist passiert? Was hast du erwartet? Gerät / Browser?" rows="5"
+      style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.83rem;padding:.65rem .85rem;resize:vertical;font-family:inherit;box-sizing:border-box;outline:none"></textarea>
+    <div id="bug-report-err" style="display:none;color:#f87171;font-size:.78rem;margin-top:.4rem"></div>
+    <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitBugReport()">Absenden</button>
+  </div>
+</div>
+
 <!-- City Onboarding Modal -->
 <div class="modal-overlay" id="modal-city-onboard">
   <div class="modal" style="text-align:center">
@@ -1519,8 +1801,12 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 const API = '';
 let token = localStorage.getItem('konnekt_token') || '';
 let currentUser = null;
+// Capture referral code from URL (?ref=CODE) and store for registration
+(function(){ const ref = new URLSearchParams(location.search).get('ref'); if (ref) { localStorage.setItem('konnekt_ref_code', ref); history.replaceState({}, '', '/'); } })();
 let currentEventFilter = '';
 let currentEventFilterParam = 'category'; // 'category' or 'type'
+let currentEventSearch = '';
+let _evSearchTimer = null;
 let currentCouponFilter = '';
 let currentZbType = 'offer';
 let deedCategory = 'neighbor';
@@ -1595,16 +1881,20 @@ async function submitAuth() {
       const rawUsername = document.getElementById('reg-username').value.trim().toLowerCase();
       // Auto-generate username from email if not filled in
       const username = rawUsername || email.split('@')[0].replace(/[^a-z0-9_]/g,'').slice(0,18) || 'user';
-      res = await apiFetch('/api/auth/register', 'POST', {
+      const regPayload = {
         email, password: pw, username,
         display_name: document.getElementById('reg-name').value.trim() || username,
         city: document.getElementById('reg-city').value.trim()
-      });
+      };
+      const storedRef = localStorage.getItem('konnekt_ref_code');
+      if (storedRef) { regPayload.ref_code = storedRef; }
+      res = await apiFetch('/api/auth/register', 'POST', regPayload);
     } else {
       res = await apiFetch('/api/auth/login', 'POST', {email, password: pw});
     }
     token = res.token;
     localStorage.setItem('konnekt_token', token);
+    if (isReg) localStorage.removeItem('konnekt_ref_code');
     await loadApp();
     showManualInstallBar();
   } catch(e) {
@@ -1707,6 +1997,9 @@ async function loadApp() {
     openMapScreen();
     // Pre-load other tabs in background
     loadFeed();
+    loadForYou();
+    loadUpcomingReminders();
+    loadTrending();
     loadEvents();
     loadDashboard();
     loadChallenge();
@@ -1715,6 +2008,18 @@ async function loadApp() {
       setTimeout(() => openModal('modal-city-onboard'), 800);
     }
     pollKlopfBadge();
+    pollNotifications();
+    // Poll notifications every 60s
+    if (_notifPollTimer) clearInterval(_notifPollTimer);
+    _notifPollTimer = setInterval(pollNotifications, 60000);
+    // Deep-links from manifest shortcuts and shared event URLs
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      const tabBtn = document.querySelector(`.nav-item[onclick*="${tabParam}"]`);
+      switchScreen(tabParam, tabBtn);
+    }
+    if (urlParams.get('event')) openEventDetail(parseInt(urlParams.get('event')));
   } catch(e) {
     // Token invalid — back to auth, clear token
     loading.style.display = 'none';
@@ -1736,6 +2041,10 @@ function updateUserUI() {
   if (!currentUser) return;
   const initial = (currentUser.display_name||'?')[0].toUpperCase();
   document.getElementById('hdr-points').textContent = (currentUser.points_balance||0).toLocaleString();
+  const ptsBadge = document.querySelector('.points-badge');
+  if (ptsBadge && (currentUser.streak_days||0) >= 2) ptsBadge.title = `🔥 ${currentUser.streak_days} Tage Streak!`;
+  const cityBadge = document.getElementById('topbar-city');
+  if (cityBadge && currentUser.city) cityBadge.textContent = '· ' + currentUser.city;
 
   // Avatar (supports emoji, image URL, or letter fallback)
   const av = renderAvatar(currentUser.avatar_url, initial);
@@ -1768,12 +2077,34 @@ function updateUserUI() {
   document.getElementById('prof-hours').textContent = currentUser.volunteer_hours || 0;
 
   const streakEl = document.getElementById('prof-streak');
+  const streak = currentUser.streak_days || 0;
   const hours = currentUser.volunteer_hours || 0;
+  let streakHtml = '';
+  if (streak >= 2) streakHtml += `<span class="streak-badge" style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:var(--orange)">🔥 ${streak} Tage aktiv</span> `;
   if (hours > 0) {
     const proNote = tier === 'pro' ? ' · 3× Multiplikator aktiv' : '';
-    streakEl.innerHTML = `<span class="streak-badge">🔥 ${hours} Ehrenamtsstunden${proNote}</span>`;
+    streakHtml += `<span class="streak-badge">⏱️ ${hours}h Ehrenamt${proNote}</span>`;
   }
+  streakEl.innerHTML = streakHtml;
   syncLonelyMapToggle();
+  // Update create CTAs based on NGO/admin status
+  _syncCreateButtons();
+}
+
+function _syncCreateButtons() {
+  const isEventCreator = currentUser?.is_ngo || currentUser?.is_admin;
+  const evBtn = document.getElementById('ev-header-create-btn');
+  if (evBtn) { evBtn.textContent = isEventCreator ? '+ Event' : '🫧 Bubble'; evBtn.style.background = isEventCreator ? 'var(--accent)' : 'var(--purple)'; evBtn.style.color = isEventCreator ? '#000' : '#fff'; }
+  const fabBtn = document.getElementById('fab-event');
+  if (fabBtn) { fabBtn.textContent = isEventCreator ? '+' : '🫧'; fabBtn.style.background = isEventCreator ? 'var(--accent)' : 'var(--purple)'; }
+  const mapBtn = document.getElementById('map-create-btn');
+  if (mapBtn) { mapBtn.textContent = isEventCreator ? '+ Event' : '🫧 Bubble'; }
+  const feedLbl = document.getElementById('feed-create-label');
+  if (feedLbl) feedLbl.textContent = isEventCreator ? 'Event' : 'Bubble';
+  const feedBtn = document.getElementById('feed-create-btn');
+  if (feedBtn) { feedBtn.style.borderLeftColor = isEventCreator ? 'var(--accent)' : 'var(--purple)'; }
+  const commNote = document.getElementById('events-community-note');
+  if (commNote) commNote.style.display = isEventCreator ? 'none' : 'flex';
 }
 
 // ── Screen switching ──────────────────────────────────────────────────────
@@ -1783,12 +2114,12 @@ function switchScreen(name, btn) {
   if (scr) scr.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  if (name==='feed')      { loadDashboard(); loadFeed(); }
+  if (name==='feed')      { loadDashboard(); loadFeed(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
   if (name==='volunteer') { loadEvents(); }
   if (name==='map')       { openMapScreen(); }
   if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
   if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
-  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); loadImpactAnalytics(); }
+  if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
 }
 
 function openMapScreen() {
@@ -1844,35 +2175,58 @@ async function loadFeed() {
   try {
     items = await apiFetch(`/api/feed?city=${encodeURIComponent(city)}`);
   } catch { list.innerHTML = '<div class="empty">Feed konnte nicht geladen werden.</div>'; return; }
-  if (!items.length) { list.innerHTML = '<div class="empty">Noch keine Aktivitäten in deiner Stadt.</div>'; return; }
-  list.innerHTML = items.map(item => {
+
+  // Profile completion nudge (shown inline once)
+  const incomplete = currentUser && (!currentUser.city || !currentUser.bio);
+  const nudgeDismissed = localStorage.getItem('profile_nudge_dismissed');
+  const nudgeHtml = (incomplete && !nudgeDismissed) ? `
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:.85rem 1rem;margin-bottom:.65rem;display:flex;align-items:center;gap:.75rem">
+      <span style="font-size:1.4rem;flex-shrink:0">👤</span>
+      <div style="flex:1">
+        <div style="font-size:.83rem;font-weight:700">Profil vervollständigen</div>
+        <div style="font-size:.73rem;color:var(--muted)">${!currentUser.city ? 'Füge deine Stadt hinzu, um lokale Events zu sehen. ' : ''}${!currentUser.bio ? 'Ein kurzes Bio hilft Nachbarn, dich kennenzulernen.' : ''}</div>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-shrink:0">
+        <button onclick="switchScreen('profile',document.querySelector('.nav-item[onclick*=\"profile\"]'))" style="background:var(--accent);color:#000;border:none;border-radius:99px;padding:.35rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer">Profil</button>
+        <button onclick="localStorage.setItem('profile_nudge_dismissed','1');this.closest('[style]').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+      </div>
+    </div>` : '';
+
+  if (!items.length) {
+    list.innerHTML = nudgeHtml + '<div class="empty">Noch keine Aktivitäten in deiner Stadt.</div>';
+    return;
+  }
+  list.innerHTML = nudgeHtml + items.map(item => {
     const initial = (item.author_name||'?')[0].toUpperCase();
     const avatar = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));color:white;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0">${initial}</div>`;
+    const authorClick = item.user_id ? `onclick="openUserProfile(${item.user_id})" style="cursor:pointer"` : '';
     if (item.type === 'event') {
-      const date = item.created_at ? new Date(item.created_at.replace(' ','T')).toLocaleDateString('de-CH',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      const evCat = item.ev_type || item.category || 'other';
+      const evTc = TYPE_COLORS[evCat] || TYPE_COLORS.other;
+      const date = item.created_at ? new Date(item.created_at.replace(' ','T')).toLocaleDateString('de-CH',{weekday:'short',day:'numeric',month:'short'}) : '';
       const spotsLeft = item.max_participants > 0 ? `· ${item.max_participants - item.participants_count} Plätze frei` : '';
       const canJoin = currentUser && item.ev_type !== 'hangout';
-      return `<div class="feed-item">
+      return `<div class="feed-item" onclick="openEventDetail(${item.id})" style="cursor:pointer;border-left-color:${evTc.color};background:${evTc.color}12">
         <div style="display:flex;gap:.6rem;align-items:flex-start">
-          ${avatar}
+          <div ${authorClick}>${avatar.replace('<div','<div')}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
-              <span style="font-size:.72rem;font-weight:700;color:var(--accent)">🌱 Event · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.72rem;font-weight:700;color:${evTc.color}">${evTc.emoji} Event · <span ${authorClick}>${esc(item.author_name||'')}</span></span>
               <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
             </div>
             <div class="feed-content">${esc(item.content||'')}</div>
-            <div class="feed-meta">📅 ${date} · 📍 ${esc(item.city||'')} ${spotsLeft}</div>
-            ${canJoin ? `<button onclick="registerEvent(${item.id},this)" style="margin-top:.45rem;padding:.3rem .75rem;border-radius:99px;border:none;background:var(--accent);color:white;font-size:.72rem;font-weight:700;cursor:pointer">Mitmachen +${item.points_reward||50} Pkt</button>` : ''}
+            <div class="feed-meta">📅 ${date} · 📍 ${esc(item.city||'')} ${spotsLeft} · ⭐ +${item.points_reward||50}</div>
           </div>
         </div>
       </div>`;
     } else if (item.type === 'deed') {
-      return `<div class="feed-item">
+      const deedTc = TYPE_COLORS[item.category] || {color:'#10b981', emoji:'💚'};
+      return `<div class="feed-item" style="border-left-color:#f59e0b;background:#f59e0b12">
         <div style="display:flex;gap:.6rem;align-items:flex-start">
-          ${avatar}
+          <div ${authorClick}>${avatar}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
-              <span style="font-size:.72rem;font-weight:700;color:var(--green)">${catEmoji(item.category)} Gute Tat · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.72rem;font-weight:700;color:#f59e0b">${catEmoji(item.category)} Gute Tat · <span ${authorClick}>${esc(item.author_name||'')}</span></span>
               <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
             </div>
             <div class="feed-content">${esc(item.content||'')}</div>
@@ -1882,21 +2236,105 @@ async function loadFeed() {
       </div>`;
     } else {
       // bubble
-      return `<div class="feed-item" style="border-left:3px solid var(--purple)">
+      const bLat = item.lat, bLng = item.lng;
+      const bubbleClick = (bLat && bLng) ? `onclick="flyToMapBubble(${bLat},${bLng})" style="border-left-color:var(--purple);background:rgba(139,92,246,.07);cursor:pointer"` : `style="border-left-color:var(--purple);background:rgba(139,92,246,.07)"`;
+      return `<div class="feed-item" ${bubbleClick}>
         <div style="display:flex;gap:.6rem;align-items:flex-start">
-          ${avatar}
+          <div ${authorClick}>${avatar}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
-              <span style="font-size:.72rem;font-weight:700;color:var(--purple)">🫧 Life Bubble · ${esc(item.author_name||'')}</span>
+              <span style="font-size:.72rem;font-weight:700;color:var(--purple)">🫧 Life Bubble · <span ${authorClick}>${esc(item.author_name||'')}</span></span>
               <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
             </div>
             <div class="feed-content">${esc(item.content||'')}</div>
-            <div class="feed-meta">📍 ${esc(item.city||item.address||'')}</div>
+            <div class="feed-meta">📍 ${esc(item.city||item.address||'')}${(bLat&&bLng)?' · <span style="color:var(--purple);font-weight:700">🗺 Auf Karte →</span>':''}</div>
           </div>
         </div>
       </div>`;
     }
   }).join('');
+}
+
+async function loadUpcomingReminders() {
+  if (!currentUser) return;
+  const el = document.getElementById('upcoming-reminder');
+  if (!el) return;
+  try {
+    const upcoming = await apiFetch('/api/my/upcoming');
+    if (!upcoming.length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(59,130,246,.05));border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:.8rem 1rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--green);margin-bottom:.4rem">⏰ Bald: deine Events</div>
+        ${upcoming.map(ev => {
+          const dt = new Date(ev.starts_at);
+          const diffH = Math.floor((dt - new Date()) / 3600000);
+          const when = diffH < 1 ? 'Gleich!' : diffH < 24 ? `in ${diffH}h` : `morgen ${dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}`;
+          return `<div onclick="openEventDetail(${ev.event_id})" style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;cursor:pointer">
+            <span style="font-size:.7rem;font-weight:700;color:var(--orange);min-width:55px">${when}</span>
+            <span style="font-size:.8rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ev.title)}</span>
+            <span style="font-size:.65rem;color:var(--muted)">📍 ${esc(ev.city||'')}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch { if (el) el.style.display = 'none'; }
+}
+
+async function loadTrending() {
+  const section = document.getElementById('trending-section');
+  const list = document.getElementById('trending-list');
+  if (!section || !list) return;
+  try {
+    const city = currentUser?.city || '';
+    const events = await apiFetch(`/api/events/trending?city=${encodeURIComponent(city)}&limit=6`);
+    // Only show if there are events with actual traction (recent_regs > 0)
+    const hot = events.filter(ev => (ev.recent_regs || ev.participants_count || 0) > 0);
+    if (!hot.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    list.innerHTML = hot.slice(0, 5).map(ev => {
+      const dt = new Date(ev.starts_at);
+      const diffDays = Math.floor((dt - new Date()) / 86400000);
+      const when = diffDays === 0 ? 'Heute' : diffDays === 1 ? 'Morgen' : dt.toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+      const heat = ev.recent_regs > 0 ? `🔥 ${ev.recent_regs}` : `👤 ${ev.participants_count||0}`;
+      return `<div onclick="openEventDetail(${ev.id})" style="flex-shrink:0;width:155px;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:12px;padding:.7rem;cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+          <span style="font-size:.65rem;font-weight:700;color:var(--orange)">${catEmoji(ev.category)} ${catLabel(ev.category)}</span>
+          <span style="font-size:.65rem;color:var(--orange);font-weight:700">${heat}</span>
+        </div>
+        <div style="font-size:.78rem;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:.35rem">${esc(ev.title)}</div>
+        <div style="font-size:.65rem;color:var(--muted)">${when} · ${esc(ev.city||'')}</div>
+      </div>`;
+    }).join('');
+  } catch { if (section) section.style.display = 'none'; }
+}
+
+async function loadForYou() {
+  if (!currentUser) return;
+  const section = document.getElementById('for-you-section');
+  const list = document.getElementById('for-you-list');
+  if (!section || !list) return;
+  try {
+    const city = currentUser.city || '';
+    // Get categories the user has engaged with
+    const regs = await apiFetch('/api/my/registrations').catch(() => []);
+    const cats = [...new Set((regs || []).map(r => r.category).filter(Boolean))].slice(0, 3);
+    if (!cats.length) { section.style.display = 'none'; return; }
+    // Load events from their top category
+    const events = await apiFetch(`/api/events?category=${encodeURIComponent(cats[0])}&city=${encodeURIComponent(city)}&limit=6`);
+    if (!events.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    list.innerHTML = events.slice(0, 5).map(ev => {
+      const dt = new Date(ev.starts_at);
+      const diffDays = Math.floor((dt - new Date()) / 86400000);
+      const when = diffDays === 0 ? 'Heute' : diffDays === 1 ? 'Morgen' : dt.toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+      return `<div onclick="openEventDetail(${ev.id})" style="flex-shrink:0;width:160px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.7rem;cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+        <div style="font-size:.68rem;font-weight:700;color:var(--accent);margin-bottom:.3rem">${catEmoji(ev.category)} ${catLabel(ev.category)}</div>
+        <div style="font-size:.8rem;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:.4rem">${esc(ev.title)}</div>
+        <div style="font-size:.68rem;color:var(--muted)">${when} · ${esc(ev.city||'')}</div>
+        <div style="font-size:.68rem;color:var(--orange);font-weight:700;margin-top:.25rem">+${ev.points_reward} Pts</div>
+      </div>`;
+    }).join('');
+  } catch { if (section) section.style.display = 'none'; }
 }
 
 async function loadPlatformStats() {
@@ -1912,8 +2350,13 @@ async function loadPlatformStats() {
 // ── Events ────────────────────────────────────────────────────────────────
 async function loadEvents() {
   const city = currentUser?.city || '';
-  const filterQ = currentEventFilter ? `&${currentEventFilterParam}=${currentEventFilter}` : '';
-  const url = `/api/events?city=${encodeURIComponent(city)}&limit=30${filterQ}`;
+  let url;
+  if (currentEventSearch.trim()) {
+    url = `/api/events/search?q=${encodeURIComponent(currentEventSearch.trim())}&city=${encodeURIComponent(city)}&limit=30`;
+  } else {
+    const filterQ = currentEventFilter ? `&${currentEventFilterParam}=${currentEventFilter}` : '';
+    url = `/api/events?city=${encodeURIComponent(city)}&limit=30${filterQ}`;
+  }
   const list = document.getElementById('events-list');
 
   let events, myRegs = [];
@@ -1928,10 +2371,17 @@ async function loadEvents() {
   }
 
   if (!events.length) {
-    list.innerHTML = `<div class="empty">
-      Keine kommenden Events gefunden.<br>
-      <button class="btn-primary" style="margin-top:1rem;padding:.55rem 1.2rem;font-size:.82rem" onclick="openCreateEvent()">+ Erstes Event erstellen</button>
-    </div>`;
+    if (currentEventSearch.trim()) {
+      list.innerHTML = `<div class="empty">
+        Keine Events für <strong>„${esc(currentEventSearch)}"</strong> gefunden.<br>
+        <button onclick="clearEventSearch()" style="margin-top:.75rem;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:99px;padding:.4rem 1rem;font-size:.8rem;cursor:pointer">Suche löschen</button>
+      </div>`;
+    } else {
+      list.innerHTML = `<div class="empty">
+        Keine kommenden Events gefunden.<br>
+        <button class="btn-primary" style="margin-top:1rem;padding:.55rem 1.2rem;font-size:.82rem;background:var(--purple);color:#fff" onclick="openDropBubble()">🫧 Erste Bubble droppen</button>
+      </div>`;
+    }
     return;
   }
 
@@ -1965,13 +2415,16 @@ async function loadEvents() {
       // Hangout organiser: manage join requests
       actionBtn = `<button class="btn-join" style="background:var(--purple)" onclick="openJoinRequests(${ev.id})">👥 Anfragen verwalten</button>`;
     } else if (isOrganizer) {
-      // Own volunteer/quartier event — show participant count, no join button
-      actionBtn = `<span style="font-size:.78rem;color:var(--dim);padding:.4rem .6rem;border:1px solid var(--border);border-radius:99px">👤 Du organisierst</span>`;
+      // Own event — show organizer badge + rate-participants button if event is past
+      const rateBtn = isPast
+        ? `<button class="btn-join" style="background:var(--orange);color:#000;font-size:.78rem" onclick="openRatingModal(${ev.id},'organizer')">⭐ Teilnehmer bewerten</button>`
+        : '';
+      actionBtn = `<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><span style="font-size:.78rem;color:var(--dim);padding:.4rem .6rem;border:1px solid var(--border);border-radius:6px">👤 Du organisierst</span>${rateBtn}</div>`;
     } else if (isCompleted) {
       actionBtn = `<button class="btn-join" disabled style="background:var(--green);opacity:.75;cursor:default">✓ Abgeschlossen</button>`;
     } else if (isRegistered && isPast) {
       // Was registered, event is done — let user confirm attendance
-      actionBtn = `<button class="btn-join" style="background:var(--green)" onclick="completeEvent(${ev.id},${ev.points_reward},this)">✓ Ich war dabei (+${ev.points_reward})</button>`;
+      actionBtn = `<button class="btn-join" style="background:var(--green);color:#000" onclick="completeEvent(${ev.id},${ev.points_reward},this)">✓ Ich war dabei (+${ev.points_reward})</button>`;
     } else if (isRegistered) {
       // Registered, event is upcoming
       actionBtn = `<button class="btn-join" disabled style="background:var(--green);opacity:.9;cursor:default">✓ Angemeldet</button>`;
@@ -1982,27 +2435,42 @@ async function loadEvents() {
     }
 
     const pts = (isHangout && !isRegistered && !isCompleted) ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
+    const trendingBadge = (ev.participants_count||0) >= 5
+      ? `<span style="font-size:.62rem;font-weight:700;color:#f97316;background:rgba(249,115,22,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">🔥 Beliebt</span>` : '';
     const flagBtn = !isOrganizer
       ? `<button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>`
       : '';
 
+    // countdown label
+    const diffMs = dt - now;
+    const diffDays = Math.floor(diffMs / 86400000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    let countdown = '';
+    if (diffMs > 0) {
+      if (diffDays === 0) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--orange);background:rgba(249,115,22,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Heute!</span>`;
+      else if (diffDays === 1) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--accent);background:rgba(59,130,246,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Morgen</span>`;
+      else if (diffDays <= 7) countdown = `<span style="font-size:.68rem;color:var(--muted);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">in ${diffDays}d</span>`;
+    }
+
     return `<div class="event-card">
-      ${imgHtml}
+      ${cardRibbon(ev.category, isHangout)}
+      ${imgHtml || catColorStrip(ev.category, isHangout)}
       <div class="event-body">
         <div class="event-header">
           <span class="event-cat cat-${catClass}">${isHangout ? '🎮 Hangout' : catLabel(ev.category)}</span>
           ${pts}
         </div>
         ${hangoutBadge}
-        <div class="event-title" style="margin-top:${isHangout?'.4rem':'0'}">${esc(ev.title)}</div>
+        <div class="event-title" style="margin-top:${isHangout?'.4rem':'0'};cursor:pointer" onclick="openEventDetail(${ev.id})">${esc(ev.title)}${trendingBadge}</div>
         <div class="event-meta">
-          <span>📅 ${dateStr} ${timeStr}</span>
+          <span>📅 ${dateStr} ${timeStr}${countdown}</span>
           <span>📍 ${esc(ev.city||ev.address||'')}</span>
           <span>👤 ${ev.participants_count||0}${ev.max_participants>0?' / '+ev.max_participants:''}</span>
         </div>
         <div class="event-actions">
           ${actionBtn}
           ${flagBtn}
+          <button onclick="shareEvent(${ev.id},'${esc(ev.title).replace(/'/g,"\\'")}','${esc(ev.city||'')}')" title="Teilen" style="background:none;border:none;color:var(--muted);font-size:.9rem;cursor:pointer;padding:.2rem .4rem;flex-shrink:0" aria-label="Event teilen">📤</button>
         </div>
       </div>
     </div>`;
@@ -2012,6 +2480,12 @@ async function loadEvents() {
 function filterEvents(cat, el, param='category') {
   currentEventFilter = cat;
   currentEventFilterParam = param;
+  // Clear search when using filter pills
+  currentEventSearch = '';
+  const inp = document.getElementById('ev-search-input');
+  if (inp) inp.value = '';
+  const clr = document.getElementById('ev-search-clear');
+  if (clr) clr.style.display = 'none';
   document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   // Restore list view (map is now its own screen)
@@ -2019,9 +2493,56 @@ function filterEvents(cat, el, param='category') {
   loadEvents();
 }
 
+function onEventSearch(val) {
+  const clr = document.getElementById('ev-search-clear');
+  if (clr) clr.style.display = val ? '' : 'none';
+  clearTimeout(_evSearchTimer);
+  _evSearchTimer = setTimeout(() => {
+    currentEventSearch = val;
+    if (val) {
+      // Deactivate filter pills while searching
+      document.querySelectorAll('#event-filters .fpill').forEach(p => p.classList.remove('active'));
+      currentEventFilter = '';
+    }
+    loadEvents();
+  }, 350);
+}
+
+function clearEventSearch() {
+  currentEventSearch = '';
+  const inp = document.getElementById('ev-search-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  const clr = document.getElementById('ev-search-clear');
+  if (clr) clr.style.display = 'none';
+  // Restore "Alle" pill
+  const all = document.querySelector('#event-filters .fpill');
+  if (all) { all.classList.add('active'); currentEventFilter = ''; }
+  loadEvents();
+}
+
 function showMapView(pill) {
   // Navigate to the dedicated map screen
   switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
+}
+
+function locateMeOnMap() {
+  if (!leafletMap) return;
+  if (!navigator.geolocation) { showToast('Standort nicht verfügbar.'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      leafletMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      // Drop a temporary marker
+      if (window._myLocMarker) leafletMap.removeLayer(window._myLocMarker);
+      const icon = L.divIcon({
+        className: '',
+        html: '<div style="background:#3b82f6;border:3px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 0 0 4px rgba(59,130,246,.3)"></div>',
+        iconSize: [16,16], iconAnchor: [8,8]
+      });
+      window._myLocMarker = L.marker([pos.coords.latitude, pos.coords.longitude], {icon}).addTo(leafletMap);
+      showToast('Standort gefunden.');
+    },
+    () => showToast('Standort konnte nicht ermittelt werden.')
+  );
 }
 
 function initMap() {
@@ -2084,7 +2605,62 @@ async function loadMapEvents() {
         ${actionBtn}
       </div>`);
     });
+    // ── Activity heatmap ───────────────────────────────────────────
+    _drawHeatmap(events);
+    _updateMapCounter(events.length, null);
   } catch(e) { console.error('Map events error', e); }
+}
+
+let _heatLayers = [];
+function _drawHeatmap(events) {
+  if (!leafletMap) return;
+  _heatLayers.forEach(l => leafletMap.removeLayer(l));
+  _heatLayers = [];
+  // Bucket events into ~600m grid cells
+  const cells = {};
+  events.forEach(ev => {
+    if (!ev.lat || !ev.lng) return;
+    const gk = `${Math.round(ev.lat / 0.008) * 0.008},${Math.round(ev.lng / 0.008) * 0.008}`;
+    if (!cells[gk]) cells[gk] = {lats:[], lngs:[], count:0};
+    cells[gk].lats.push(ev.lat); cells[gk].lngs.push(ev.lng); cells[gk].count++;
+  });
+  Object.values(cells).forEach(cell => {
+    const avgLat = cell.lats.reduce((a,b)=>a+b,0)/cell.lats.length;
+    const avgLng = cell.lngs.reduce((a,b)=>a+b,0)/cell.lngs.length;
+    const n = cell.count;
+    const color = n >= 7 ? '#ef4444' : n >= 4 ? '#f97316' : n >= 2 ? '#f59e0b' : '#10b981';
+    const opacity = Math.min(0.18 + n * 0.04, 0.45);
+    const circle = L.circle([avgLat, avgLng], {
+      radius: 500, color: color, fillColor: color,
+      fillOpacity: opacity, opacity: 0, weight: 0, interactive: false
+    }).addTo(leafletMap);
+    _heatLayers.push(circle);
+  });
+}
+
+function _updateMapCounter(evCount, bubbleCount, shopCount) {
+  const el = document.getElementById('map-counter-text');
+  const dot = document.getElementById('map-counter-dot');
+  if (!el) return;
+  let label = '–', dotColor = 'var(--accent)';
+  if (evCount !== null)     { label = `${evCount} Event${evCount===1?'':'s'}`; dotColor = 'var(--accent)'; }
+  if (bubbleCount !== null) { label = `${bubbleCount} Bubble${bubbleCount===1?'':'s'}`; dotColor = 'var(--purple)'; }
+  if (shopCount !== null)   { label = `${shopCount} Shop${shopCount===1?'':'s'}`; dotColor = 'var(--orange)'; }
+  el.textContent = label;
+  if (dot) dot.style.background = dotColor;
+  // Update detail rows
+  if (evCount !== null)     { const d = document.getElementById('map-d-events');  if (d) d.textContent = evCount; }
+  if (bubbleCount !== null) { const d = document.getElementById('map-d-bubbles'); if (d) d.textContent = bubbleCount; }
+  if (shopCount !== null)   { const d = document.getElementById('map-d-shops');   if (d) d.textContent = shopCount; }
+}
+
+function toggleMapInfoPanel() {
+  const detail = document.getElementById('map-info-detail');
+  const arrow = document.getElementById('map-info-arrow');
+  if (!detail) return;
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 async function registerEvent(id, btn) {
@@ -2094,6 +2670,29 @@ async function registerEvent(id, btn) {
     btn.classList.add('joined');
     showToast(`✓ Angemeldet! ${ptMsg(10)}`);
     await refreshPoints();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function cancelRegistration(id, btn) {
+  if (!confirm('Wirklich abmelden? Du verlierst die 10 Anmeldepunkte.')) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/events/${id}/cancel-registration`, 'POST');
+    showToast('Abmeldung erfolgreich.');
+    closeModal('modal-event-detail');
+    loadEvents();
+    await refreshPoints();
+  } catch(e) { showToast(e.message || 'Fehler'); btn.disabled = false; }
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Event wirklich absagen? Alle angemeldeten Personen werden benachrichtigt.')) return;
+  try {
+    await apiFetch(`/api/events/${id}`, 'DELETE');
+    showToast('Event wurde abgesagt.');
+    closeModal('modal-event-detail');
+    loadEvents();
+    if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
@@ -2144,10 +2743,109 @@ async function completeEvent(id, pts, btn) {
     btn.style.opacity = '.75';
     showToast(`✓ Super! ${ptMsg(r.points_awarded)}`);
     await refreshPoints();
+    // Prompt rating after a short delay
+    setTimeout(() => openRatingModal(id, 'participant'), 900);
   } catch(e) {
     btn.disabled = false;
     btn.textContent = `✓ Ich war dabei (+${pts})`;
     showToast(e.message || 'Fehler');
+  }
+}
+
+async function openRatingModal(eventId, role) {
+  try {
+    const data = await apiFetch(`/api/events/${eventId}/rateable`);
+    if (!data.targets || !data.targets.length) return; // nothing to rate
+    const target = data.targets[0]; // participant rates organizer: 1 target
+    const isOrg = data.role === 'organizer';
+    const el = document.getElementById('rating-modal-inner');
+    if (!el) return;
+    el.dataset.eventId = eventId;
+    el.dataset.role = data.role;
+    // For organizer: show one target at a time, track index
+    el.dataset.targets = JSON.stringify(data.targets);
+    el.dataset.targetIndex = '0';
+    el.dataset.pointsReward = data.points_reward || 50;
+    renderRatingTarget(el);
+    openModal('modal-rating');
+  } catch {}
+}
+
+function renderRatingTarget(el) {
+  const targets = JSON.parse(el.dataset.targets || '[]');
+  const idx = parseInt(el.dataset.targetIndex || '0');
+  const target = targets[idx];
+  if (!target) { closeModal('modal-rating'); return; }
+  const isOrg = el.dataset.role === 'organizer';
+  const pts = parseInt(el.dataset.pointsReward || '50');
+  const progress = targets.length > 1 ? `<div style="font-size:.65rem;color:var(--muted);margin-bottom:.5rem">${idx+1} / ${targets.length}</div>` : '';
+  el.innerHTML = `
+    ${progress}
+    <div style="font-size:.82rem;color:var(--dim);margin-bottom:.35rem">${isOrg ? 'Wie engagiert war diese Person?' : 'Wie gut war das Event organisiert?'}</div>
+    <div style="font-size:.95rem;font-weight:700;margin-bottom:1rem">${esc(target.display_name)}</div>
+    <div id="rating-stars" style="display:flex;gap:.35rem;justify-content:center;margin-bottom:.9rem;flex-wrap:wrap">
+      ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+        <button onclick="selectRatingScore(${n},this)" data-score="${n}"
+          style="width:38px;height:38px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s"
+        >${n}</button>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-bottom:1rem">
+      <span>Keine Mühe</span><span>Aussergewöhnlich</span>
+    </div>
+    <div id="rating-bonus-preview" style="text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:.85rem;min-height:1.2em"></div>
+    <button id="rating-submit-btn" disabled onclick="submitRating()"
+      style="width:100%;padding:.75rem;background:var(--accent);color:#000;border:none;border-radius:var(--radius);font-size:.88rem;font-weight:800;cursor:pointer;opacity:.4;transition:opacity .15s"
+    >Bewertung absenden</button>
+    <button onclick="closeModal('modal-rating')" style="width:100%;padding:.55rem;background:transparent;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;margin-top:.4rem">Überspringen</button>
+  `;
+}
+
+let _selectedRatingScore = 0;
+function selectRatingScore(score, btn) {
+  _selectedRatingScore = score;
+  const el = document.getElementById('rating-modal-inner');
+  const pts = parseInt(el?.dataset.pointsReward || '50');
+  const bonus = Math.round(score / 10 * pts);
+  // Highlight selected
+  document.querySelectorAll('#rating-stars button').forEach(b => {
+    const s = parseInt(b.dataset.score);
+    b.style.background = s <= score ? 'var(--accent)' : 'var(--card2)';
+    b.style.color = s <= score ? '#000' : 'var(--text)';
+    b.style.borderColor = s <= score ? 'var(--accent)' : 'var(--border)';
+  });
+  const preview = document.getElementById('rating-bonus-preview');
+  if (preview) preview.innerHTML = `→ <strong>+${bonus} Bonus-Punkte</strong> für ${score}/10`;
+  const submitBtn = document.getElementById('rating-submit-btn');
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+}
+
+async function submitRating() {
+  if (!_selectedRatingScore) return;
+  const el = document.getElementById('rating-modal-inner');
+  const eventId = parseInt(el.dataset.eventId);
+  const targets = JSON.parse(el.dataset.targets || '[]');
+  const idx = parseInt(el.dataset.targetIndex || '0');
+  const target = targets[idx];
+  const btn = document.getElementById('rating-submit-btn');
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const r = await apiFetch(`/api/events/${eventId}/rate`, 'POST', {
+      rated_id: target.id, score: _selectedRatingScore
+    });
+    showToast(`⭐ Bewertet! +${r.bonus_pts} Bonus-Punkte für ${esc(target.display_name)}`);
+    await refreshPoints();
+    _selectedRatingScore = 0;
+    // Move to next target if organizer rating multiple participants
+    const nextIdx = idx + 1;
+    if (nextIdx < targets.length) {
+      el.dataset.targetIndex = String(nextIdx);
+      renderRatingTarget(el);
+    } else {
+      closeModal('modal-rating');
+    }
+  } catch(e) {
+    showToast(e.message || 'Fehler beim Absenden');
+    btn.disabled = false; btn.textContent = 'Bewertung absenden';
   }
 }
 
@@ -2164,7 +2862,7 @@ async function openJoinRequests(eventId) {
     list.innerHTML = reqs.map(r => `
       <div data-rid="${r.id}" style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem">
         <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">${(r.display_name||'?')[0].toUpperCase()}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0">${(r.display_name||'?')[0].toUpperCase()}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:.9rem;font-weight:700">${esc(r.display_name)}</div>
             <div style="font-size:.72rem;color:var(--muted)">📍 ${esc(r.city||'')} · 🕐 ${r.volunteer_hours||0}h Ehrenamt · Pos. ${r.queue_position}</div>
@@ -2213,7 +2911,7 @@ function setEvType(type) {
   quartierHint.style.display = 'none';
 
   if (type === 'volunteer') {
-    vBtn.style.background = 'var(--accent)'; vBtn.style.color = 'white';
+    vBtn.style.background = 'var(--accent)'; vBtn.style.color = '#000';
   } else if (type === 'hangout') {
     hBtn.style.background = 'var(--purple)'; hBtn.style.color = 'white';
     hangoutHint.style.display = '';
@@ -2260,19 +2958,54 @@ function selectAddrSuggestion(addr, city, lat, lng) {
 }
 
 function openCreateEvent() {
-  // Pre-fill city from user profile
+  // Restore saved draft if exists
+  const draft = (() => { try { return JSON.parse(localStorage.getItem('konnekt_ev_draft')||'{}'); } catch { return {}; } })();
+  if (draft.title) {
+    const tf = document.getElementById('ev-title'); if (tf && !tf.value) tf.value = draft.title;
+    const df = document.getElementById('ev-desc');  if (df && !df.value) df.value = draft.description || '';
+    const af = document.getElementById('ev-addr');  if (af && !af.value) af.value = draft.address || '';
+  }
+  // Pre-fill city from draft or user profile
   const cityEl = document.getElementById('ev-city');
-  if (cityEl && !cityEl.value) cityEl.value = currentUser?.city || '';
-  // Set default start time to tomorrow at 10:00
+  if (cityEl && !cityEl.value) cityEl.value = draft.city || currentUser?.city || '';
+  // Reset start time if empty or stale
   const startEl = document.getElementById('ev-start');
-  if (startEl && !startEl.value) {
-    const d = new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0);
-    // datetime-local needs local time string, not UTC (toISOString returns UTC)
-    const pad = n => String(n).padStart(2,'0');
-    startEl.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (startEl) {
+    const existing = startEl.value ? new Date(startEl.value) : null;
+    if (!existing || existing <= new Date()) {
+      const d = new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0);
+      const pad = n => String(n).padStart(2,'0');
+      startEl.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
   }
   document.getElementById('ev-error').style.display = 'none';
+  ['ev-title','ev-start','ev-city','ev-addr'].forEach(id => clearFieldErr(id));
+  // Auto-save draft as user types
+  ['ev-title','ev-desc','ev-addr','ev-city'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._draftHandler) {
+      el._draftHandler = true;
+      el.addEventListener('input', () => {
+        localStorage.setItem('konnekt_ev_draft', JSON.stringify({
+          title: document.getElementById('ev-title')?.value||'',
+          description: document.getElementById('ev-desc')?.value||'',
+          address: document.getElementById('ev-addr')?.value||'',
+          city: document.getElementById('ev-city')?.value||''
+        }));
+      });
+    }
+  });
   openModal('modal-create-event');
+}
+
+function openCreateEventOrBubble() {
+  // NGOs and admins go to the full event creation form
+  // Regular users go to the bubble modal (spontaneous "doing something now, wanna join?")
+  if (currentUser?.is_ngo || currentUser?.is_admin) {
+    openCreateEvent();
+  } else {
+    openDropBubble();
+  }
 }
 
 function showFieldErr(id, msg) {
@@ -2322,9 +3055,10 @@ async function createEvent() {
   } else { clearFieldErr('ev-city'); }
 
   if (hasErr) {
-    // Scroll first error field into view
-    const firstErr = document.querySelector('#modal-create-event [id$="-err"]:not([style*="display:none"]):not([style*="display: none"])');
-    if (firstErr) firstErr.scrollIntoView({behavior:'smooth', block:'center'});
+    showToast('⚠️ Fehlende Pflichtfelder — bitte prüfen!');
+    errEl.textContent = '⚠️ Bitte die markierten Felder ausfüllen.';
+    errEl.style.display = '';
+    errEl.scrollIntoView({behavior:'smooth', block:'nearest'});
     return;
   }
 
@@ -2332,7 +3066,7 @@ async function createEvent() {
   try {
     const lat = parseFloat(document.getElementById('ev-lat').value) || 0;
     const lng = parseFloat(document.getElementById('ev-lng').value) || 0;
-    await apiFetch('/api/events', 'POST', {
+    const res = await apiFetch('/api/events', 'POST', {
       title,
       type: currentEvType,
       description: document.getElementById('ev-desc').value.trim(),
@@ -2351,11 +3085,14 @@ async function createEvent() {
     document.getElementById('ev-max').value = '0';
     document.getElementById('ev-start').value = '';
     setEvType('volunteer');
+    localStorage.removeItem('konnekt_ev_draft');
     closeModal('modal-create-event');
     showToast(`✓ Event erstellt! ${ptMsg(20)}`);
     loadEvents();
     if (document.getElementById('screen-map')?.classList.contains('active')) loadMapEvents();
     await refreshPoints();
+    // Open the newly created event detail so organizer can share it immediately
+    if (res?.id) setTimeout(() => openEventDetail(res.id), 400);
   } catch(e) {
     errEl.textContent = e.message || 'Fehler beim Erstellen.';
     errEl.style.display = '';
@@ -2367,16 +3104,62 @@ async function createEvent() {
 
 // ── Coupons & Trails ─────────────────────────────────────────────────────────
 function switchRewardTab(tab) {
-  const isCoupons = tab === 'coupons';
-  document.getElementById('reward-pane-coupons').style.display = isCoupons ? '' : 'none';
-  document.getElementById('reward-pane-trails').style.display  = isCoupons ? 'none' : '';
-  const cTab = document.getElementById('reward-tab-coupons');
-  const tTab = document.getElementById('reward-tab-trails');
-  cTab.style.background = isCoupons ? 'var(--accent)' : 'transparent';
-  cTab.style.color = isCoupons ? 'white' : 'var(--dim)';
-  tTab.style.background = !isCoupons ? 'var(--orange)' : 'transparent';
-  tTab.style.color = !isCoupons ? 'white' : 'var(--dim)';
-  if (!isCoupons) loadTrails();
+  const tabs = ['coupons','trails','redeemed'];
+  const colors = {coupons:'var(--accent)', trails:'var(--orange)', redeemed:'var(--purple)'};
+  tabs.forEach(t => {
+    const btn = document.getElementById('reward-tab-'+t);
+    const pane = document.getElementById('reward-pane-'+t);
+    if (!btn || !pane) return;
+    const active = t === tab;
+    btn.style.background = active ? colors[t] : 'transparent';
+    btn.style.color = active ? 'white' : 'var(--dim)';
+    pane.style.display = active ? '' : 'none';
+  });
+  if (tab === 'trails') loadTrails();
+  if (tab === 'redeemed') loadMyRedemptions();
+}
+
+async function loadMyRedemptions() {
+  const list = document.getElementById('my-redemptions-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading">Lade Einlösungen…</div>';
+  try {
+    const rows = await apiFetch('/api/my/coupons');
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty" style="text-align:center;padding:2rem 0"><div style="font-size:2.5rem;margin-bottom:.5rem">🎟️</div><div>Noch keine Coupons eingelöst.</div><div style="font-size:.75rem;color:var(--muted);margin-top:.4rem">Sammle Punkte und entdecke Angebote.</div></div>';
+      return;
+    }
+    // Group by month
+    const byMonth = {};
+    rows.forEach(r => {
+      const d = new Date(r.redeemed_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const label = d.toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+      if (!byMonth[key]) byMonth[key] = {label, items:[]};
+      byMonth[key].items.push(r);
+    });
+    const ICONS = {food:'🍞',sport:'🏃',culture:'🎭',other:'🎟️'};
+    let html = '';
+    Object.keys(byMonth).sort().reverse().forEach(k => {
+      const g = byMonth[k];
+      html += `<div style="font-size:.72rem;font-weight:700;color:var(--muted);margin:.75rem 0 .35rem;text-transform:uppercase;letter-spacing:.06em">${g.label}</div>`;
+      g.items.forEach(r => {
+        html += `<div class="coupon-card" style="margin-bottom:.5rem">
+          <div class="coupon-icon">🎟️</div>
+          <div class="coupon-body">
+            <div class="coupon-biz">${esc(r.business_name||'')}</div>
+            <div class="coupon-title">${esc(r.title||'')}</div>
+            <div style="font-size:.68rem;color:var(--dim)">${new Date(r.redeemed_at).toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:.68rem;color:var(--green);font-weight:700;margin-bottom:.25rem">✓ Eingelöst</div>
+            ${r.qr_code ? `<div onclick="navigator.clipboard?.writeText('${esc(r.qr_code)}');showToast('Code kopiert!')" style="font-size:.72rem;font-weight:800;font-family:monospace;letter-spacing:.06em;color:var(--text);background:var(--card2);padding:.15rem .4rem;border-radius:6px;cursor:pointer;border:1px solid var(--border)" title="Tippen zum Kopieren">${esc(r.qr_code)}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    });
+    list.innerHTML = `<div style="font-size:.78rem;color:var(--muted);margin-bottom:.65rem">${rows.length} Einlösung${rows.length!==1?'en':''} insgesamt</div>` + html;
+  } catch(e) { list.innerHTML = `<div class="empty">${esc(e.message||'Fehler')}</div>`; }
 }
 
 async function loadTrails() {
@@ -2444,7 +3227,7 @@ async function startTrail(trailId) {
           ${s.task_hint ? `<div style="font-size:.74rem;color:var(--dim);margin:.2rem 0 .45rem;line-height:1.4">${esc(s.task_hint)}</div>` : ''}
           ${done
             ? `<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Eingecheckt</span>`
-            : `<button class="btn-primary" style="font-size:.8rem;padding:.38rem .85rem;margin-top:.1rem" onclick="trailCheckin(${trailId},${s.id},${trail.bonus_points},this)">📍 Ich bin hier — Einchecken</button>`}
+            : `<button class="btn-primary" style="font-size:.8rem;padding:.38rem .85rem;margin-top:.1rem" onclick="trailCheckin(${trailId},${s.id},${trail.bonus_points},this,${s.lat||'null'},${s.lng||'null'})">📍 Ich bin hier — Einchecken</button>`}
         </div>
       </div>`;
     }).join('');
@@ -2453,11 +3236,24 @@ async function startTrail(trailId) {
   }
 }
 
-async function trailCheckin(trailId, stopId, bonusPts, btn) {
-  btn.disabled = true; btn.textContent = '…';
+async function trailCheckin(trailId, stopId, bonusPts, btn, stopLat, stopLng) {
+  btn.disabled = true; btn.textContent = '📍 Prüfe Standort…';
+  // GPS verification (optional — if coordinates provided, check proximity; otherwise honour-system)
+  if (stopLat && stopLng && navigator.geolocation) {
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000, maximumAge:30000}));
+      const dist = _haversineMeters(pos.coords.latitude, pos.coords.longitude, stopLat, stopLng);
+      if (dist > 300) {
+        btn.disabled = false; btn.textContent = '📍 Ich bin hier — Einchecken';
+        showToast(`Du bist noch ${Math.round(dist)}m entfernt. Geh näher ran! (max. 300m)`);
+        return;
+      }
+    } catch(_) { /* GPS denied or unavailable — fall through to honour system */ }
+  }
+  btn.textContent = '…';
   try {
     const r = await apiFetch(`/api/trails/${trailId}/checkin/${stopId}`, 'POST');
-    // Replace button with done indicator
     const wrapper = btn.closest('div');
     if (wrapper) {
       const btnEl = wrapper.querySelector('button');
@@ -2468,7 +3264,6 @@ async function trailCheckin(trailId, stopId, bonusPts, btn) {
     if (r.completed) {
       showToast(`🏆 Trail abgeschlossen! ${ptMsg(bonusPts)}`);
       await refreshPoints();
-      // Refresh modal to show completion state
       setTimeout(() => startTrail(trailId), 400);
     } else {
       showToast(`✓ Stop ${r.stops_done}/${r.total_stops} eingecheckt!`);
@@ -2478,6 +3273,14 @@ async function trailCheckin(trailId, stopId, bonusPts, btn) {
     btn.textContent = '📍 Ich bin hier — Einchecken';
     showToast(e.message||'Fehler');
   }
+}
+
+function _haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 async function loadCoupons() {
@@ -2630,6 +3433,7 @@ async function loadLonelyMapLayer() {
         .addTo(leafletMap);
       _lonelyMarkers.push(m);
     });
+    _updateMapCounter(_lonelyMarkers.length, null);
   } catch(e) { console.warn('lonely map error', e); }
 }
 
@@ -2690,15 +3494,15 @@ async function loadNearby() {
     // trust score label
     const trustLabel = hours >= 10 ? '⭐ Aktiv' : hours >= 3 ? '✓ Dabei' : '🌱 Neu';
     return `<div class="person-card">
-      <div class="person-avatar" style="font-size:1.2rem;font-weight:800">${initial}</div>
-      <div class="person-info">
+      <div class="person-avatar" style="font-size:1.2rem;font-weight:800;cursor:pointer" onclick="openUserProfile(${u.id})">${initial}</div>
+      <div class="person-info" style="cursor:pointer" onclick="openUserProfile(${u.id})">
         <div class="person-name">${esc(u.display_name)}</div>
         <div class="person-bio" style="font-size:.72rem;color:var(--dim)">${esc(u.bio||'')}</div>
         <div class="person-badges" style="margin-top:.3rem;display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">
           <span class="badge" style="background:var(--accent2);color:white;font-size:.68rem">${trustLabel}</span>
           ${hours > 0 ? `<span class="badge badge-vol" title="Freiwilligenstunden">🕐 ${hours}h</span>` : ''}
           ${deeds > 0 ? `<span class="badge" style="background:var(--green);color:white;font-size:.68rem" title="Gute Taten">🤝 ${deeds}</span>` : ''}
-          ${attended > 0 ? `<span class="badge" style="background:var(--accent);color:white;font-size:.68rem" title="Events besucht">📅 ${attended}</span>` : ''}
+          ${attended > 0 ? `<span class="badge" style="background:var(--accent);color:#000;font-size:.68rem" title="Events besucht">📅 ${attended}</span>` : ''}
           ${u.is_senior ? '<span class="badge badge-senior">Senior</span>' : ''}
           ${u.is_ngo ? '<span class="badge badge-ngo">NGO</span>' : ''}
         </div>
@@ -2860,15 +3664,17 @@ async function loadZeitbank(type, tabEl) {
       ? '<span class="zb-offer-tag">BIETE AN</span>'
       : '<span class="zb-req-tag">SUCHE</span>';
     const initial = (r.display_name||'?')[0];
+    const isOwn = currentUser && r.user_id === currentUser.id;
     return `<div class="zb-card">
       <div class="zb-skill">${esc(r.skill)}</div>
       <div class="zb-desc">${esc(r.description||'')}</div>
       <div class="zb-meta">
-        <span style="background:var(--accent);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0">${initial}</span>
-        <span>${esc(r.display_name||'')}</span>
+        <span style="background:var(--accent);color:#000;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;cursor:pointer" onclick="openUserProfile(${r.user_id})">${initial}</span>
+        <span style="cursor:pointer;color:var(--accent)" onclick="openUserProfile(${r.user_id})">${esc(r.display_name||'')}</span>
         ${tagEl}
         <span>📍 ${esc(r.city||'')}</span>
       </div>
+      ${!isOwn ? `<button onclick="openKlopfSend(${r.user_id},'${esc(r.display_name||'')}','zeitbank')" style="margin-top:.5rem;background:var(--card);border:1.5px solid var(--border);border-radius:99px;padding:.3rem .8rem;font-size:.73rem;font-weight:700;color:var(--dim);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">👋 Anfragen</button>` : '<span style="font-size:.68rem;color:var(--muted);display:inline-block;margin-top:.3rem">Dein Eintrag</span>'}
     </div>`;
   }).join('');
 }
@@ -2994,15 +3800,25 @@ async function loadMyEvents() {
     const list = document.getElementById('my-events-list');
     if (!rows.length) { list.innerHTML = '<div class="empty">Du hast noch keine Events erstellt.</div>'; return; }
     const CAT = {volunteer:'🌱',social:'👥',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',other:'🎉'};
-    list.innerHTML = rows.map(e => `
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem">
+    const now = new Date();
+    list.innerHTML = rows.map(e => {
+      const isFuture = new Date(e.starts_at) > now;
+      const statusColor = e.status==='active' ? 'var(--green)' : e.status==='cancelled' ? 'var(--red,#ef4444)' : 'var(--muted)';
+      const statusBg = e.status==='active' ? 'rgba(16,185,129,.15)' : e.status==='cancelled' ? 'rgba(239,68,68,.12)' : 'var(--card)';
+      const statusBdr = e.status==='active' ? 'rgba(16,185,129,.3)' : e.status==='cancelled' ? 'rgba(239,68,68,.3)' : 'var(--border)';
+      const statusLabel = e.status==='active' ? (isFuture ? 'Aktiv' : 'Beendet') : e.status==='cancelled' ? 'Abgesagt' : (e.status||'?');
+      return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;cursor:pointer" onclick="openEventDetail(${e.id})">
         <div style="font-size:1.4rem">${CAT[e.category]||'🎉'}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div>
-          <div style="font-size:.72rem;color:var(--muted)">${new Date(e.starts_at).toLocaleDateString('de-CH')} · ${e.participants_count} Teilnehmer · ⭐${e.points_reward}pts</div>
+          <div style="font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div>
+          <div style="font-size:.7rem;color:var(--muted)">${new Date(e.starts_at).toLocaleDateString('de-CH')} · ${e.participants_count||0} Teilnehmer · ⭐${e.points_reward}pts</div>
         </div>
-        <span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:${e.status==='active'?'rgba(16,185,129,.15)':'var(--card)'};color:${e.status==='active'?'var(--green)':'var(--muted)'};border:1px solid ${e.status==='active'?'rgba(16,185,129,.3)':'var(--border)'}">${e.status==='active'?'Aktiv':'Beendet'}</span>
-      </div>`).join('');
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem">
+          <span style="font-size:.62rem;padding:.2rem .5rem;border-radius:99px;background:${statusBg};color:${statusColor};border:1px solid ${statusBdr};white-space:nowrap">${statusLabel}</span>
+          ${e.status==='active' && isFuture ? `<button onclick="event.stopPropagation();deleteEvent(${e.id})" style="background:none;border:none;color:var(--muted);font-size:.75rem;cursor:pointer;padding:.1rem .2rem" title="Absagen">🗑️</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
   } catch { document.getElementById('my-events-list').innerHTML = '<div class="empty">–</div>'; }
 }
 
@@ -3075,6 +3891,46 @@ async function submitBugReport() {
 async function loadProfile() {
   if (!currentUser) return;
   syncLonelyMapToggle();
+  // Show admin button for admins/moderators
+  const adminBtnWrap = document.getElementById('admin-panel-btn-wrap');
+  if (adminBtnWrap) adminBtnWrap.style.display = (currentUser.is_admin || currentUser.is_moderator) ? '' : 'none';
+  // Show Event Manager card for NGOs/admins
+  const isEventCreator = !!(currentUser.is_ngo || currentUser.is_admin);
+  const ngoCard = document.getElementById('ngo-event-manager-card');
+  if (ngoCard) ngoCard.style.display = isEventCreator ? 'flex' : 'none';
+  _syncCreateButtons();
+  // Business status: check if user has a registered (possibly pending) business
+  const bizCta    = document.getElementById('biz-reg-cta');
+  const bizPending = document.getElementById('biz-pending-card');
+  const bizDashBtn = document.getElementById('biz-dashboard-btn-wrap');
+  try {
+    const myBiz = await apiFetch('/api/my/business');
+    const biz = myBiz.business;
+    if (!biz) {
+      // No business — show registration CTA for non-ngo users
+      if (bizCta) bizCta.style.display = 'flex';
+      if (bizPending) bizPending.style.display = 'none';
+      if (bizDashBtn) bizDashBtn.style.display = 'none';
+    } else if (biz.status === 'pending') {
+      // Submitted but not yet verified
+      if (bizCta) bizCta.style.display = 'none';
+      if (bizPending) {
+        bizPending.style.display = 'flex';
+        const nameEl = document.getElementById('biz-pending-name');
+        if (nameEl) nameEl.textContent = biz.name + (biz.city ? ` · ${biz.city}` : '');
+      }
+      if (bizDashBtn) bizDashBtn.style.display = 'none';
+    } else {
+      // Verified business
+      if (bizCta) bizCta.style.display = 'none';
+      if (bizPending) bizPending.style.display = 'none';
+      if (bizDashBtn) bizDashBtn.style.display = '';
+    }
+  } catch {
+    // Fallback: hide CTA if tier is business
+    if (bizCta) bizCta.style.display = (currentUser.subscription_tier === 'business' || currentUser.is_ngo) ? 'none' : 'flex';
+    if (bizDashBtn) bizDashBtn.style.display = (currentUser.subscription_tier === 'business' || currentUser.is_ngo) ? '' : 'none';
+  }
   try {
     const profile = await apiFetch(`/api/profile/${currentUser.id}`);
     document.getElementById('prof-deeds').textContent = profile.deeds_count || 0;
@@ -3085,43 +3941,100 @@ async function loadProfile() {
     const pts = await apiFetch('/api/my/points');
     const hist = document.getElementById('points-history');
     if (!pts.history.length) { hist.innerHTML = '<div class="empty">Noch keine Transaktionen.</div>'; return; }
-    hist.innerHTML = pts.history.map(tx => `
-      <div class="tx-item">
-        <div class="tx-reason">${esc(tx.reason)}</div>
-        <div class="tx-delta ${tx.delta>0?'tx-plus':'tx-minus'}">${tx.delta>0?'+':''}${tx.delta}</div>
-      </div>`).join('');
+    const txs = pts.history;
+    const PAGE = 10;
+    let shown = PAGE;
+    const renderTxs = () => {
+      const rows = txs.slice(0, shown).map(tx => `
+        <div class="tx-item">
+          <div class="tx-reason">${esc(tx.reason)}</div>
+          <div class="tx-delta ${tx.delta>0?'tx-plus':'tx-minus'}">${tx.delta>0?'+':''}${tx.delta}</div>
+        </div>`).join('');
+      const more = shown < txs.length
+        ? `<button id="pts-load-more" onclick="this.remove();document.getElementById('pts-more-rows').style.display=''" style="width:100%;padding:.55rem;background:transparent;border:1px solid var(--border);border-radius:6px;font-size:.75rem;color:var(--muted);cursor:pointer;margin-top:.4rem">+ ${txs.length - shown} weitere laden</button>
+           <div id="pts-more-rows" style="display:none">${txs.slice(shown).map(tx=>`<div class="tx-item"><div class="tx-reason">${esc(tx.reason)}</div><div class="tx-delta ${tx.delta>0?'tx-plus':'tx-minus'}">${tx.delta>0?'+':''}${tx.delta}</div></div>`).join('')}</div>`
+        : '';
+      hist.innerHTML = rows + more;
+    };
+    renderTxs();
   } catch {}
+}
+
+let _lbPeriod = 'all';
+
+function switchLeaderboardPeriod(period) {
+  _lbPeriod = period;
+  const allBtn = document.getElementById('lb-btn-all');
+  const monBtn = document.getElementById('lb-btn-month');
+  if (allBtn) { allBtn.style.background = period==='all' ? 'var(--accent)' : 'transparent'; allBtn.style.color = period==='all' ? '#000' : 'var(--dim)'; }
+  if (monBtn) { monBtn.style.background = period==='month' ? 'var(--accent)' : 'transparent'; monBtn.style.color = period==='month' ? '#000' : 'var(--dim)'; }
+  loadLeaderboard();
 }
 
 async function loadLeaderboard() {
   const city = currentUser?.city || '';
-  const rows = await apiFetch(`/api/leaderboard?city=${encodeURIComponent(city)}`);
   const list = document.getElementById('leaderboard-list');
-  const maxPts = rows.length ? rows[0].points_balance : 1;
-  const MEDALS = ['🥇','🥈','🥉'];
-  list.innerHTML = rows.map((r,i) => {
-    const pct = Math.round((r.points_balance / maxPts) * 100);
-    const initial = (r.display_name||'?')[0];
-    return `<div class="lb-item">
-      <div class="lb-rank">${MEDALS[i]||i+1}</div>
-      ${r.avatar_url
-        ? `<img src="${esc(r.avatar_url)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\'width:32px;height:32px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700\'>${initial}</div>'">`
-        : `<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0">${initial}</div>`}
-      <div class="lb-name">
-        <div>${esc(r.display_name)}</div>
-        <div class="lb-bar" style="width:${pct}%"></div>
-      </div>
-      <div class="lb-pts">⭐ ${(r.points_balance||0).toLocaleString()}</div>
-    </div>`;
-  }).join('');
+  if (!list) return;
+  try {
+    const rows = await apiFetch(`/api/leaderboard?city=${encodeURIComponent(city)}&period=${_lbPeriod}`);
+    if (!rows.length) { list.innerHTML = '<div class="empty">Keine Daten.</div>'; return; }
+    const scoreKey = _lbPeriod === 'month' ? 'period_points' : 'points_balance';
+    const maxPts = rows.length ? (rows[0][scoreKey] || 1) : 1;
+    const MEDALS = ['🥇','🥈','🥉'];
+    list.innerHTML = rows.map((r,i) => {
+      const score = r[scoreKey] || 0;
+      const pct = Math.round((score / maxPts) * 100);
+      const initial = (r.display_name||'?')[0];
+      const meta = [r.event_count ? `${r.event_count} Events` : null, r.deed_count ? `${r.deed_count} Taten` : null].filter(Boolean).join(' · ');
+      return `<div class="lb-item">
+        <div class="lb-rank">${MEDALS[i]||i+1}</div>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0" onclick="openUserProfile(${r.id})" style="cursor:pointer">${initial}</div>
+        <div class="lb-name" onclick="openUserProfile(${r.id})" style="cursor:pointer;flex:1;min-width:0">
+          <div>${esc(r.display_name)}${r.city ? ` <span style="font-size:.68rem;color:var(--muted)">${esc(r.city)}</span>` : ''}</div>
+          ${meta ? `<div style="font-size:.68rem;color:var(--muted)">${meta}</div>` : ''}
+          <div class="lb-bar" style="width:${pct}%"></div>
+        </div>
+        <div class="lb-pts">⭐ ${score.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { if(list) list.innerHTML = '<div class="empty">–</div>'; }
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────
+const _MILESTONES = [100, 500, 1000, 2500, 5000, 10000];
+let _lastKnownPts = 0;
+
 async function refreshPoints() {
   try {
+    const prevPts = currentUser?.points_balance || _lastKnownPts;
     currentUser = await apiFetch('/api/auth/me');
     updateUserUI();
+    // Check if user crossed a milestone
+    const newPts = currentUser.points_balance || 0;
+    _lastKnownPts = newPts;
+    const crossed = _MILESTONES.find(m => prevPts < m && newPts >= m);
+    if (crossed) showMilestoneCelebration(crossed);
   } catch {}
+}
+
+function showMilestoneCelebration(pts) {
+  const emojis = {100:'🌱', 500:'⭐', 1000:'🏆', 2500:'💎', 5000:'🚀', 10000:'🌟'};
+  const msg = {100:'Ersten 100 Punkte', 500:'500 Punkte', 1000:'1.000 Punkte', 2500:'2.500 Punkte', 5000:'5.000 Punkte Helden', 10000:'10.000 Punkte Legende'};
+  const emoji = emojis[pts] || '🎉';
+  const label = msg[pts] || `${pts} Punkte`;
+  // Create overlay
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease';
+  el.innerHTML = `<div style="background:var(--card);border:2px solid var(--orange);border-radius:24px;padding:2rem 1.5rem;text-align:center;max-width:300px;width:90%;box-shadow:0 0 40px rgba(249,115,22,.3)">
+    <div style="font-size:4rem;line-height:1;margin-bottom:.75rem">${emoji}</div>
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Meilenstein erreicht!</div>
+    <div style="font-size:.9rem;color:var(--orange);font-weight:700;margin-bottom:.5rem">${label}</div>
+    <div style="font-size:.78rem;color:var(--dim);margin-bottom:1.2rem">Du machst Bern besser. Weiter so! 🌱</div>
+    <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--orange);color:white;border:none;border-radius:99px;padding:.6rem 1.5rem;font-size:.88rem;font-weight:700;cursor:pointer;width:100%">Weiter</button>
+  </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  setTimeout(() => el.remove(), 8000);
 }
 
 async function apiFetch(path, method='GET', body=null) {
@@ -3138,6 +4051,39 @@ async function apiFetch(path, method='GET', body=null) {
 
 function catLabel(c) {
   return {volunteer:'Ehrenamt',social:'Sozial',outdoor:'Outdoor',senior:'Senioren',environment:'Umwelt',health:'Gesundheit',education:'Bildung',sport:'Sport',children:'Kinder',seasonal:'Saisonal',hangout:'Hangout',quartier:'Quartier',astronomy:'Astronomie',gaming:'Gaming',cooking:'Kochen',photography:'Fotografie',hiking:'Wandern',other:'Event'}[c]||c;
+}
+
+const TYPE_COLORS = {
+  volunteer: {color:'#10b981', emoji:'🌱'},
+  social:    {color:'#3b82f6', emoji:'🤝'},
+  outdoor:   {color:'#14b8a6', emoji:'🌿'},
+  senior:    {color:'#f59e0b', emoji:'🧓'},
+  environment:{color:'#84cc16',emoji:'♻️'},
+  health:    {color:'#ef4444', emoji:'❤️'},
+  education: {color:'#6366f1', emoji:'📚'},
+  sport:     {color:'#f97316', emoji:'🏃'},
+  children:  {color:'#ec4899', emoji:'🧒'},
+  seasonal:  {color:'#a855f7', emoji:'🎄'},
+  hangout:   {color:'#06b6d4', emoji:'🎮'},
+  quartier:  {color:'#eab308', emoji:'🏘️'},
+  astronomy: {color:'#818cf8', emoji:'🔭'},
+  gaming:    {color:'#7c3aed', emoji:'🎮'},
+  cooking:   {color:'#f43f5e', emoji:'👨‍🍳'},
+  photography:{color:'#0ea5e9',emoji:'📷'},
+  hiking:    {color:'#22c55e', emoji:'🥾'},
+  other:     {color:'#6b7280', emoji:'📅'}
+};
+
+function cardRibbon(category, isHangout) {
+  const key = isHangout ? 'hangout' : (category || 'other');
+  const tc = TYPE_COLORS[key] || TYPE_COLORS.other;
+  return `<div class="card-ribbon" style="color:${tc.color}"></div><div class="card-ribbon-emoji">${tc.emoji}</div>`;
+}
+
+function catColorStrip(category, isHangout) {
+  const key = isHangout ? 'hangout' : (category || 'other');
+  const tc = TYPE_COLORS[key] || TYPE_COLORS.other;
+  return `<span class="card-color-strip" style="background:${tc.color}"></span>`;
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -3207,6 +4153,531 @@ async function sendMagicLink() {
   }
 }
 
+// ── Notifications ────────────────────────────────────────────────────────
+let _notifPollTimer = null;
+
+async function pollNotifications() {
+  try {
+    const d = await apiFetch('/api/notifications');
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+      badge.textContent = d.unread;
+      badge.style.display = d.unread > 0 ? 'flex' : 'none';
+    }
+  } catch {}
+}
+
+async function openNotifications() {
+  openModal('modal-notifications');
+  const el = document.getElementById('notif-list');
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const d = await apiFetch('/api/notifications');
+    await apiFetch('/api/notifications/read-all', 'POST');
+    const badge = document.getElementById('notif-badge');
+    if (badge) badge.style.display = 'none';
+    if (!d.notifications.length) {
+      el.innerHTML = '<div class="empty">Keine Benachrichtigungen.</div>';
+      return;
+    }
+    const icons = {welcome:'🌱', registration:'📅', cancellation:'❌', event_cancelled:'🚫', comment:'💬', klopf:'👋', klopf_match:'🤝', business_reg:'🏪', senior_confirm:'💛', referral:'🎉'};
+    el.innerHTML = d.notifications.map(n => `
+      <div style="display:flex;gap:.65rem;padding:.65rem 0;border-bottom:1px solid var(--border);${n.read?'opacity:.65':''}">
+        <div style="font-size:1.4rem;flex-shrink:0">${icons[n.type]||'🔔'}</div>
+        <div style="flex:1">
+          <div style="font-size:.82rem;font-weight:700">${esc(n.title)}</div>
+          ${n.body ? `<div style="font-size:.75rem;color:var(--dim);margin-top:.1rem">${esc(n.body)}</div>` : ''}
+          <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem">${n.created_at?.slice(0,16).replace('T',' ')||''}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ── Event Detail Modal ────────────────────────────────────────────────────
+let _currentEventId = null;
+
+async function openEventDetail(eid) {
+  _currentEventId = eid;
+  openModal('modal-event-detail');
+  const titleEl = document.getElementById('evd-title');
+  const bodyEl = document.getElementById('evd-body');
+  bodyEl.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const ev = await apiFetch(`/api/events/${eid}`);
+    titleEl.innerHTML = `${esc(ev.title)} <button class="modal-close" onclick="closeModal('modal-event-detail')">✕</button>`;
+    const dt = new Date(ev.starts_at);
+    const dateStr = dt.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const now = new Date();
+    const isPast = dt < now;
+    const isOrg = currentUser && ev.organizer_id === currentUser.id;
+    const myReg = ev.my_registration;
+    const isReg = !!myReg;
+    const isDone = myReg?.status === 'completed';
+    const isHangout = ev.type === 'hangout';
+
+    let actionBtn = '';
+    if (isOrg) {
+      actionBtn = `<div style="display:flex;gap:.4rem;align-items:center">
+        <span style="display:inline-block;padding:.55rem 1rem;border-radius:99px;border:1px solid var(--border);font-size:.8rem;color:var(--dim)">👤 Du organisierst</span>
+        ${!isPast ? `<button onclick="deleteEvent(${ev.id})" title="Event absagen" style="background:none;border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">🗑️</button>` : ''}
+      </div>`;
+    } else if (isDone) {
+      actionBtn = `<button class="btn-primary" disabled style="opacity:.7">✓ Abgeschlossen</button>`;
+    } else if (isReg && isPast) {
+      actionBtn = `<button class="btn-primary" style="background:var(--green);color:#000" onclick="completeEvent(${ev.id},${ev.points_reward},this);closeModal('modal-event-detail')">✓ Ich war dabei (+${ev.points_reward} Pts)</button>`;
+    } else if (isReg) {
+      actionBtn = `<div style="display:flex;gap:.4rem;align-items:center">
+        <button class="btn-primary" disabled style="background:var(--green);opacity:.9">✓ Angemeldet</button>
+        <button onclick="cancelRegistration(${ev.id},this)" title="Abmelden" style="background:none;border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">✕</button>
+      </div>`;
+    } else if (isHangout) {
+      actionBtn = `<button class="btn-primary" style="background:var(--purple)" onclick="joinRequest(${ev.id},this);closeModal('modal-event-detail')">✋ Mitmachen anfragen</button>`;
+    } else {
+      actionBtn = `<button class="btn-primary" onclick="registerEvent(${ev.id},this);closeModal('modal-event-detail')">Mitmachen (+${ev.points_reward} Pts)</button>`;
+    }
+
+    const attendeeAvatars = (ev.attendees||[]).slice(0,8).map(a => {
+      const init = (a.display_name||'?')[0];
+      return a.avatar_url
+        ? `<img src="${esc(a.avatar_url)}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);object-fit:cover;margin-left:-6px" title="${esc(a.display_name)}">`
+        : `<div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);margin-left:-6px" title="${esc(a.display_name)}">${init}</div>`;
+    }).join('');
+
+    const comments = (ev.comments||[]);
+    const commentHtml = comments.length ? comments.map(c => `
+      <div style="display:flex;gap:.5rem;margin-bottom:.65rem">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(c.display_name||'?')[0]}</div>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:700">${esc(c.display_name)} <span style="font-weight:400;color:var(--muted)">${c.created_at?.slice(0,10)||''}</span></div>
+          <div style="font-size:.8rem;color:var(--text);line-height:1.4">${esc(c.body)}</div>
+        </div>
+      </div>`).join('') : `<div style="font-size:.78rem;color:var(--muted);font-style:italic">Noch keine Kommentare — sei die erste Person!</div>`;
+
+    bodyEl.innerHTML = `
+      ${ev.image_url ? `<img src="${esc(ev.image_url)}" style="width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:.85rem" onerror="this.style.display='none'">` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem">
+        <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;font-weight:700;background:var(--card2);border:1px solid var(--border)">${catLabel(ev.category)}</span>
+        <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:var(--card2);border:1px solid var(--border)">📅 ${dateStr} ${timeStr}</span>
+        ${ev.city ? `<span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:var(--card2);border:1px solid var(--border)">📍 ${esc(ev.city)}</span>` : ''}
+        <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--orange)">⭐ +${ev.points_reward}</span>
+      </div>
+      ${ev.description ? `<div style="font-size:.85rem;color:var(--dim);line-height:1.6;margin-bottom:.85rem">${esc(ev.description)}</div>` : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <div style="font-size:.75rem;font-weight:700;color:var(--dim)">${ev.participants_count||0}${ev.max_participants>0?' / '+ev.max_participants:''} dabei</div>
+          <div style="display:flex;margin-left:.35rem">${attendeeAvatars}</div>
+        </div>
+        <div style="display:flex;gap:.4rem">
+          ${actionBtn}
+          <button onclick="shareEvent(${ev.id},'${esc(ev.title).replace(/'/g,"\\'")}','${esc(ev.city||'')}')" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.55rem .75rem;font-size:.82rem;cursor:pointer" title="Teilen">📤</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;flex-wrap:wrap">
+        <span style="font-size:.8rem;color:var(--muted)">Von <strong style="cursor:pointer;color:var(--accent)" onclick="openUserProfile(${ev.organizer_id})">${esc(ev.organizer_name)}</strong></span>
+        ${ev.organizer_rating ? `<span style="font-size:.7rem;padding:.15rem .5rem;border-radius:5px;border:1px solid var(--border);color:var(--orange)">⭐ ${ev.organizer_rating.avg}/10 <span style="color:var(--muted)">(${ev.organizer_rating.n} Bew.)</span></span>` : ''}
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.5rem">
+        <div style="font-size:.8rem;font-weight:700;margin-bottom:.6rem">💬 Kommentare (${comments.length})</div>
+        <div id="evd-comments-list">${commentHtml}</div>
+      </div>
+      <div id="evd-similar" style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.75rem">
+        <div class="loading" style="font-size:.75rem">Lade ähnliche Events…</div>
+      </div>`;
+
+    // Load similar events asynchronously
+    const simDiv = document.getElementById('evd-similar');
+    try {
+      const city = currentUser?.city || ev.city || '';
+      const similar = await apiFetch(`/api/events?category=${encodeURIComponent(ev.category)}&city=${encodeURIComponent(city)}&limit=4`);
+      const others = similar.filter(s => s.id !== eid).slice(0, 3);
+      if (others.length && simDiv) {
+        simDiv.innerHTML = `<div style="font-size:.8rem;font-weight:700;margin-bottom:.6rem">Weitere ${catLabel(ev.category)}-Events</div>` +
+          others.map(s => {
+            const sd = new Date(s.starts_at);
+            return `<div onclick="openEventDetail(${s.id})" style="display:flex;align-items:center;gap:.65rem;padding:.55rem 0;border-bottom:1px solid var(--border);cursor:pointer">
+              <div style="width:38px;height:38px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${catEmoji(s.category)}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title)}</div>
+                <div style="font-size:.72rem;color:var(--muted)">${sd.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})} · ${esc(s.city||'')}</div>
+              </div>
+              <span style="font-size:.7rem;color:var(--orange);font-weight:700;flex-shrink:0">+${s.points_reward}</span>
+            </div>`;
+          }).join('');
+      } else if (simDiv) {
+        simDiv.style.display = 'none';
+      }
+    } catch(_) { if (simDiv) simDiv.style.display = 'none'; }
+  } catch(e) {
+    bodyEl.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+async function postEventComment() {
+  const input = document.getElementById('evd-comment-input');
+  const body = input.value.trim();
+  if (!body || !_currentEventId) return;
+  input.value = '';
+  try {
+    await apiFetch(`/api/events/${_currentEventId}/comments`, 'POST', {body});
+    // Re-render comments section only
+    const me = currentUser?.display_name || '?';
+    const el = document.getElementById('evd-comments-list');
+    if (el) {
+      const newComment = `<div style="display:flex;gap:.5rem;margin-bottom:.65rem">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${me[0]}</div>
+        <div style="flex:1"><div style="font-size:.75rem;font-weight:700">${esc(me)} <span style="font-weight:400;color:var(--muted)">Jetzt</span></div><div style="font-size:.8rem;line-height:1.4">${esc(body)}</div></div></div>`;
+      el.innerHTML = el.innerHTML.replace(/<div[^>]*font-style:italic[^>]*>.*?<\/div>/, '') + newComment;
+    }
+  } catch(e) { showToast(e.message || 'Fehler'); input.value = body; }
+}
+
+function shareEvent(id, title, city) {
+  const url = location.origin + `/?event=${id}`;
+  const text = `${title}${city ? ' in ' + city : ''} — auf Konnekt`;
+  if (navigator.share) {
+    navigator.share({title, text, url}).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(url);
+    showToast('Link kopiert!');
+  }
+}
+
+// ── User Profile Modal ────────────────────────────────────────────────────
+async function openUserProfile(uid) {
+  openModal('modal-user-profile');
+  const el = document.getElementById('uprofile-body');
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const [profile, ach] = await Promise.all([
+      apiFetch(`/api/profile/${uid}`),
+      apiFetch(`/api/achievements/${uid}`)
+    ]);
+    const initial = (profile.display_name||'?')[0];
+    const earned = ach.achievements.filter(a => a.unlocked);
+    el.innerHTML = `
+      <div style="text-align:center;padding:.5rem 0 1rem">
+        ${profile.avatar_url
+          ? `<img src="${esc(profile.avatar_url)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:.5rem">`
+          : `<div style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#000;font-size:1.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem">${initial}</div>`}
+        <div style="font-size:1.05rem;font-weight:800">${esc(profile.display_name||'')}</div>
+        ${profile.city ? `<div style="font-size:.78rem;color:var(--muted)">📍 ${esc(profile.city)}</div>` : ''}
+        ${profile.bio ? `<div style="font-size:.8rem;color:var(--dim);margin-top:.4rem;line-height:1.5">${esc(profile.bio)}</div>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem">
+        ${statTile((profile.points_balance||0).toLocaleString(), 'Punkte', 'var(--orange)')}
+        ${statTile((profile.volunteer_hours||0)+'h', 'Ehrenamt', 'var(--neon)')}
+        ${statTile(profile.deeds_count||0, 'Gute Taten', 'var(--accent)')}
+      </div>
+      ${earned.length ? `
+        <div style="font-size:.8rem;font-weight:700;margin-bottom:.5rem">🏅 Achievements (${earned.length}/${ach.total})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">
+          ${earned.map(a => `<div title="${esc(a.desc)}" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.35rem .6rem;font-size:.75rem;display:flex;align-items:center;gap:.3rem"><span>${a.icon}</span><span style="font-weight:600">${esc(a.title)}</span></div>`).join('')}
+        </div>` : ''}
+      ${currentUser && currentUser.id !== uid ? `
+        <div style="display:flex;gap:.5rem">
+          <button class="btn-primary" style="flex:1" onclick="openKlopfSend(${uid},'${esc(profile.display_name||'')}','profil');closeModal('modal-user-profile')">👋 Anklopfen</button>
+        </div>` : ''}`;
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ── Achievements ──────────────────────────────────────────────────────────
+async function loadAchievements() {
+  if (!currentUser) return;
+  const el = document.getElementById('achievements-list');
+  if (!el) return;
+  try {
+    const d = await apiFetch(`/api/achievements/${currentUser.id}`);
+    const earned = d.achievements.filter(a => a.unlocked);
+    const locked = d.achievements.filter(a => !a.unlocked);
+    el.innerHTML = `
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">${earned.length} von ${d.total} freigeschaltet</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem">
+        ${earned.map(a => `<div title="${esc(a.desc)}" style="background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border:1px solid rgba(249,115,22,.35);border-radius:10px;padding:.4rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem"><span>${a.icon}</span><span style="font-weight:700;color:var(--orange)">${esc(a.title)}</span></div>`).join('')}
+      </div>
+      ${locked.length ? `
+        <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Noch zu verdienen:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+          ${locked.map(a => `<div title="${esc(a.desc)}" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.35rem .6rem;font-size:.75rem;opacity:.55;display:flex;align-items:center;gap:.3rem"><span style="filter:grayscale(1)">${a.icon}</span><span>${esc(a.title)}</span></div>`).join('')}
+        </div>` : '<div style="color:var(--neon);font-size:.82rem;font-weight:700">🏆 Alle Achievements freigeschaltet!</div>'}`;
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ── Business Registration ─────────────────────────────────────────────────
+async function submitBusinessReg() {
+  const name = document.getElementById('biz-name').value.trim();
+  const city = document.getElementById('biz-city').value.trim() || currentUser?.city || '';
+  const msg = document.getElementById('biz-reg-msg');
+  if (!name || !city) { showToast('Name und Stadt erforderlich'); return; }
+  try {
+    const d = await apiFetch('/api/business/register', 'POST', {
+      name, city,
+      category: document.getElementById('biz-cat').value,
+      description: document.getElementById('biz-desc').value.trim(),
+      address: document.getElementById('biz-addr').value.trim()
+    });
+    msg.textContent = '✓ ' + d.message;
+    msg.style.display = '';
+    document.getElementById('biz-reg-cta').style.display = 'none';
+    showToast('✓ Geschäft eingereicht!');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+// ── Admin Panel ──────────────────────────────────────────────────────────
+async function openBizDashboard() {
+  const overlay = document.getElementById('biz-dashboard-overlay');
+  const content = document.getElementById('biz-dashboard-content');
+  overlay.style.display = '';
+  content.innerHTML = '<div class="loading">Lade Dashboard…</div>';
+  try {
+    const d = await apiFetch('/api/business/dashboard');
+    const biz = d.businesses?.[0] || {};
+    const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    content.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.3);border-radius:14px;padding:1rem;margin-bottom:1rem">
+        <div style="font-size:1rem;font-weight:800">${esc(biz.name||'Mein Geschäft')}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem">${esc(biz.address||'')} ${esc(biz.city||'')} · ${biz.verified?'✓ Verifiziert':'⏳ Verifizierung ausstehend'}</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--dim);line-height:1.6;margin-bottom:1rem;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.8rem">${esc(d.pitch||'')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+        ${[
+          ['💳 Einlösungen', d.total_redemptions||0, 'var(--accent)'],
+          ['👤 Neukunden (30d)', d.new_customers_30d||0, 'var(--green)'],
+          ['⭐ Punkte empfangen', (d.total_points_given||0).toLocaleString(), 'var(--orange)'],
+          ['💰 Geschätzter Wert', `CHF ${d.estimated_value_chf||'0.00'}`, 'var(--neon)'],
+        ].map(([label, val, col]) => `
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.75rem">
+            <div style="font-size:1.3rem;font-weight:800;color:${col};line-height:1">${val}</div>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem">${label}</div>
+          </div>`).join('')}
+      </div>
+      ${(d.coupons||[]).length ? `
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">Coupon-Performance</div>
+      ${d.coupons.map(c => `
+        <div style="display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.title)}</div>
+            <div style="font-size:.68rem;color:var(--muted)">${c.points_cost} Pts · ${c.unique_users||0} Personen</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1rem;font-weight:800;color:var(--accent)">${c.total_redemptions||0}</div>
+            <div style="font-size:.6rem;color:var(--muted)">Einlösungen</div>
+          </div>
+        </div>`).join('')}` : ''}
+      <div style="margin-top:1.2rem;padding-top:.8rem;border-top:1px solid var(--border)">
+        <div style="font-size:.75rem;font-weight:700;margin-bottom:.5rem">Mehr Coupons hinzufügen</div>
+        <div style="font-size:.72rem;color:var(--dim)">Kontaktiere uns unter <a href="mailto:business@konnekt.app" style="color:var(--accent)">business@konnekt.app</a> um neue Coupons zu erstellen oder dein Angebot zu ändern.</div>
+      </div>`;
+  } catch(e) {
+    if (e.message?.includes('404') || e.message?.includes('kein')) {
+      content.innerHTML = `
+        <div style="text-align:center;padding:2rem 1rem">
+          <div style="font-size:3rem;margin-bottom:.75rem">🏪</div>
+          <div style="font-size:.9rem;font-weight:700;margin-bottom:.5rem">Noch kein Business verknüpft</div>
+          <div style="font-size:.78rem;color:var(--dim);margin-bottom:1rem">Registriere dein Geschäft und biete Konnekt-Nutzern exklusive Coupons an.</div>
+          <button class="btn-primary" onclick="openModal('modal-business-reg');document.getElementById('biz-dashboard-overlay').style.display='none'">Jetzt registrieren</button>
+        </div>`;
+    } else {
+      content.innerHTML = `<div class="empty">${esc(e.message||'Fehler')}</div>`;
+    }
+  }
+}
+
+function openAdminPanel() {
+  document.getElementById('admin-overlay').style.display = '';
+  switchAdminTab('queue');
+}
+function closeAdminPanel() {
+  document.getElementById('admin-overlay').style.display = 'none';
+}
+
+function switchAdminTab(tab) {
+  ['queue','biz','events','fraud','stats'].forEach(t => {
+    const panel = document.getElementById(`atab-${t}`);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById(`atab-btn-${t}`);
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--red)' : 'transparent';
+      btn.style.color = t === tab ? 'white' : 'var(--dim)';
+    }
+  });
+  if (tab === 'queue')  loadAdminQueue();
+  if (tab === 'biz')    loadAdminBiz();
+  if (tab === 'events') loadAdminEvents();
+  if (tab === 'fraud')  loadAdminFraud();
+  if (tab === 'stats')  loadAdminStats();
+}
+
+async function loadAdminBiz() {
+  const el = document.getElementById('admin-biz-list');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const rows = await apiFetch('/api/admin/businesses');
+    if (!rows.length) { el.innerHTML = '<div class="empty">Keine Geschäfte vorhanden.</div>'; return; }
+    el.innerHTML = rows.map(b => `
+      <div style="background:var(--card2);border:1px solid ${b.verified ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)'};border-left:3px solid ${b.verified ? 'var(--green)' : 'var(--orange)'};border-radius:12px;padding:.8rem;margin-bottom:.65rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem">
+          <div style="font-size:.88rem;font-weight:700">${esc(b.name)}</div>
+          <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:${b.verified ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${b.verified ? 'var(--green)' : 'var(--orange)'};">${b.verified ? '✓ Verifiziert' : '⏳ Ausstehend'}</span>
+        </div>
+        <div style="font-size:.75rem;color:var(--muted)">${esc(b.city||'')} · ${esc(b.category||'')} · Inhaber: ${esc(b.owner_name||'–')} (${esc(b.owner_email||'')})</div>
+        ${!b.verified ? `
+        <div style="display:flex;gap:.5rem;margin-top:.6rem">
+          <button onclick="adminBizAction(${b.id},true,this)" style="flex:1;padding:.4rem;background:var(--green);color:white;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer">✓ Freischalten</button>
+          <button onclick="adminBizAction(${b.id},false,this)" style="flex:1;padding:.4rem;background:var(--red);color:white;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer">✗ Ablehnen</button>
+        </div>` : ''}
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+async function adminBizAction(id, approve, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/admin/businesses/${id}/verify`, 'POST', { approve });
+    showToast(approve ? '✓ Geschäft freigeschaltet!' : '✗ Abgelehnt');
+    loadAdminBiz();
+  } catch(e) { showToast(e.message||'Fehler'); btn.disabled = false; }
+}
+
+async function loadAdminQueue() {
+  const el = document.getElementById('admin-queue-list');
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const d = await apiFetch('/api/admin/queue');
+    if (!d.length) { el.innerHTML = '<div class="empty">Keine offenen Meldungen. ✓</div>'; return; }
+    el.innerHTML = d.map(r => `
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.8rem;margin-bottom:.65rem">
+        <div style="display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.4rem">
+          <span style="font-size:.7rem;padding:.2rem .5rem;border-radius:99px;background:rgba(239,68,68,.15);color:var(--red);font-weight:700">${esc(r.reason||'–')}</span>
+          <span style="font-size:.7rem;color:var(--muted);margin-left:auto">${esc(r.created_at?.slice(0,10)||'')}</span>
+        </div>
+        <div style="font-size:.8rem;font-weight:600;margin-bottom:.2rem">Target: ${esc(r.target_type)} #${r.target_id}</div>
+        ${r.details ? `<div style="font-size:.75rem;color:var(--dim);margin-bottom:.5rem">${esc(r.details)}</div>` : ''}
+        <div style="font-size:.72rem;color:var(--muted)">Gemeldet von: ${esc(r.reporter_name||'Anonym')}</div>
+        <div style="display:flex;gap:.5rem;margin-top:.6rem">
+          <button style="flex:1;padding:.4rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.75rem;font-weight:700;cursor:pointer" onclick="adminResolve(${r.id},'resolved')">✓ Lösen</button>
+          <button style="flex:1;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.75rem;cursor:pointer" onclick="adminResolve(${r.id},'dismissed')">✕ Ablehnen</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+async function adminResolve(id, action) {
+  try {
+    await apiFetch(`/api/admin/queue/${id}/resolve`, 'POST', {action});
+    showToast(action === 'resolved' ? '✓ Gelöst' : '✓ Abgelehnt');
+    loadAdminQueue();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function loadAdminEvents() {
+  const el = document.getElementById('admin-events-list');
+  el.innerHTML = '<div class="loading">Scanne Events…</div>';
+  try {
+    const d = await apiFetch('/api/admin/scan-events');
+    const s = d.summary;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.85rem">
+        ${statTile(s.total, 'Events gescannt', 'var(--accent)')}
+        ${statTile(s.high, 'Hohes Risiko', 'var(--red)')}
+        ${statTile(s.medium, 'Mittleres Risiko', 'var(--orange)')}
+      </div>
+      ${d.events.filter(e => e.risk !== 'low').map(ev => {
+        const col = ev.risk === 'high' ? 'var(--red)' : 'var(--orange)';
+        return `<div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid ${col};border-radius:12px;padding:.8rem;margin-bottom:.6rem">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+            <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:${col}33;color:${col};font-weight:700">Score ${ev.score} · ${ev.risk.toUpperCase()}</span>
+            <span style="font-size:.68rem;color:var(--muted);margin-left:auto">${esc(ev.city||'')}</span>
+          </div>
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem">${esc(ev.title)}</div>
+          <div style="font-size:.72rem;color:var(--dim)">${ev.flags.map(f=>`⚠ ${esc(f)}`).join(' · ')}</div>
+          <button style="margin-top:.5rem;padding:.35rem .75rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.72rem;font-weight:700;cursor:pointer" onclick="adminRemoveEvent(${ev.id})">Event entfernen</button>
+        </div>`;
+      }).join('') || '<div class="empty" style="margin-top:1rem">Keine auffälligen Events. ✓</div>'}`;
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+async function adminRemoveEvent(id) {
+  if (!confirm('Event wirklich entfernen?')) return;
+  try {
+    await apiFetch('/api/admin/action', 'POST', {action:'remove',target_type:'event',target_id:id});
+    showToast('Event entfernt');
+    loadAdminEvents();
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+async function loadAdminFraud() {
+  const el = document.getElementById('admin-fraud-list');
+  el.innerHTML = '<div class="loading">Analysiere…</div>';
+  try {
+    const d = await apiFetch('/api/admin/fraud-check');
+    const sus = d.suspicious_users;
+    el.innerHTML = `
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">
+        Ø ${d.avg_points} Punkte/Nutzer · Schwellwert: ${d.threshold_used} Pts
+      </div>
+      ${!sus.length ? '<div class="empty">Keine verdächtigen Muster gefunden. ✓</div>' :
+        sus.map(u => `
+          <div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:12px;padding:.8rem;margin-bottom:.6rem">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+              <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:rgba(249,115,22,.15);color:var(--orange);font-weight:700">${esc(u.type)}</span>
+              <span style="font-size:.72rem;font-weight:700">User #${u.user_id}${u.display_name ? ' · ' + esc(u.display_name) : ''}</span>
+            </div>
+            <div style="font-size:.76rem;color:var(--dim)">${esc(u.reason)}</div>
+            <div style="display:flex;gap:.5rem;margin-top:.5rem">
+              <button style="padding:.35rem .75rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.72rem;cursor:pointer" onclick="adminWarnUser(${u.user_id})">⚠ Warnen</button>
+            </div>
+          </div>`).join('')}`;
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+async function adminWarnUser(uid) {
+  const reason = prompt('Grund für Warnung:');
+  if (reason === null) return;
+  try {
+    await apiFetch('/api/admin/action', 'POST', {action:'warn',target_type:'user',target_id:uid,reason});
+    showToast('⚠ Warnung eingetragen');
+  } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+async function loadAdminStats() {
+  const el = document.getElementById('admin-stats-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Lade Statistiken…</div>';
+  try {
+    const [stats, leaderboard] = await Promise.all([
+      apiFetch('/api/stats'),
+      apiFetch('/api/leaderboard').catch(() => [])
+    ]);
+    const top3 = (leaderboard || []).slice(0, 3);
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+        ${[
+          ['👤 Nutzer', stats.users||0, 'var(--accent)'],
+          ['🌱 Taten', stats.good_deeds||0, 'var(--green)'],
+          ['📅 Events', stats.active_events||0, 'var(--purple)'],
+          ['💛 Besuche', stats.senior_visits_completed||0, '#f97316'],
+          ['⭐ Punkte vergeben', (stats.total_points_earned||0).toLocaleString(), 'var(--orange)'],
+          ['🏪 Shops', stats.businesses||0, 'var(--neon)'],
+        ].map(([label, val, col]) => `
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.65rem .75rem">
+            <div style="font-size:1.2rem;font-weight:800;color:${col}">${val}</div>
+            <div style="font-size:.65rem;color:var(--muted)">${label}</div>
+          </div>`).join('')}
+      </div>
+      ${top3.length ? `
+      <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem">🥇 Top Nutzer</div>
+      ${top3.map((u,i) => `
+        <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:.9rem">${['🥇','🥈','🥉'][i]}</span>
+          <span style="flex:1;font-size:.83rem;font-weight:600;cursor:pointer;color:var(--accent)" onclick="openUserProfile(${u.id})">${esc(u.display_name)}</span>
+          <span style="font-size:.75rem;color:var(--orange)">⭐ ${(u.points_balance||0).toLocaleString()}</span>
+        </div>`).join('')}` : ''}
+      <button class="btn-secondary" style="width:100%;margin-top:1rem;font-size:.78rem" onclick="navigator.clipboard?.writeText(JSON.stringify(${JSON.stringify(stats).replace(/'/g,"\\'")}));showToast('Stats kopiert!')">📋 Stats kopieren</button>`;
+  } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
 // ── Pricing / Business Model ──────────────────────────────────────────────
 function openPricing() {
   const tier = currentUser?.subscription_tier || 'free';
@@ -3274,73 +4745,71 @@ function loadTierBanner() {
   }
 }
 
+function switchProfileTab(tab) {
+  const isAnalytics = tab === 'analytics';
+  document.getElementById('ptab-profile').style.display = isAnalytics ? 'none' : '';
+  document.getElementById('ptab-analytics').style.display = isAnalytics ? '' : 'none';
+  const pBtn = document.getElementById('ptab-btn-profile');
+  const aBtn = document.getElementById('ptab-btn-analytics');
+  if (pBtn) { pBtn.style.background = isAnalytics ? 'transparent' : 'var(--accent)'; pBtn.style.color = isAnalytics ? 'var(--dim)' : '#000'; }
+  if (aBtn) { aBtn.style.background = isAnalytics ? 'var(--accent)' : 'transparent'; aBtn.style.color = isAnalytics ? '#000' : 'var(--dim)'; }
+  if (isAnalytics) { loadImpactAnalytics(); loadAchievements(); }
+}
+
 async function loadImpactAnalytics() {
-  const tier = currentUser?.subscription_tier || 'free';
-  const section = document.getElementById('impact-analytics');
   const box = document.getElementById('impact-data');
-  if (!section || !box) return;
-  section.style.display = '';
-
-  if (tier === 'free') {
-    // Show teaser with real basic stats from currentUser
-    const pts  = currentUser?.points_balance || 0;
-    const hrs  = currentUser?.volunteer_hours || 0;
-    box.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.85rem">
-        ${statTile(pts.toLocaleString(), 'Punkte gesamt', 'var(--orange)')}
-        ${statTile(hrs + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
-        ${statTile('?', 'Gute Taten', 'var(--accent)')}
-      </div>
-      <div style="position:relative;filter:blur(3px) brightness(.7);pointer-events:none;user-select:none">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.75rem">
-          ${statTile('12', 'Events', 'var(--purple)')}${statTile('3', 'Senior-Besuche', 'var(--pink)')}${statTile('4.7 kg', 'CO₂ gespart', 'var(--green)')}
-        </div>
-        <div style="height:50px;display:flex;gap:3px;align-items:flex-end">${[30,45,20,60,80,50].map(h=>`<div style="flex:1;background:var(--accent);border-radius:3px 3px 0 0;height:${h}%"></div>`).join('')}</div>
-      </div>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-        <div style="background:rgba(0,0,0,.55);border-radius:12px;padding:.6rem 1rem;text-align:center;backdrop-filter:blur(2px)">
-          <div style="font-size:.82rem;font-weight:700;color:white">⭐ Pro freischalten</div>
-          <div style="font-size:.7rem;color:rgba(255,255,255,.7)">Für vollständige Impact-Analyse</div>
-        </div>
-      </div>
-      <div style="text-align:center;margin-top:.75rem">
-        <button class="btn-primary" style="font-size:.82rem;padding:.5rem 1.2rem" onclick="openPricing()">Pro — 9 CHF/Monat</button>
-      </div>`;
-    box.style.position = 'relative';
-    return;
-  }
-
+  if (!box) return;
   box.innerHTML = '<div class="loading">Lade…</div>';
+  const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
   try {
     const d = await apiFetch('/api/analytics/impact');
     const months = (d.monthly_breakdown || []).slice().reverse();
     const maxPts = Math.max(...months.map(m => m.pts || 0), 1);
-    const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    const isPro = !d.free_tier;
+
+    if (d.free_tier) {
+      // Free users: show real basic stats, no blur gimmick
+      box.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.85rem">
+          ${statTile((currentUser?.points_balance||0).toLocaleString(), 'Punkte gesamt', 'var(--orange)')}
+          ${statTile((currentUser?.volunteer_hours||0) + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
+          ${statTile(d.deeds, 'Gute Taten', 'var(--accent)')}
+          ${statTile(d.events_completed, 'Events beendet', 'var(--purple)')}
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(0,255,136,.04));border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:.65rem .85rem;display:flex;align-items:center;gap:.65rem">
+          <span style="font-size:1.3rem">⭐</span>
+          <div style="flex:1">
+            <div style="font-size:.82rem;font-weight:700">Pro für Charts & Teilen</div>
+            <div style="font-size:.7rem;color:var(--muted)">CO₂-Äquivalent, monatliche Kurve, Share-Button</div>
+          </div>
+          <button class="btn-primary" style="font-size:.75rem;padding:.4rem .85rem;white-space:nowrap" onclick="openPricing()">Upgrade</button>
+        </div>`;
+      return;
+    }
 
     box.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.85rem">
         ${statTile((d.total_points_earned||0).toLocaleString(), 'Punkte verdient', 'var(--orange)')}
-        ${statTile(d.volunteer_hours_equiv + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
-        ${statTile(d.co2_kg_saved_equiv + ' kg', 'CO₂ gespart', 'var(--green)')}
-        ${statTile(d.deeds, 'Gute Taten', 'var(--accent)')}
-        ${statTile(d.events_completed, 'Events beendet', 'var(--purple)')}
-        ${statTile(d.events_organized, 'Events organisiert', 'var(--accent2)')}
+        ${statTile((d.volunteer_hours_equiv||0) + 'h', 'Ehrenamtsstunden', 'var(--neon)')}
+        ${statTile((d.co2_kg_saved_equiv||0) + ' kg', 'CO₂ gespart', 'var(--green)')}
+        ${statTile(d.deeds||0, 'Gute Taten', 'var(--accent)')}
+        ${statTile(d.events_completed||0, 'Events beendet', 'var(--purple)')}
+        ${statTile(d.events_organized||0, 'Events organisiert', 'var(--accent2)')}
       </div>
       ${d.senior_visits ? `<div style="background:linear-gradient(135deg,rgba(236,72,153,.1),rgba(236,72,153,.04));border:1px solid rgba(236,72,153,.25);border-radius:10px;padding:.6rem .85rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.6rem"><span style="font-size:1.3rem">💛</span><div><div style="font-size:.85rem;font-weight:700">${d.senior_visits} Senioren-Besuch${d.senior_visits!==1?'e':''}</div><div style="font-size:.7rem;color:var(--muted)">Jeder Besuch ist echte Verbindung</div></div></div>` : ''}
-      <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Punkte der letzten ${months.length} Monate</div>
-      <div style="display:flex;gap:4px;align-items:flex-end;height:64px">
+      ${months.length ? `
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Punkte — letzte ${months.length} Monate</div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:64px;margin-bottom:.85rem">
         ${months.map(m => {
           const h = Math.max(Math.round((m.pts/maxPts)*58), 4);
           const label = MONTH_SHORT[(parseInt(m.month?.split('-')[1]||'1')-1)];
           return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-            <div style="width:100%;background:linear-gradient(0deg,var(--accent),var(--neon));border-radius:3px 3px 0 0;height:${h}px;opacity:.85;cursor:default" title="${m.month}: ${m.pts} Pts"></div>
+            <div style="width:100%;background:linear-gradient(0deg,var(--accent),var(--neon));border-radius:3px 3px 0 0;height:${h}px;opacity:.85" title="${m.month}: ${m.pts} Pts"></div>
             <div style="font-size:.55rem;color:var(--muted)">${label}</div>
           </div>`;
         }).join('')}
-      </div>
-      <div style="margin-top:.85rem;display:flex;gap:.5rem">
-        <button class="btn-secondary" style="flex:1;font-size:.78rem;padding:.5rem" onclick="shareImpact(${JSON.stringify(d).replace(/"/g,'&quot;')})">📤 Teilen</button>
-      </div>`;
+      </div>` : ''}
+      <button class="btn-secondary" style="width:100%;font-size:.78rem;padding:.5rem" onclick="shareImpact(${JSON.stringify(d).replace(/"/g,'&quot;')})">📤 Impact teilen</button>`;
   } catch(e) { box.innerHTML = `<div class="empty">${esc(e.message||'Fehler')}</div>`; }
 }
 
@@ -3377,6 +4846,10 @@ async function loadDashboard() {
     document.getElementById('dash-deeds').textContent  = d.deeds || 0;
     document.getElementById('dash-events').textContent = d.active_events || 0;
     document.getElementById('dash-bubbles').textContent = d.live_bubbles || 0;
+    // Pulse strip
+    const pe = document.getElementById('pulse-events'); if (pe) pe.textContent = d.active_events || 0;
+    const pd = document.getElementById('pulse-deeds');  if (pd) pd.textContent = d.deeds || 0;
+    const pb = document.getElementById('pulse-bubbles'); if (pb) pb.textContent = d.live_bubbles || 0;
 
     // Bar chart: activity last 7 days
     renderActivityBars(d.weekly_deeds || [], d.weekly_regs || []);
@@ -3534,7 +5007,11 @@ function renderBubbleCard(b) {
   const exp = new Date(b.expires_at + (b.expires_at.includes('Z') ? '' : 'Z'));
   const minsLeft = Math.max(0, Math.round((exp - now) / 60000));
   const timeLeft = minsLeft < 60 ? `${minsLeft}min` : `${Math.round(minsLeft/60)}h`;
-  return `<div class="bubble-card">
+  const hasCoords = b.lat && b.lng;
+  const clickHandler = hasCoords
+    ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"`
+    : '';
+  return `<div class="bubble-card" ${clickHandler}>
     <div class="bubble-emoji">${esc(b.emoji||'✨')}</div>
     <div class="bubble-body">
       <div class="bubble-title">${esc(b.title)}</div>
@@ -3543,9 +5020,18 @@ function renderBubbleCard(b) {
         <span>👤 ${esc(b.display_name||'')}</span>
         ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
         <span class="bubble-expires">⏱ ${timeLeft}</span>
+        ${hasCoords ? `<span style="color:var(--purple);font-size:.68rem;font-weight:700">🗺 Auf Karte →</span>` : ''}
       </div>
     </div>
   </div>`;
+}
+
+function flyToMapBubble(lat, lng) {
+  switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
+  setTimeout(() => {
+    setMapMode('bubbles');
+    if (leafletMap) leafletMap.flyTo([lat, lng], 16, {animate: true, duration: 0.8});
+  }, 120);
 }
 
 async function loadBubblesView() {
@@ -3592,14 +5078,16 @@ function setMapMode(mode) {
   shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--orange)'; shBtn.style.border = '1px solid rgba(249,115,22,.4)';
   if (loBtn) { loBtn.style.background = 'var(--card)'; loBtn.style.color = '#f97316'; loBtn.style.border = '1px solid rgba(249,115,22,.4)'; }
 
-  // Clear all markers
+  // Clear all markers + reset counter
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
   bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m)); bubbleMapMarkers = [];
   shopMapMarkers.forEach(m => leafletMap.removeLayer(m)); shopMapMarkers = [];
+  _heatLayers.forEach(l => leafletMap.removeLayer(l)); _heatLayers = [];
+  const _ct = document.getElementById('map-counter-text'); if (_ct) _ct.textContent = '…';
   _lonelyMarkers.forEach(m => m.remove()); _lonelyMarkers = [];
 
   if (mode === 'events') {
-    evBtn.style.background = 'var(--accent)'; evBtn.style.color = 'white'; evBtn.style.border = 'none';
+    evBtn.style.background = 'var(--accent)'; evBtn.style.color = '#000'; evBtn.style.border = 'none';
     loadMapEvents();
   } else if (mode === 'bubbles') {
     buBtn.style.background = 'var(--purple)'; buBtn.style.color = 'white'; buBtn.style.border = 'none';
@@ -3631,6 +5119,7 @@ async function loadMapShops() {
       shopMapMarkers.push(marker);
       marker.bindPopup(`<div style="min-width:160px"><b>${s.name}</b><br><span style="font-size:.78rem;color:#666">${s.category}</span>${s.description ? '<br><span style="font-size:.78rem">'+s.description+'</span>' : ''}</div>`);
     });
+    _updateMapCounter(null, null, shopMapMarkers.length);
   } catch(e) { console.warn('loadMapShops error', e); }
 }
 
@@ -3661,6 +5150,7 @@ async function loadMapBubbles() {
         ${b.address ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">📍 ${b.address}</div>` : ''}
       </div>`);
     });
+    _updateMapCounter(null, bubbles.filter(b => b.lat && b.lng).length);
   } catch(e) { console.error('Bubble map error', e); }
 }
 
@@ -3816,6 +5306,31 @@ function _timeAgo(iso) {
 
 // Poll for new klopfs every 30s when app is open
 setInterval(pollKlopfBadge, 30000);
+
+// ── Bug Report ────────────────────────────────────────────────────────────
+function openBugReport() {
+  const el = document.getElementById('bug-desc');
+  if (el) el.value = '';
+  const errEl = document.getElementById('bug-report-err');
+  if (errEl) errEl.style.display = 'none';
+  openModal('modal-bug-report');
+}
+
+async function submitBugReport() {
+  const desc = (document.getElementById('bug-desc')?.value || '').trim();
+  const errEl = document.getElementById('bug-report-err');
+  if (!desc || desc.length < 10) {
+    if (errEl) { errEl.textContent = 'Bitte mindestens 10 Zeichen eingeben.'; errEl.style.display = ''; }
+    return;
+  }
+  try {
+    await apiFetch('/api/support/bug', 'POST', { description: desc, url: location.href });
+    closeModal('modal-bug-report');
+    showToast('Danke! Bug wurde gemeldet.');
+  } catch(e) {
+    if (errEl) { errEl.textContent = e.message || 'Fehler beim Senden'; errEl.style.display = ''; }
+  }
+}
 </script>
 
 <!-- PWA Install Banner (auto, needs HTTPS) -->
@@ -3832,7 +5347,7 @@ setInterval(pollKlopfBadge, 30000);
     <div style="font-size:.85rem;font-weight:700">Konnekt installieren</div>
     <div style="font-size:.72rem;color:var(--muted)">Füge die App zum Startbildschirm hinzu</div>
   </div>
-  <button onclick="installApp()" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
+  <button onclick="installApp()" style="background:var(--accent);color:#000;border:none;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
     Installieren
   </button>
   <button onclick="dismissInstall()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:.25rem">✕</button>

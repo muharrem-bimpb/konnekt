@@ -313,6 +313,20 @@ def init_db():
             FOREIGN KEY(event_id) REFERENCES events(id),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS event_ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id   INTEGER NOT NULL,
+            rater_id   INTEGER NOT NULL,
+            rated_id   INTEGER NOT NULL,
+            score      INTEGER NOT NULL CHECK(score BETWEEN 1 AND 10),
+            role       TEXT NOT NULL,   -- 'participant_rates_organizer' | 'organizer_rates_participant'
+            bonus_pts  INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(event_id, rater_id, rated_id),
+            FOREIGN KEY(event_id)  REFERENCES events(id),
+            FOREIGN KEY(rater_id)  REFERENCES users(id),
+            FOREIGN KEY(rated_id)  REFERENCES users(id)
+        );
         CREATE TABLE IF NOT EXISTS user_strikes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -325,16 +339,37 @@ def init_db():
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             reporter_id INTEGER NOT NULL,
-            target_type TEXT NOT NULL,  -- 'event', 'user', 'deed', 'comment'
+            target_type TEXT NOT NULL,
             target_id INTEGER NOT NULL,
             reason TEXT NOT NULL DEFAULT 'spam',
             details TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',  -- 'pending', 'resolved', 'dismissed'
+            status TEXT DEFAULT 'pending',
             assigned_city TEXT DEFAULT '',
             resolved_by INTEGER,
             resolved_at TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(reporter_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            body TEXT DEFAULT '',
+            ref_type TEXT DEFAULT '',
+            ref_id INTEGER DEFAULT 0,
+            read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS event_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            body TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(event_id) REFERENCES events(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
         );
         """)
         # Add subscription_tier column to users if not exists (migration)
@@ -368,6 +403,7 @@ def init_db():
         # Back-fill: any already-completed visits count as both confirmed
         c.execute("UPDATE senior_visits SET visitor_confirmed=1, senior_confirmed=1 WHERE completed=1")
         # Always ensure demo token/user exists first (other seeds depend on having a user)
+        _ensure_admin_user(c)
         _ensure_demo_token(c)
         # Always ensure test users exist and tokens are fresh (even on old DBs that predate them)
         _refresh_test_sessions(c)
@@ -387,6 +423,31 @@ def init_db():
         # Seed demo trail if none exists
         if c.execute("SELECT COUNT(*) FROM trails").fetchone()[0] == 0:
             _seed_trail(c)
+        # Seed past activity for Anna (achievements + analytics)
+        _seed_past_activity(c)
+
+def _ensure_admin_user(c):
+    """Create the admin demo user on every boot (is_admin=1, is_moderator=1)."""
+    ADMIN_TOKEN = "admin-token-konnekt-2026"
+    ADMIN_EMAIL = "admin@konnekt.app"
+    expires = (datetime.utcnow() + timedelta(days=365)).isoformat()
+    row = c.execute("SELECT id FROM users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
+    if not row:
+        c.execute(
+            "INSERT OR IGNORE INTO users (username,email,password_hash,display_name,bio,city,"
+            "points_balance,subscription_tier,is_admin,is_moderator) "
+            "VALUES (?,?,?,?,?,?,?,?,1,1)",
+            ("admin", ADMIN_EMAIL, "ADMIN_NO_LOGIN", "Konnekt Admin",
+             "Plattform-Administrator. Moderiert Inhalte und überwacht die Community.", "Bern",
+             9999, "business")
+        )
+        row = c.execute("SELECT id FROM users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
+    else:
+        # Always ensure admin flags are set (in case of old DB without these columns)
+        c.execute("UPDATE users SET is_admin=1, is_moderator=1 WHERE email=?", (ADMIN_EMAIL,))
+    if row:
+        c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
+                  (ADMIN_TOKEN, row["id"], expires))
 
 def _ensure_demo_token(c):
     """Create demo user + session on every boot if they don't exist."""
@@ -512,6 +573,18 @@ def _seed_demo(c):
                     except Exception: pass
         else:
             uid = existing["id"]
+            # On re-seed runs, fill in past deeds/events/visits if Anna still has none
+            if username == "anna_m":
+                deed_count = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (uid,)).fetchone()[0]
+                if deed_count == 0:
+                    for i in range(8):
+                        try:
+                            c.execute("INSERT INTO good_deeds (user_id,category,description,city) VALUES (?,?,?,?)",
+                                      (uid, ["neighbor","environment","senior"][i%3],
+                                       ["Nachbarin beim Umzug geholfen","Mülltrennung im Quartier erklärt","Ältere Dame begleitet zum Arzt",
+                                        "Pflanzen für Neuzugezogene gegossen","Park aufgeräumt","Kindern beim Schulprojekt geholfen",
+                                        "Lebensmittel für Foodbank gespendet","Sprachkurs organisiert"][i], "Bern"))
+                        except Exception: pass
         # Always refresh the test session token (so it survives redeploys)
         c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
                   (token, uid, expires))
@@ -636,6 +709,55 @@ def _seed_trail(c):
     except Exception:
         pass
 
+def _seed_past_activity(c):
+    """Seed historical events + completed registrations for Anna so achievements/analytics have real data."""
+    anna = c.execute("SELECT id FROM users WHERE email='anna@konnekt.app'").fetchone()
+    if not anna:
+        return
+    uid = anna["id"]
+    # Skip if already seeded
+    if c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (uid,)).fetchone()[0] >= 5:
+        return
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    past_events = [
+        ("Frühjahrsputz Aare-Ufer 🌿", "environment", "volunteer", "Aare-Ufer Marzili, Bern", "Bern", 46.9428, 7.4504, 80, 14),
+        ("Deutschkurs Fortgeschrittene", "education", "volunteer", "Gemeinschaftszentrum Reitschule, Bern", "Bern", 46.9463, 7.4384, 100, 21),
+        ("Senior-Kaffeenachmittag März ☕", "senior", "volunteer", "Altersheim Schönberg, Bern", "Bern", 46.9491, 7.4231, 100, 28),
+        ("Stadtgarten-Workshop 🌱", "environment", "volunteer", "Stadtgarten Lorraine, Bern", "Bern", 46.9562, 7.4397, 80, 35),
+        ("Brettspiel-Turnier 🎲", "social", "hangout", "Café Kairo, Bern", "Bern", 46.9476, 7.4387, 0, 42),
+        ("Sprachenabend – alle Sprachen 🌍", "social", "hangout", "Reitschule, Bern", "Bern", 46.9463, 7.4384, 0, 49),
+    ]
+    for (title, cat, ev_type, addr, city, lat, lng, pts, days_ago) in past_events:
+        started = (now - timedelta(days=days_ago)).replace(hour=14, minute=0, second=0, microsecond=0)
+        try:
+            c.execute("""INSERT INTO events
+                (organizer_id,title,description,category,type,is_public,address,city,lat,lng,
+                 starts_at,points_reward,max_participants,status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'active')""",
+                (uid, title, f"Demo-Event für {title}", cat, ev_type, 1 if ev_type=="hangout" else 0,
+                 addr, city, lat, lng, started.strftime('%Y-%m-%dT%H:%M:%S'), pts, 20))
+            eid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            # Anna completed it
+            c.execute("INSERT OR IGNORE INTO event_registrations (event_id,user_id,status,points_awarded) VALUES (?,?,?,?)",
+                      (eid, uid, "completed", pts))
+        except Exception:
+            pass
+    # Seed a senior visit
+    try:
+        c.execute("INSERT INTO senior_visits (visitor_id,senior_user_id,status,scheduled_at) VALUES (?,?,?,?)",
+                  (uid, uid, "completed", (now - timedelta(days=10)).isoformat()))
+    except Exception:
+        pass
+    # Seed point transactions for monthly chart
+    for i in range(1, 5):
+        mo = now - timedelta(days=30*i)
+        try:
+            c.execute("INSERT INTO point_transactions (user_id,delta,reason,ref_type,ref_id,created_at) VALUES (?,?,?,?,?,?)",
+                      (uid, 150 + i*30, f"Monats-Aktivität {i}", "seed", 0, mo.strftime('%Y-%m-%dT%H:%M:%S')))
+        except Exception:
+            pass
+
 def geocode_address(address, city):
     """Use Nominatim (OSM) — free, no API key needed."""
     if not address and not city:
@@ -734,6 +856,7 @@ def register():
     password = d.get("password","")
     name     = d.get("display_name", username)
     city     = d.get("city","")
+    ref_code = d.get("ref_code","").strip()
     if not username or not email or len(password) < 6:
         return jsonify({"error": "username, email und password (min 6 Zeichen) erforderlich"}), 400
     with get_db() as c:
@@ -749,6 +872,30 @@ def register():
             # Welcome points
             c.execute("UPDATE users SET points_balance=50 WHERE id=?", (user_id,))
             c.execute("INSERT INTO point_transactions (user_id,delta,reason) VALUES (?,50,'Willkommen bei Konnekt!')", (user_id,))
+            # Welcome notification
+            c.execute("INSERT INTO notifications (user_id,type,title,body) VALUES (?,?,?,?)",
+                      (user_id, "welcome",
+                       "Willkommen bei Konnekt! 🌱",
+                       "Du hast 50 Startpunkte erhalten. Melde dich bei einem Event an oder logge eine gute Tat!"))
+            # Referral — award referrer if valid unused code
+            if ref_code:
+                ref_row = c.execute(
+                    "SELECT id, referrer_id FROM referrals WHERE code=? AND used=0", (ref_code,)
+                ).fetchone()
+                if ref_row:
+                    ref_id = ref_row["id"]
+                    referrer_id = ref_row["referrer_id"]
+                    c.execute("UPDATE referrals SET used=1, used_by=? WHERE id=?", (user_id, ref_id))
+                    # +50 pts to referrer
+                    c.execute("UPDATE users SET points_balance=points_balance+50 WHERE id=?", (referrer_id,))
+                    c.execute(
+                        "INSERT INTO point_transactions (user_id,delta,reason) VALUES (?,50,'Einladung angenommen')",
+                        (referrer_id,))
+                    # Notify referrer
+                    c.execute("INSERT INTO notifications (user_id,type,title,body) VALUES (?,?,?,?)",
+                              (referrer_id, "referral",
+                               "Einladung angenommen! 🎉",
+                               f"{name} hat deine Einladung angenommen — du erhältst +50 Punkte!"))
         except sqlite3.IntegrityError:
             return jsonify({"error": "Username oder E-Mail bereits vergeben"}), 409
     return jsonify({"token": token, "user_id": user_id, "points": 50}), 201
@@ -783,10 +930,27 @@ def login():
 def me():
     with get_db() as c:
         user = c.execute(
-            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified,subscription_tier,show_on_lonely_map FROM users WHERE id=?",
+            "SELECT id,username,display_name,bio,avatar_url,city,points_balance,volunteer_hours,is_senior,is_verified,is_ngo,subscription_tier,show_on_lonely_map,is_admin,is_moderator FROM users WHERE id=?",
             (g.user_id,)
         ).fetchone()
-    return jsonify(dict(user))
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        # Compute activity streak (consecutive days with any point transaction)
+        streak_days = c.execute("""
+            WITH daily AS (
+                SELECT DATE(created_at) as day FROM point_transactions
+                WHERE user_id=? AND delta>0
+                GROUP BY DATE(created_at)
+            ),
+            numbered AS (
+                SELECT day, ROW_NUMBER() OVER (ORDER BY day DESC) as rn FROM daily
+            )
+            SELECT COUNT(*) FROM numbered
+            WHERE JULIANDAY('now','localtime') - JULIANDAY(day) - rn + 1 BETWEEN -0.5 AND 0.5
+        """, (g.user_id,)).fetchone()[0]
+        result = dict(user)
+        result["streak_days"] = streak_days
+    return jsonify(result)
 
 @app.post("/api/auth/logout")
 @require_auth
@@ -1108,16 +1272,117 @@ def get_events():
         rows = c.execute(q, params).fetchall()
     return jsonify([dict(r) for r in rows])
 
+@app.get("/api/events/trending")
+def trending_events():
+    """Events with the most registrations in the last 7 days, upcoming only."""
+    city = request.args.get("city","")
+    limit = min(int(request.args.get("limit", 10)), 20)
+    with get_db() as c:
+        q = """
+            SELECT e.*, u.display_name as organizer_name,
+                   COUNT(er.id) as recent_regs
+            FROM events e
+            JOIN users u ON e.organizer_id=u.id
+            LEFT JOIN event_registrations er ON er.event_id=e.id
+                AND er.created_at > datetime('now', '-7 days')
+            WHERE e.status='active' AND e.starts_at >= datetime('now', '-2 hours')
+        """
+        params = []
+        if city:
+            q += " AND e.city LIKE ?"
+            params.append(f"%{city}%")
+        q += " GROUP BY e.id ORDER BY recent_regs DESC, e.starts_at ASC LIMIT ?"
+        params.append(limit)
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.get("/api/events/search")
+def search_events():
+    """Full-text search across event title, description, city, and tags."""
+    q_str = request.args.get("q", "").strip()
+    city  = request.args.get("city", "")
+    limit = min(int(request.args.get("limit", 20)), 50)
+    if not q_str:
+        return jsonify([])
+    like = f"%{q_str}%"
+    with get_db() as c:
+        params = [like, like, like, like]
+        q = """
+            SELECT e.*, u.display_name as organizer_name
+            FROM events e JOIN users u ON e.organizer_id=u.id
+            WHERE e.status='active'
+              AND e.starts_at >= datetime('now', '-2 hours')
+              AND (e.title LIKE ? OR e.description LIKE ? OR e.city LIKE ? OR e.tags LIKE ?)
+        """
+        if city:
+            q += " AND e.city LIKE ?"
+            params.append(f"%{city}%")
+        q += " ORDER BY e.starts_at ASC LIMIT ?"
+        params.append(limit)
+        rows = c.execute(q, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
 @app.get("/api/events/<int:eid>")
 def get_event(eid):
+    uid = None
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        tok = auth[7:]
+        with get_db() as c:
+            s = c.execute("SELECT user_id FROM sessions WHERE token=? AND expires_at > datetime('now')", (tok,)).fetchone()
+            if s: uid = s["user_id"]
     with get_db() as c:
-        ev = c.execute("SELECT e.*, u.display_name as organizer_name FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.id=?", (eid,)).fetchone()
+        ev = c.execute("""
+            SELECT e.*, u.display_name as organizer_name, u.avatar_url as organizer_avatar
+            FROM events e JOIN users u ON e.organizer_id=u.id WHERE e.id=?
+        """, (eid,)).fetchone()
         if not ev:
             return jsonify({"error": "not found"}), 404
-        regs = c.execute("SELECT u.display_name, u.avatar_url FROM event_registrations er JOIN users u ON er.user_id=u.id WHERE er.event_id=? LIMIT 20", (eid,)).fetchall()
+        regs = c.execute("""
+            SELECT u.display_name, u.avatar_url, er.status
+            FROM event_registrations er JOIN users u ON er.user_id=u.id
+            WHERE er.event_id=? LIMIT 30
+        """, (eid,)).fetchall()
+        comments = c.execute("""
+            SELECT ec.id, ec.body, ec.created_at, u.display_name, u.avatar_url
+            FROM event_comments ec JOIN users u ON ec.user_id=u.id
+            WHERE ec.event_id=? ORDER BY ec.created_at ASC LIMIT 50
+        """, (eid,)).fetchall()
+        my_reg = None
+        if uid:
+            my_reg = c.execute("SELECT status FROM event_registrations WHERE event_id=? AND user_id=?", (eid, uid)).fetchone()
+        # Average organizer rating from participants
+        org_rating = c.execute("""
+            SELECT ROUND(AVG(score),1) as avg, COUNT(*) as n
+            FROM event_ratings WHERE event_id=? AND role='participant_rates_organizer'
+        """, (eid,)).fetchone()
     result = dict(ev)
     result["attendees"] = [dict(r) for r in regs]
+    result["comments"] = [dict(c) for c in comments]
+    result["my_registration"] = dict(my_reg) if my_reg else None
+    result["organizer_rating"] = {"avg": org_rating["avg"], "n": org_rating["n"]} if org_rating and org_rating["avg"] else None
     return jsonify(result)
+
+@app.post("/api/events/<int:eid>/comments")
+@require_auth
+def add_event_comment(eid):
+    d = request.json or {}
+    body = (d.get("body") or "").strip()
+    if not body or len(body) > 500:
+        return jsonify({"error": "Kommentar 1–500 Zeichen"}), 400
+    with get_db() as c:
+        ev = c.execute("SELECT id, title, organizer_id FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev:
+            return jsonify({"error": "not found"}), 404
+        c.execute("INSERT INTO event_comments (event_id,user_id,body) VALUES (?,?,?)", (eid, g.user_id, body))
+        cid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        # Notify organizer if commenter is someone else
+        if ev["organizer_id"] != g.user_id:
+            me = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+            c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                      (ev["organizer_id"], "comment", f"Neuer Kommentar zu '{ev['title']}'",
+                       f"{me['display_name']}: {body[:80]}", "event", eid))
+    return jsonify({"ok": True, "id": cid}), 201
 
 @app.post("/api/events")
 @require_auth
@@ -1151,6 +1416,58 @@ def create_event():
     award_points(g.user_id, 20, "Event erstellt", "event", eid)
     return jsonify({"id": eid, "ok": True}), 201
 
+@app.post("/api/events/bulk")
+@require_auth
+def bulk_create_events():
+    """NGO/admin bulk event import — up to 50 events at once.
+    Requires is_ngo=1 or is_admin=1.
+    Body: { "events": [ { same fields as POST /api/events }, ... ] }
+    """
+    with get_db() as c:
+        me = c.execute("SELECT is_ngo, is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+    if not me or (not me["is_ngo"] and not me["is_admin"]):
+        return jsonify({"error": "Nur NGO- oder Admin-Accounts können Events in Bulk importieren"}), 403
+    data = request.json or {}
+    events_in = data.get("events", [])
+    if not isinstance(events_in, list) or len(events_in) == 0:
+        return jsonify({"error": "events muss eine nicht-leere Liste sein"}), 400
+    if len(events_in) > 50:
+        return jsonify({"error": "Maximal 50 Events pro Import"}), 400
+    created_ids = []
+    errors = []
+    for i, d in enumerate(events_in):
+        title     = (d.get("title") or "").strip()
+        starts_at = (d.get("starts_at") or "").strip()
+        if not title or not starts_at:
+            errors.append({"index": i, "error": "title und starts_at erforderlich"})
+            continue
+        lat = float(d.get("lat") or 0)
+        lng = float(d.get("lng") or 0)
+        if not lat or not lng:
+            addr = d.get("address", "").strip()
+            city = d.get("city", "").strip()
+            if addr or city:
+                lat, lng = geocode_address(addr, city)
+        ev_type     = d.get("type", "volunteer")
+        is_pub      = 1 if ev_type in ("hangout", "quartier") else 0
+        is_quartier = 1 if ev_type == "quartier" else 0
+        with get_db() as c:
+            c.execute("""
+                INSERT INTO events (organizer_id,title,description,category,type,is_public,is_quartier,
+                  address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                g.user_id, title, d.get("description",""), d.get("category","other"),
+                ev_type, is_pub, is_quartier,
+                d.get("address",""), d.get("city",""), lat, lng,
+                starts_at, d.get("ends_at"), d.get("max_participants",0),
+                d.get("points_reward",50), json.dumps(d.get("tags",[]))
+            ))
+            eid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        created_ids.append(eid)
+        award_points(g.user_id, 20, f"Event erstellt (bulk)", "event", eid)
+    return jsonify({"created": created_ids, "errors": errors, "count": len(created_ids)}), 201
+
 @app.post("/api/events/<int:eid>/register")
 @require_auth
 def register_event(eid):
@@ -1167,7 +1484,87 @@ def register_event(eid):
             return jsonify({"error": "ausgebucht"}), 409
         c.execute("INSERT INTO event_registrations (event_id,user_id) VALUES (?,?)", (eid, g.user_id))
         c.execute("UPDATE events SET participants_count=participants_count+1 WHERE id=?", (eid,))
+        me = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+        c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                  (ev["organizer_id"], "registration",
+                   f"Neue Anmeldung für '{ev['title']}'",
+                   f"{me['display_name']} hat sich angemeldet", "event", eid))
     award_points(g.user_id, 10, "Event-Anmeldung", "event", eid)
+    return jsonify({"ok": True})
+
+@app.post("/api/events/<int:eid>/cancel-registration")
+@require_auth
+def cancel_registration(eid):
+    """Cancel an event registration — only before the event starts, and only if not completed."""
+    with get_db() as c:
+        reg = c.execute("SELECT * FROM event_registrations WHERE event_id=? AND user_id=?", (eid, g.user_id)).fetchone()
+        if not reg:
+            return jsonify({"error": "Keine Anmeldung gefunden"}), 404
+        if reg["status"] == "completed":
+            return jsonify({"error": "Abgeschlossene Events können nicht storniert werden"}), 409
+        ev = c.execute("SELECT starts_at, organizer_id, title FROM events WHERE id=?", (eid,)).fetchone()
+        if ev and ev["starts_at"] < datetime.utcnow().isoformat():
+            return jsonify({"error": "Event hat bereits begonnen — Abmeldung nicht mehr möglich"}), 409
+        c.execute("DELETE FROM event_registrations WHERE event_id=? AND user_id=?", (eid, g.user_id))
+        c.execute("UPDATE events SET participants_count=MAX(0,participants_count-1) WHERE id=?", (eid,))
+        # Deduct the registration points (10 pts)
+        c.execute("UPDATE users SET points_balance=MAX(0,points_balance-10) WHERE id=?", (g.user_id,))
+        c.execute("INSERT INTO point_transactions (user_id,delta,reason,ref_type,ref_id) VALUES (?,?,?,?,?)",
+                  (g.user_id, -10, "Event-Abmeldung", "event", eid))
+        # Notify organizer
+        if ev and ev["organizer_id"] != g.user_id:
+            me = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+            c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                      (ev["organizer_id"], "cancellation",
+                       f"Abmeldung von '{ev['title']}'",
+                       f"{me['display_name'] if me else '?'} hat sich abgemeldet", "event", eid))
+    return jsonify({"ok": True})
+
+@app.patch("/api/events/<int:eid>")
+@require_auth
+def edit_event(eid):
+    """Organizer can edit title, description, starts_at, ends_at, max_participants, points_reward before event starts."""
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id, starts_at FROM events WHERE id=? AND status='active'", (eid,)).fetchone()
+        if not ev:
+            return jsonify({"error": "not found"}), 404
+        if ev["organizer_id"] != g.user_id:
+            return jsonify({"error": "Nur der Organisator kann dieses Event bearbeiten"}), 403
+        d = request.json or {}
+        fields = []
+        params = []
+        allowed = ["title","description","starts_at","ends_at","max_participants","points_reward"]
+        for key in allowed:
+            if key in d and d[key] is not None:
+                fields.append(f"{key}=?")
+                params.append(d[key])
+        if not fields:
+            return jsonify({"error": "Keine Änderungen"}), 400
+        params.append(eid)
+        c.execute(f"UPDATE events SET {', '.join(fields)} WHERE id=?", params)
+    return jsonify({"ok": True})
+
+@app.delete("/api/events/<int:eid>")
+@require_auth
+def delete_event(eid):
+    """Organizer cancels/deletes their own event (before it starts, or admin can delete anytime)."""
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id, starts_at, title, participants_count FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev:
+            return jsonify({"error": "not found"}), 404
+        is_admin = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if ev["organizer_id"] != g.user_id and not (is_admin and is_admin["is_admin"]):
+            return jsonify({"error": "Nur der Organisator oder ein Admin kann dieses Event löschen"}), 403
+        # Notify registered participants
+        if ev["participants_count"] > 0:
+            regs = c.execute("SELECT user_id FROM event_registrations WHERE event_id=?", (eid,)).fetchall()
+            for r in regs:
+                if r["user_id"] != g.user_id:
+                    c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                              (r["user_id"], "event_cancelled",
+                               f"Event abgesagt: {ev['title']}",
+                               "Das Event wurde vom Organisator abgesagt.", "event", eid))
+        c.execute("UPDATE events SET status='cancelled' WHERE id=?", (eid,))
     return jsonify({"ok": True})
 
 @app.post("/api/events/<int:eid>/complete")
@@ -1188,6 +1585,76 @@ def complete_event(eid):
         c.execute("UPDATE users SET volunteer_hours=volunteer_hours+2 WHERE id=?", (g.user_id,))
     award_points(g.user_id, pts, "Event abgeschlossen", "event", eid)
     return jsonify({"ok": True, "points_awarded": pts})
+
+@app.get("/api/events/<int:eid>/rateable")
+@require_auth
+def get_rateable(eid):
+    """Who can the current user still rate for this event?"""
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id, points_reward, title FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev: return jsonify({"error": "not found"}), 404
+
+        already_rated = {r["rated_id"] for r in
+            c.execute("SELECT rated_id FROM event_ratings WHERE event_id=? AND rater_id=?",
+                      (eid, g.user_id)).fetchall()}
+
+        # If I'm a participant → I can rate the organizer once
+        if ev["organizer_id"] != g.user_id:
+            reg = c.execute("SELECT status FROM event_registrations WHERE event_id=? AND user_id=?",
+                            (eid, g.user_id)).fetchone()
+            if not reg or reg["status"] != "completed":
+                return jsonify({"targets": [], "role": "participant"})
+            if ev["organizer_id"] in already_rated:
+                return jsonify({"targets": [], "role": "participant", "already_done": True})
+            org = c.execute("SELECT id, display_name, avatar_url FROM users WHERE id=?",
+                            (ev["organizer_id"],)).fetchone()
+            return jsonify({"targets": [dict(org)], "role": "participant",
+                            "points_reward": ev["points_reward"], "event_title": ev["title"]})
+
+        # If I'm the organizer → I can rate each completed participant
+        participants = c.execute("""
+            SELECT u.id, u.display_name, u.avatar_url
+            FROM event_registrations er JOIN users u ON er.user_id=u.id
+            WHERE er.event_id=? AND er.status='completed' AND er.user_id != ?
+        """, (eid, g.user_id)).fetchall()
+        targets = [dict(p) for p in participants if p["id"] not in already_rated]
+        return jsonify({"targets": targets, "role": "organizer",
+                        "points_reward": ev["points_reward"], "event_title": ev["title"]})
+
+@app.post("/api/events/<int:eid>/rate")
+@require_auth
+def rate_event_participant(eid):
+    """Submit a 1-10 quality rating. Awards bonus points = round(score/10 * base_reward)."""
+    d = request.json or {}
+    rated_id = int(d.get("rated_id", 0))
+    score    = int(d.get("score", 0))
+    if not rated_id or not (1 <= score <= 10):
+        return jsonify({"error": "rated_id und score (1-10) erforderlich"}), 400
+
+    with get_db() as c:
+        ev = c.execute("SELECT organizer_id, points_reward FROM events WHERE id=?", (eid,)).fetchone()
+        if not ev: return jsonify({"error": "not found"}), 404
+
+        # Validate rater is either organizer or a completed participant
+        is_organizer = ev["organizer_id"] == g.user_id
+        if not is_organizer:
+            reg = c.execute("SELECT status FROM event_registrations WHERE event_id=? AND user_id=?",
+                            (eid, g.user_id)).fetchone()
+            if not reg or reg["status"] != "completed":
+                return jsonify({"error": "nur abgeschlossene Teilnehmer können bewerten"}), 403
+
+        role = "organizer_rates_participant" if is_organizer else "participant_rates_organizer"
+        bonus = round(score / 10 * ev["points_reward"])
+
+        try:
+            c.execute("""INSERT INTO event_ratings (event_id, rater_id, rated_id, score, role, bonus_pts)
+                         VALUES (?,?,?,?,?,?)""",
+                      (eid, g.user_id, rated_id, score, role, bonus))
+        except Exception:
+            return jsonify({"error": "bereits bewertet"}), 409
+
+    award_points(rated_id, bonus, f"Qualitätsbewertung Event +{score}/10", "event", eid)
+    return jsonify({"ok": True, "bonus_pts": bonus, "score": score})
 
 @app.post("/api/events/<int:eid>/join-request")
 @require_auth
@@ -1347,6 +1814,368 @@ def resolve_report(rid):
         if action == "resolved" and r["target_type"] == "event":
             c.execute("UPDATE events SET status='flagged' WHERE id=?", (r["target_id"],))
     return jsonify({"ok": True})
+
+@app.get("/api/admin/businesses")
+@require_auth
+def admin_businesses():
+    """List businesses pending verification."""
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin, is_moderator FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or (not caller["is_admin"] and not caller["is_moderator"]):
+            return jsonify({"error": "Nicht autorisiert"}), 403
+        rows = c.execute("""
+            SELECT b.*, u.display_name as owner_name, u.email as owner_email
+            FROM businesses b LEFT JOIN users u ON b.owner_id=u.id
+            ORDER BY b.verified ASC, b.id DESC LIMIT 50
+        """).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/admin/businesses/<int:bid>/verify")
+@require_auth
+def admin_verify_business(bid):
+    """Approve or reject a business registration."""
+    d = request.json or {}
+    approve = d.get("approve", True)
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or not caller["is_admin"]:
+            return jsonify({"error": "Nur Admins"}), 403
+        biz = c.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+        if not biz:
+            return jsonify({"error": "nicht gefunden"}), 404
+        if approve:
+            c.execute("UPDATE businesses SET verified=1 WHERE id=?", (bid,))
+            # Notify owner
+            if biz["owner_id"]:
+                c.execute("INSERT INTO notifications (user_id,type,title,body) VALUES (?,?,?,?)",
+                          (biz["owner_id"], "business_reg",
+                           "🎉 Geschäft freigeschalten!",
+                           f"'{biz['name']}' wurde verifiziert. Du kannst jetzt Coupons erstellen."))
+                # Upgrade owner to business tier
+                c.execute("UPDATE users SET subscription_tier='business' WHERE id=?", (biz["owner_id"],))
+        else:
+            c.execute("DELETE FROM businesses WHERE id=?", (bid,))
+            if biz["owner_id"]:
+                c.execute("INSERT INTO notifications (user_id,type,title,body) VALUES (?,?,?,?)",
+                          (biz["owner_id"], "business_reg",
+                           "Geschäft-Anmeldung abgelehnt",
+                           f"'{biz['name']}' konnte nicht verifiziert werden. Bitte kontaktiere uns."))
+    return jsonify({"ok": True})
+
+def _ai_spam_score(title: str, description: str) -> dict:
+    """
+    Lightweight rule-based spam/abuse scorer for events.
+    Returns {score: int, flags: [str]}.
+    No external API needed — pure heuristics.
+    """
+    import re
+    flags = []
+    score = 0
+    t = title or ""
+    d = description or ""
+    combined = t + " " + d
+
+    # All-caps title (shouting)
+    if len(t) > 4 and t == t.upper() and any(c.isalpha() for c in t):
+        flags.append("Titel in Großbuchstaben (Spam-Signal)")
+        score += 2
+
+    # URLs in title or description
+    if re.search(r'https?://|www\.|\.com|\.ch/|bit\.ly|tinyurl', combined, re.I):
+        flags.append("Externe Links entdeckt")
+        score += 2
+
+    # Spam keywords (German + English common spam)
+    spam_words = ["gratis","gewinn","click here","klick hier","verdien","verdiene",
+                  "reich werden","sofortgeld","erotik","adult","casino","bitcoin","crypto",
+                  "investition","MLM","network marketing","pyramid","geld verdienen"]
+    found_spam = [w for w in spam_words if w.lower() in combined.lower()]
+    if found_spam:
+        flags.append(f"Spam-Keywords: {', '.join(found_spam[:3])}")
+        score += len(found_spam)
+
+    # Excessive exclamation marks
+    if combined.count('!') > 4:
+        flags.append("Übermäßige Ausrufezeichen")
+        score += 1
+
+    # Very short description for high-visibility event
+    if len(d.strip()) < 10:
+        flags.append("Beschreibung fehlt oder sehr kurz")
+        score += 1
+
+    # Phone numbers (potential off-platform contact harvesting)
+    if re.search(r'\b(\+41|0\d{2})\s?\d{3}\s?\d{2}\s?\d{2}\b', combined):
+        flags.append("Telefonnummer in Event-Text")
+        score += 1
+
+    return {"score": score, "flags": flags, "clean": score == 0}
+
+
+@app.get("/api/admin/scan-events")
+@require_auth
+def admin_scan_events():
+    """AI-assisted event scanner. Returns risk scores for all recent public events."""
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin, is_moderator, city FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or (not caller["is_admin"] and not caller["is_moderator"]):
+            return jsonify({"error": "Nicht autorisiert"}), 403
+        city_filter = "" if caller["is_admin"] else caller["city"]
+        q = """
+            SELECT e.id, e.title, e.description, e.city, e.organizer_id,
+                   u.display_name as organizer_name, e.created_at,
+                   (SELECT COUNT(*) FROM events e2 WHERE e2.organizer_id=e.organizer_id
+                    AND e2.created_at >= datetime('now','-1 hour')) as events_last_hour,
+                   (SELECT COUNT(*) FROM event_flags WHERE event_id=e.id) as flag_count
+            FROM events e
+            JOIN users u ON e.organizer_id=u.id
+            WHERE e.status != 'cancelled'
+              AND e.created_at >= datetime('now','-7 days')
+        """
+        params = []
+        if city_filter:
+            q += " AND e.city LIKE ?"
+            params.append(f"%{city_filter}%")
+        q += " ORDER BY e.created_at DESC LIMIT 100"
+        rows = c.execute(q, params).fetchall()
+
+    results = []
+    for ev in rows:
+        analysis = _ai_spam_score(ev["title"], ev["description"])
+        # Rapid event creation is an additional signal
+        if ev["events_last_hour"] > 3:
+            analysis["flags"].append(f"Schnelle Event-Erstellung: {ev['events_last_hour']} Events in letzter Stunde")
+            analysis["score"] += 2
+        if ev["flag_count"] > 0:
+            analysis["flags"].append(f"Bereits {ev['flag_count']}× von Nutzern gemeldet")
+            analysis["score"] += ev["flag_count"]
+        risk = "high" if analysis["score"] >= 4 else ("medium" if analysis["score"] >= 2 else "low")
+        results.append({
+            "id": ev["id"], "title": ev["title"], "city": ev["city"],
+            "organizer_id": ev["organizer_id"], "organizer_name": ev["organizer_name"],
+            "created_at": ev["created_at"], "score": analysis["score"],
+            "risk": risk, "flags": analysis["flags"]
+        })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    high = sum(1 for r in results if r["risk"] == "high")
+    medium = sum(1 for r in results if r["risk"] == "medium")
+    return jsonify({"events": results, "summary": {"total": len(results), "high": high, "medium": medium}})
+
+
+@app.get("/api/admin/fraud-check")
+@require_auth
+def admin_fraud_check():
+    """
+    Point-velocity fraud detection.
+    Flags users with unusual point gain patterns.
+    """
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or not caller["is_admin"]:
+            return jsonify({"error": "Nur für Admins"}), 403
+
+        # 1. Point velocity: earned > 500 pts in any single day
+        velocity = c.execute("""
+            SELECT user_id, DATE(created_at) as day, SUM(delta) as daily_pts,
+                   COUNT(*) as tx_count
+            FROM point_transactions
+            WHERE delta > 0 AND created_at >= datetime('now','-30 days')
+            GROUP BY user_id, DATE(created_at)
+            HAVING daily_pts > 500
+            ORDER BY daily_pts DESC
+            LIMIT 20
+        """).fetchall()
+
+        # 2. Self-completion pattern: completed own event (not allowed, but check anyway)
+        self_complete = c.execute("""
+            SELECT er.user_id, e.organizer_id, COUNT(*) as count,
+                   u.display_name
+            FROM event_registrations er
+            JOIN events e ON er.event_id=e.id
+            JOIN users u ON er.user_id=u.id
+            WHERE er.status='completed' AND er.user_id=e.organizer_id
+            GROUP BY er.user_id HAVING count > 0
+        """).fetchall()
+
+        # 3. Outlier balances: points > 3× the average non-admin user
+        avg_row = c.execute("SELECT AVG(points_balance) FROM users WHERE is_admin=0 AND points_balance>0").fetchone()
+        avg_pts = avg_row[0] or 0
+        threshold = max(avg_pts * 3, 500)
+        outliers = c.execute("""
+            SELECT id, display_name, points_balance, city, created_at
+            FROM users WHERE points_balance > ? AND is_admin=0
+            ORDER BY points_balance DESC LIMIT 10
+        """, (threshold,)).fetchall()
+
+        # 4. Rapid deed creation (> 5 deeds in 1 hour)
+        rapid_deeds = c.execute("""
+            SELECT gd.user_id, DATE(gd.created_at) as day, COUNT(*) as deed_count,
+                   u.display_name
+            FROM good_deeds gd JOIN users u ON gd.user_id=u.id
+            WHERE gd.created_at >= datetime('now','-7 days')
+            GROUP BY gd.user_id, DATE(gd.created_at)
+            HAVING deed_count > 5
+        """).fetchall()
+
+    suspicious = []
+    seen = set()
+
+    for row in velocity:
+        uid = row["user_id"]
+        if uid not in seen:
+            seen.add(uid)
+        suspicious.append({
+            "user_id": uid, "reason": f"Hohe Punkt-Geschwindigkeit: {row['daily_pts']} Pts an {row['day']}",
+            "day": row["day"], "daily_pts": row["daily_pts"], "tx_count": row["tx_count"],
+            "type": "velocity"
+        })
+
+    for row in self_complete:
+        suspicious.append({
+            "user_id": row["user_id"], "display_name": row["display_name"],
+            "reason": f"Eigenes Event abgeschlossen ({row['count']}×)", "type": "self_complete"
+        })
+
+    for row in outliers:
+        suspicious.append({
+            "user_id": row["id"], "display_name": row["display_name"],
+            "reason": f"Ausreißer-Punktestand: {row['points_balance']} Pts (Durchschnitt: {int(avg_pts)})",
+            "points_balance": row["points_balance"], "type": "outlier"
+        })
+
+    for row in rapid_deeds:
+        suspicious.append({
+            "user_id": row["user_id"], "display_name": row["display_name"],
+            "reason": f"{row['deed_count']} Gute Taten an einem Tag ({row['day']})", "type": "rapid_deeds"
+        })
+
+    return jsonify({
+        "suspicious_users": suspicious,
+        "avg_points": round(avg_pts, 1),
+        "threshold_used": round(threshold, 1),
+        "generated_at": datetime.utcnow().isoformat()
+    })
+
+
+@app.post("/api/admin/action")
+@require_auth
+def admin_action():
+    """
+    Take action on a user or event: warn, silence, remove_event.
+    """
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or not caller["is_admin"]:
+            return jsonify({"error": "Nur für Admins"}), 403
+    d = request.json or {}
+    action = d.get("action")
+    target_type = d.get("target_type")  # "user" or "event"
+    target_id = d.get("target_id")
+    reason = d.get("reason", "")
+    if not action or not target_type or not target_id:
+        return jsonify({"error": "action, target_type, target_id erforderlich"}), 400
+    with get_db() as c:
+        if target_type == "event" and action == "remove":
+            c.execute("UPDATE events SET status='cancelled' WHERE id=?", (target_id,))
+        elif target_type == "user" and action == "warn":
+            c.execute("INSERT INTO user_strikes (user_id,reason,created_by) VALUES (?,?,?)",
+                      (target_id, reason or "Admin-Warnung", g.user_id))
+        elif target_type == "user" and action == "silence":
+            # Add 3 strikes = effectively silenced
+            for _ in range(3):
+                c.execute("INSERT INTO user_strikes (user_id,reason,created_by) VALUES (?,?,?)",
+                          (target_id, reason or "Account stummgeschaltet", g.user_id))
+        else:
+            return jsonify({"error": "Unbekannte Aktion"}), 400
+    return jsonify({"ok": True, "action": action, "target_type": target_type, "target_id": target_id})
+
+
+@app.get("/api/notifications")
+@require_auth
+def get_notifications():
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT * FROM notifications WHERE user_id=?
+            ORDER BY created_at DESC LIMIT 50
+        """, (g.user_id,)).fetchall()
+        unread = c.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read=0", (g.user_id,)).fetchone()[0]
+    return jsonify({"notifications": [dict(r) for r in rows], "unread": unread})
+
+@app.post("/api/notifications/read-all")
+@require_auth
+def read_all_notifications():
+    with get_db() as c:
+        c.execute("UPDATE notifications SET read=1 WHERE user_id=?", (g.user_id,))
+    return jsonify({"ok": True})
+
+@app.get("/api/achievements/<int:uid>")
+def get_achievements(uid):
+    """Compute achievements from user activity. No separate table — derived on demand."""
+    with get_db() as c:
+        user = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
+        if not user:
+            return jsonify({"error": "not found"}), 404
+        deeds = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (uid,)).fetchone()[0]
+        events_done = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (uid,)).fetchone()[0]
+        events_made = c.execute("SELECT COUNT(*) FROM events WHERE organizer_id=?", (uid,)).fetchone()[0]
+        visits = c.execute("SELECT COUNT(*) FROM senior_visits WHERE visitor_id=? AND completed=1", (uid,)).fetchone()[0]
+        klopfs = c.execute("SELECT COUNT(*) FROM klopf WHERE from_id=?", (uid,)).fetchone()[0]
+        connections = c.execute("SELECT COUNT(*) FROM neighbor_connections WHERE (user_a=? OR user_b=?) AND status='active'", (uid, uid)).fetchone()[0]
+        pts = user["points_balance"] or 0
+        hours = user["volunteer_hours"] or 0
+
+    all_achievements = [
+        {"id":"first_deed",    "icon":"🌱","title":"Erste gute Tat",      "desc":"Deine erste gute Tat eingetragen",       "unlocked": deeds >= 1},
+        {"id":"deed_5",        "icon":"💚","title":"5 gute Taten",         "desc":"5 gute Taten eingetragen",              "unlocked": deeds >= 5},
+        {"id":"deed_20",       "icon":"🌿","title":"20 gute Taten",        "desc":"Echter Community-Held",                  "unlocked": deeds >= 20},
+        {"id":"first_event",   "icon":"🎉","title":"Erstes Event",         "desc":"An einem Event teilgenommen",           "unlocked": events_done >= 1},
+        {"id":"event_5",       "icon":"📅","title":"5 Events",             "desc":"5 Events abgeschlossen",                "unlocked": events_done >= 5},
+        {"id":"organizer",     "icon":"🎙️","title":"Veranstalter",         "desc":"Erstes eigenes Event erstellt",         "unlocked": events_made >= 1},
+        {"id":"senior_friend", "icon":"💛","title":"Senioren-Freund",      "desc":"Ersten Senior besucht",                 "unlocked": visits >= 1},
+        {"id":"senior_5",      "icon":"🏅","title":"5 Senioren-Besuche",   "desc":"5 Senioren besucht",                    "unlocked": visits >= 5},
+        {"id":"klopf_first",   "icon":"👋","title":"Erster Klopf",         "desc":"Jemandem zugeklopft",                   "unlocked": klopfs >= 1},
+        {"id":"connected",     "icon":"🤝","title":"Verbunden",            "desc":"Erste Nachbar-Verbindung",              "unlocked": connections >= 1},
+        {"id":"pts_100",       "icon":"⭐","title":"100 Punkte",           "desc":"100 Punkte gesammelt",                  "unlocked": pts >= 100},
+        {"id":"pts_500",       "icon":"🌟","title":"500 Punkte",           "desc":"500 Punkte — echtes Engagement",        "unlocked": pts >= 500},
+        {"id":"pts_1000",      "icon":"💫","title":"1000 Punkte",          "desc":"Konnekt Power-User",                    "unlocked": pts >= 1000},
+        {"id":"hours_10",      "icon":"🕐","title":"10 Ehrenamtsstunden",  "desc":"10 Stunden freiwillig engagiert",       "unlocked": hours >= 10},
+        {"id":"hours_50",      "icon":"🏆","title":"50 Stunden",           "desc":"Außerordentliches Engagement",          "unlocked": hours >= 50},
+    ]
+    earned = [a for a in all_achievements if a["unlocked"]]
+    return jsonify({"achievements": all_achievements, "earned_count": len(earned), "total": len(all_achievements)})
+
+@app.post("/api/business/register")
+@require_auth
+def business_register():
+    """Self-serve business registration."""
+    d = request.json or {}
+    name = (d.get("name") or "").strip()
+    description = (d.get("description") or "").strip()
+    category = d.get("category", "other")
+    address = (d.get("address") or "").strip()
+    city = (d.get("city") or "").strip()
+    if not name or not city:
+        return jsonify({"error": "Name und Stadt erforderlich"}), 400
+    lat, lng = 0.0, 0.0
+    if address or city:
+        lat, lng = geocode_address(address, city)
+    with get_db() as c:
+        existing = c.execute("SELECT id FROM businesses WHERE owner_id=?", (g.user_id,)).fetchone()
+        if existing:
+            return jsonify({"error": "Du hast bereits ein Geschäft registriert"}), 409
+        c.execute("""
+            INSERT INTO businesses (name,description,category,address,city,lat,lng,owner_id,verified)
+            VALUES (?,?,?,?,?,?,?,?,0)
+        """, (name, description, category, address, city, lat, lng, g.user_id))
+        bid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        # Notify admin
+        admin = c.execute("SELECT id FROM users WHERE is_admin=1 LIMIT 1").fetchone()
+        if admin:
+            c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                      (admin["id"], "business_reg", f"Neues Geschäft: {name}",
+                       f"Stadt: {city} | Kategorie: {category} | Owner: {g.user_id}", "business", bid))
+    return jsonify({"ok": True, "id": bid, "message": "Registrierung eingereicht — wird von uns geprüft."})
 
 @app.get("/api/map/loneliness")
 def map_loneliness():
@@ -1701,6 +2530,19 @@ def redeem_coupon(cid):
                   (g.user_id, -cpn["points_cost"], f"Coupon eingelöst: {cpn['title']}", "coupon", cid))
     return jsonify({"ok": True, "qr_code": qr, "title": cpn["title"]})
 
+@app.get("/api/my/business")
+@require_auth
+def my_business():
+    """Return the user's own business (if any), including verification status."""
+    with get_db() as c:
+        biz = c.execute(
+            "SELECT id,name,category,city,verified,created_at FROM businesses WHERE owner_id=?",
+            (g.user_id,)
+        ).fetchone()
+    if not biz:
+        return jsonify({"business": None})
+    return jsonify({"business": {**dict(biz), "status": "verified" if biz["verified"] else "pending"}})
+
 @app.get("/api/my/coupons")
 @require_auth
 def my_coupons():
@@ -1728,7 +2570,7 @@ def nearby_users():
             SELECT u.id, u.display_name, u.bio, u.city, u.is_senior, u.is_ngo,
                    u.volunteer_hours,
                    (SELECT COUNT(*) FROM good_deeds WHERE user_id=u.id) AS deed_count,
-                   (SELECT COUNT(*) FROM event_registrations WHERE user_id=u.id AND status='attended') AS events_attended
+                   (SELECT COUNT(*) FROM event_registrations WHERE user_id=u.id AND status='completed') AS events_attended
             FROM users u
             WHERE u.city LIKE ? AND u.id != ?
             ORDER BY (u.volunteer_hours * 2 + (SELECT COUNT(*) FROM good_deeds WHERE user_id=u.id)) DESC
@@ -1970,10 +2812,94 @@ def get_profile(uid):
             return jsonify({"error": "not found"}), 404
         deeds_count = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (uid,)).fetchone()[0]
         events_done = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (uid,)).fetchone()[0]
+        # Quality score: average of all ratings received (as participant or organizer)
+        q = c.execute("""
+            SELECT ROUND(AVG(score),1) as avg, COUNT(*) as n
+            FROM event_ratings WHERE rated_id=?
+        """, (uid,)).fetchone()
     result = dict(user)
     result["deeds_count"] = deeds_count
     result["events_completed"] = events_done
+    result["quality_score"] = {"avg": q["avg"], "n": q["n"]} if q and q["avg"] else None
     return jsonify(result)
+
+@app.get("/api/certificate")
+def volunteer_certificate():
+    """Generate a printable HTML volunteer certificate. Auth via header OR ?token= query param."""
+    tok = request.headers.get("Authorization","").replace("Bearer ","") or request.args.get("token","")
+    if not tok:
+        return jsonify({"error": "unauthorized"}), 401
+    with get_db() as c:
+        row = c.execute("SELECT user_id FROM sessions WHERE token=? AND expires_at > datetime('now')", (tok,)).fetchone()
+    if not row:
+        return jsonify({"error": "unauthorized"}), 401
+    g.user_id = row["user_id"]
+    return _volunteer_certificate_html()
+
+def _volunteer_certificate_html():
+    """Generate a printable HTML volunteer hours certificate."""
+    with get_db() as c:
+        user = c.execute(
+            "SELECT display_name, city, volunteer_hours, points_balance, created_at FROM users WHERE id=?",
+            (g.user_id,)
+        ).fetchone()
+        if not user:
+            return jsonify({"error": "not found"}), 404
+        deeds = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (g.user_id,)).fetchone()[0]
+        events = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=? AND status='completed'", (g.user_id,)).fetchone()[0]
+        visits = c.execute("SELECT COUNT(*) FROM senior_visits WHERE visitor_id=? AND completed=1", (g.user_id,)).fetchone()[0]
+
+    issue_date = datetime.utcnow().strftime("%d. %B %Y")
+    name = user["display_name"] or "Konnekt-Mitglied"
+    hours = user["volunteer_hours"] or 0
+    pts = user["points_balance"] or 0
+
+    html = f"""<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<title>Konnekt Ehrenamtszertifikat — {name}</title>
+<style>
+  body {{ font-family: Georgia, serif; max-width: 700px; margin: 60px auto; padding: 2rem;
+         background: #fff; color: #1a1a2e; }}
+  .cert-border {{ border: 6px double #3b82f6; padding: 3rem; text-align: center; }}
+  .logo {{ font-size: 2.5rem; margin-bottom: .5rem; }}
+  h1 {{ font-size: 1.3rem; color: #3b82f6; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 .5rem; }}
+  .recipient {{ font-size: 2rem; font-weight: 700; margin: 1rem 0 .25rem; color: #0f172a; }}
+  .subtitle {{ color: #64748b; margin-bottom: 1.5rem; }}
+  .stats {{ display: flex; justify-content: center; gap: 3rem; margin: 1.5rem 0; }}
+  .stat {{ text-align: center; }}
+  .stat-num {{ font-size: 2rem; font-weight: 800; color: #3b82f6; }}
+  .stat-lbl {{ font-size: .75rem; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }}
+  .seal {{ font-size: 3rem; margin: 1.5rem 0 .5rem; }}
+  .date {{ color: #94a3b8; font-size: .85rem; }}
+  .footer {{ margin-top: 2rem; font-size: .75rem; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 1rem; }}
+  @media print {{ body {{ margin: 0; }} }}
+</style>
+</head><body>
+<div class="cert-border">
+  <div class="logo">🌐</div>
+  <h1>Konnekt · Ehrenamtszertifikat</h1>
+  <div style="font-size:.9rem;color:#64748b;margin-bottom:1rem">Diese Urkunde bestätigt das freiwillige Engagement von</div>
+  <div class="recipient">{name}</div>
+  <div class="subtitle">{'aus ' + user['city'] if user['city'] else ''}</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">{hours}</div><div class="stat-lbl">Ehrenamtsstunden</div></div>
+    <div class="stat"><div class="stat-num">{deeds}</div><div class="stat-lbl">Gute Taten</div></div>
+    <div class="stat"><div class="stat-num">{events}</div><div class="stat-lbl">Events absolviert</div></div>
+    {'<div class="stat"><div class="stat-num">' + str(visits) + '</div><div class="stat-lbl">Senioren-Besuche</div></div>' if visits else ''}
+    <div class="stat"><div class="stat-num">{pts}</div><div class="stat-lbl">Community-Punkte</div></div>
+  </div>
+  <div class="seal">🏅</div>
+  <div style="font-size:.88rem;max-width:480px;margin:0 auto;color:#475569;line-height:1.6">
+    Der Inhaber dieses Zertifikats hat durch aktive Teilnahme an der Konnekt-Community
+    einen wertvollen Beitrag zur Stärkung des sozialen Zusammenhalts geleistet.
+  </div>
+  <div class="date" style="margin-top:1.2rem">Ausgestellt am {issue_date} · Konnekt Platform</div>
+  <div class="footer">konnekt.app · Dieses Zertifikat wurde automatisch auf Basis der verifizierten Plattformdaten generiert.</div>
+</div>
+<script>window.onload=()=>setTimeout(()=>window.print(),400)</script>
+</body></html>"""
+    from flask import Response
+    return Response(html, mimetype='text/html')
 
 @app.post("/api/profile")
 @require_auth
@@ -2016,6 +2942,23 @@ def my_events():
             "SELECT id,title,category,starts_at,participants_count,points_reward,status FROM events WHERE organizer_id=? ORDER BY starts_at DESC LIMIT 20",
             (g.user_id,)
         ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.get("/api/my/upcoming")
+@require_auth
+def my_upcoming():
+    """Events the user is registered for in the next 48h — for reminders."""
+    deadline = (datetime.utcnow() + timedelta(hours=48)).isoformat()
+    now = datetime.utcnow().isoformat()
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT er.event_id, er.status, e.title, e.starts_at, e.city, e.address, e.points_reward, e.type
+            FROM event_registrations er
+            JOIN events e ON er.event_id = e.id
+            WHERE er.user_id = ? AND er.status != 'completed'
+              AND e.starts_at >= ? AND e.starts_at <= ? AND e.status = 'active'
+            ORDER BY e.starts_at ASC LIMIT 5
+        """, (g.user_id, now, deadline)).fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.get("/api/my/points")
@@ -2063,15 +3006,45 @@ def my_visits():
 
 @app.get("/api/leaderboard")
 def leaderboard():
-    city = request.args.get("city","")
+    city   = request.args.get("city","")
+    period = request.args.get("period","all")   # "all" | "month"
     with get_db() as c:
-        q = "SELECT id, display_name, city, points_balance, volunteer_hours FROM users WHERE 1=1"
+        if period == "month":
+            base = """
+                SELECT u.id, u.display_name, u.city, u.volunteer_hours,
+                       COALESCE(SUM(pt.delta),0) as period_points,
+                       u.points_balance
+                FROM users u
+                LEFT JOIN point_transactions pt
+                  ON pt.user_id=u.id AND pt.created_at >= datetime('now','-30 days')
+                WHERE u.is_admin=0
+                GROUP BY u.id
+            """
+            order_col = "period_points"
+        else:
+            base = """
+                SELECT u.id, u.display_name, u.city, u.volunteer_hours,
+                       u.points_balance, u.points_balance as period_points
+                FROM users u WHERE u.is_admin=0
+            """
+            order_col = "points_balance"
+
         params = []
         if city:
-            q += " AND city LIKE ?"; params.append(f"%{city}%")
-        q += " ORDER BY points_balance DESC LIMIT 20"
-        rows = c.execute(q, params).fetchall()
-    return jsonify([dict(r) for r in rows])
+            base = f"SELECT * FROM ({base}) sub WHERE city LIKE ?"
+            params.append(f"%{city}%")
+        else:
+            base += " "   # spacer
+        base += f" ORDER BY {order_col} DESC LIMIT 20"
+        rows = c.execute(base, params).fetchall()
+
+        # Enrich with event + deed counts
+        result = []
+        for r in rows:
+            ev   = c.execute("SELECT COUNT(*) FROM event_registrations WHERE user_id=?", (r["id"],)).fetchone()[0]
+            deed = c.execute("SELECT COUNT(*) FROM good_deeds WHERE user_id=?", (r["id"],)).fetchone()[0]
+            result.append({**dict(r), "event_count": ev, "deed_count": deed})
+    return jsonify(result)
 
 # ── NGO Routes ────────────────────────────────────────────────────────────────
 
@@ -2097,7 +3070,8 @@ def feed():
             SELECT 'event' as type, e.id, e.title as content, e.city, e.starts_at as created_at,
                    e.points_reward, e.category, e.type as ev_type, e.address,
                    e.participants_count, e.max_participants,
-                   u.display_name as author_name, u.volunteer_hours as author_hours
+                   u.display_name as author_name, u.volunteer_hours as author_hours,
+                   u.id as user_id
             FROM events e JOIN users u ON e.organizer_id=u.id
             WHERE e.status='active'
         """
@@ -2110,7 +3084,8 @@ def feed():
             SELECT 'deed' as type, gd.id, gd.description as content, u.city, gd.created_at,
                    25 as points_reward, gd.category, NULL as ev_type, NULL as address,
                    0 as participants_count, 0 as max_participants,
-                   u.display_name as author_name, u.volunteer_hours as author_hours
+                   u.display_name as author_name, u.volunteer_hours as author_hours,
+                   u.id as user_id
             FROM good_deeds gd JOIN users u ON gd.user_id=u.id
         """
         dp = []
@@ -2122,7 +3097,8 @@ def feed():
             SELECT 'bubble' as type, lb.id, lb.title as content, lb.city, lb.created_at,
                    0 as points_reward, NULL as category, NULL as ev_type, lb.address,
                    0 as participants_count, 0 as max_participants,
-                   u.display_name as author_name, 0 as author_hours
+                   u.display_name as author_name, 0 as author_hours,
+                   u.id as user_id, lb.lat, lb.lng
             FROM life_bubbles lb JOIN users u ON lb.user_id=u.id
             WHERE lb.expires_at > datetime('now')
         """
@@ -2143,15 +3119,19 @@ def feed():
 @app.get("/api/stats")
 def platform_stats():
     with get_db() as c:
-        users   = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        events  = c.execute("SELECT COUNT(*) FROM events WHERE status='active'").fetchone()[0]
-        deeds   = c.execute("SELECT COUNT(*) FROM good_deeds").fetchone()[0]
-        visits  = c.execute("SELECT COUNT(*) FROM senior_visits WHERE completed=1").fetchone()[0]
-        pts     = c.execute("SELECT SUM(points_balance) FROM users").fetchone()[0] or 0
+        users     = c.execute("SELECT COUNT(*) FROM users WHERE is_admin=0").fetchone()[0]
+        events    = c.execute("SELECT COUNT(*) FROM events WHERE status='active'").fetchone()[0]
+        deeds     = c.execute("SELECT COUNT(*) FROM good_deeds").fetchone()[0]
+        visits    = c.execute("SELECT COUNT(*) FROM senior_visits WHERE completed=1").fetchone()[0]
+        pts       = c.execute("SELECT SUM(points_balance) FROM users WHERE is_admin=0").fetchone()[0] or 0
+        businesses= c.execute("SELECT COUNT(*) FROM businesses WHERE verified=1").fetchone()[0]
+        coupons   = c.execute("SELECT COUNT(*) FROM coupons").fetchone()[0]
+        comments  = c.execute("SELECT COUNT(*) FROM event_comments").fetchone()[0]
     return jsonify({
         "users": users, "active_events": events,
         "good_deeds": deeds, "senior_visits_completed": visits,
-        "total_points_earned": pts
+        "total_points_earned": pts, "businesses": businesses,
+        "coupons": coupons, "comments": comments
     })
 
 @app.get("/api/health")
@@ -2300,6 +3280,18 @@ def send_klopf():
                 matched = True
             except sqlite3.IntegrityError:
                 matched = True  # already connected
+            if matched:
+                # Notify both users about the new connection
+                me_row = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+                other_row = c.execute("SELECT display_name FROM users WHERE id=?", (to_id,)).fetchone()
+                me_name = me_row["display_name"] if me_row else "Jemand"
+                other_name = other_row["display_name"] if other_row else "Jemand"
+                for (uid_notif, partner_name) in [(g.user_id, other_name), (to_id, me_name)]:
+                    c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                              (uid_notif, "klopf_match",
+                               f"🤝 Neue Verbindung mit {partner_name}!",
+                               "Ihr habt euch gegenseitig geklopft — ihr seid jetzt verbunden!",
+                               "user", to_id if uid_notif == g.user_id else g.user_id))
     return jsonify({"ok": True, "id": kid, "matched": matched})
 
 @app.get("/api/klopf/inbox")
@@ -2565,7 +3557,7 @@ h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
   </div>
 
   <div class="cta-group">
-    <button class="btn-main" onclick="window.location='/'">
+    <button class="btn-main" onclick="window.location='/' + (invCode ? '?ref=' + invCode : '')">
       🚀 Jetzt ausprobieren — kostenlos
     </button>
     <button class="btn-app" onclick="showWaitlist()">
@@ -2710,6 +3702,7 @@ async function submitWaitlist() {
 }
 // Auto-open waitlist if invite code present
 const params = new URLSearchParams(location.search);
+const invCode = '{{ invite_code }}';
 if (params.get('ref')) showWaitlist();
 </script>
 </body>
