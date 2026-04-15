@@ -322,7 +322,7 @@ input.field:focus, select.field:focus {
   #screen-nahbar.active,
   #screen-map.active,
   #screen-feed.active { border-top: 2px solid var(--accent); }
-  /* Non-world screens: hide worlds-row, take full width */
+  /* Non-world screens: hidden by default, fill full row when active */
   #screen-volunteer,
   #screen-coupons,
   #screen-profile { display: none !important; }
@@ -333,9 +333,12 @@ input.field:focus, select.field:focus {
     flex: 1;
     height: calc(100dvh - 50px - var(--safe-top));
     overflow-y: auto;
+    order: 0;
   }
-  /* Hide the 3-column row when a non-world tab is active */
-  #app.tab-active #worlds-row { display: none !important; }
+  /* Hide only the world columns when a non-world tab is active */
+  #app.tab-active #screen-nahbar,
+  #app.tab-active #screen-map,
+  #app.tab-active #screen-feed { display: none !important; }
   /* Hide swipe hints and world dots — all worlds visible at once */
   #world-indicator,
   .swipe-edge { display: none !important; }
