@@ -268,6 +268,12 @@ input.field:focus, select.field:focus {
 [data-theme="dark"] .leaflet-tile-pane {
   filter: brightness(1.7) contrast(0.82) saturate(1.2);
 }
+.leaflet-control-attribution {
+  background: rgba(0,0,0,.55) !important;
+  color: var(--dim) !important;
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a { color: var(--muted) !important; }
 
 /* ── Neon glow on accent elements ── */
 [data-theme="dark"] .nav-item.active {
@@ -1067,10 +1073,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
       <!-- Bubble drop button — bottom right, separate from filters -->
       <button id="map-create-btn" onclick="openCreateEventOrBubble()"
-        style="position:absolute;bottom:1.1rem;right:1rem;z-index:500;
+        style="position:absolute;bottom:1.1rem;left:50%;transform:translateX(-50%);z-index:500;
                background:linear-gradient(135deg,var(--purple),var(--accent));
                color:#000;border:none;border-radius:14px;
-               padding:.6rem 1.1rem;font-size:.82rem;font-weight:800;
+               padding:.6rem 1.4rem;font-size:.82rem;font-weight:800;
                cursor:pointer;box-shadow:0 0 18px rgba(189,147,249,.4);
                display:flex;align-items:center;gap:.4rem;white-space:nowrap">
         🫧 Bubble droppen
@@ -2959,15 +2965,14 @@ function _updateMapCounter(evCount, bubbleCount, shopCount) {
   const dot = document.getElementById('map-counter-dot');
   if (!el) return;
   let label = '–', dotColor = 'var(--accent)';
-  if (evCount !== null)     { label = `${evCount} Event${evCount===1?'':'s'}`; dotColor = 'var(--accent)'; }
-  if (bubbleCount !== null) { label = `${bubbleCount} Bubble${bubbleCount===1?'':'s'}`; dotColor = 'var(--purple)'; }
-  if (shopCount !== null)   { label = `${shopCount} Shop${shopCount===1?'':'s'}`; dotColor = 'var(--orange)'; }
+  if (evCount != null)     { label = `${evCount} Event${evCount===1?'':'s'}`; dotColor = 'var(--accent)'; }
+  if (bubbleCount != null) { label = `${bubbleCount} Bubble${bubbleCount===1?'':'s'}`; dotColor = 'var(--purple)'; }
+  if (shopCount != null)   { label = `${shopCount} Shop${shopCount===1?'':'s'}`; dotColor = 'var(--orange)'; }
   el.textContent = label;
   if (dot) dot.style.background = dotColor;
-  // Update detail rows
-  if (evCount !== null)     { const d = document.getElementById('map-d-events');  if (d) d.textContent = evCount; }
-  if (bubbleCount !== null) { const d = document.getElementById('map-d-bubbles'); if (d) d.textContent = bubbleCount; }
-  if (shopCount !== null)   { const d = document.getElementById('map-d-shops');   if (d) d.textContent = shopCount; }
+  if (evCount != null)     { const d = document.getElementById('map-d-events');  if (d) d.textContent = evCount; }
+  if (bubbleCount != null) { const d = document.getElementById('map-d-bubbles'); if (d) d.textContent = bubbleCount; }
+  if (shopCount != null)   { const d = document.getElementById('map-d-shops');   if (d) d.textContent = shopCount; }
 }
 
 function toggleMapInfoPanel() {
