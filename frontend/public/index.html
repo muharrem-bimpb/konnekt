@@ -2165,8 +2165,10 @@ async function loadApp() {
     appEl.style.flexDirection = 'column';
     _splashDismiss(loading);
     updateUserUI();
-    // Map is the default screen — initialise it first
-    openMapScreen();
+    // Restore last visited tab, fallback to map
+    const lastTab = localStorage.getItem('konnekt_last_tab') || 'map';
+    const lastBtn = document.querySelector(`.nav-item[onclick*="${lastTab}"]`);
+    switchScreen(lastTab, lastBtn);
     // Pre-load other tabs in background
     loadFeed();
     loadForYou();
@@ -2292,6 +2294,7 @@ function _markLoaded(name) { _screenLoaded[name] = Date.now(); }
 function invalidateScreen(name) { delete _screenLoaded[name]; } // call after mutations
 
 function switchScreen(name, btn, swipeDir) {
+  localStorage.setItem('konnekt_last_tab', name);
   const isDesktop = window.innerWidth >= 1024;
   const isWorld   = WORLDS.includes(name);
 
