@@ -1063,9 +1063,18 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubbles</button>
         <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--orange);border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🏪 Shops</button>
         <button id="map-show-lonely-btn"    onclick="setMapMode('lonely')"    style="background:var(--card);color:#f97316;border:1px solid rgba(249,115,22,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🤝 Nahbar</button>
-        <button id="map-create-btn" onclick="openCreateEventOrBubble()" style="background:var(--card);color:var(--purple);border:1px solid rgba(139,92,246,.4);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow)">🫧 Bubble</button>
         <button onclick="locateMeOnMap()" title="Mein Standort" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .75rem;font-size:.75rem;cursor:pointer;box-shadow:var(--shadow)">📍</button>
       </div>
+      <!-- Bubble drop button — bottom right, separate from filters -->
+      <button id="map-create-btn" onclick="openCreateEventOrBubble()"
+        style="position:absolute;bottom:1.1rem;right:1rem;z-index:500;
+               background:linear-gradient(135deg,var(--purple),var(--accent));
+               color:#000;border:none;border-radius:14px;
+               padding:.6rem 1.1rem;font-size:.82rem;font-weight:800;
+               cursor:pointer;box-shadow:0 0 18px rgba(189,147,249,.4);
+               display:flex;align-items:center;gap:.4rem;white-space:nowrap">
+        🫧 Bubble droppen
+      </button>
       <!-- Map info panel (collapsible) -->
       <div id="map-info-panel" style="position:absolute;bottom:.65rem;left:.65rem;z-index:500">
         <button id="map-info-toggle" onclick="toggleMapInfoPanel()" style="display:flex;align-items:center;gap:.4rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.3rem .65rem;font-size:.7rem;font-weight:700;color:var(--text);cursor:pointer;min-width:44px">
