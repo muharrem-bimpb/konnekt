@@ -1000,7 +1000,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div class="fpill" onclick="filterEvents('hangout',this,'type')">🎮 Hangout</div>
         <div class="fpill" onclick="filterEvents('quartier',this,'type')" style="border-color:rgba(249,115,22,.4);color:var(--orange)">🏘️ Quartier</div>
       </div>
-      <button id="ev-header-create-btn" onclick="openCreateEventOrBubble()" style="flex-shrink:0;background:var(--purple);color:#fff;border:none;border-radius:6px;padding:.4rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">🫧 Bubble</button>
     </div>
     <!-- community note: hidden for NGO/admin, shown for regular users -->
     <div id="events-community-note" style="display:none;flex-shrink:0;padding:.4rem .85rem;font-size:.72rem;color:var(--muted);background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem">
@@ -1010,7 +1009,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <div class="scroll-body" id="events-scroll" style="padding-top:.75rem">
       <div id="events-list"><div class="loading">Lade Events…</div></div>
     </div>
-    <button class="fab" id="fab-event" onclick="openCreateEventOrBubble()" title="Bubble teilen" style="background:var(--purple)">🫧</button>
   </div>
 
   <!-- Map screen: full-screen map with mode toggles -->
@@ -2243,10 +2241,6 @@ function updateUserUI() {
 
 function _syncCreateButtons() {
   const isEventCreator = currentUser?.is_ngo || currentUser?.is_admin;
-  const evBtn = document.getElementById('ev-header-create-btn');
-  if (evBtn) { evBtn.textContent = isEventCreator ? '+ Event' : '🫧 Bubble'; evBtn.style.background = isEventCreator ? 'var(--accent)' : 'var(--purple)'; evBtn.style.color = isEventCreator ? '#000' : '#fff'; }
-  const fabBtn = document.getElementById('fab-event');
-  if (fabBtn) { fabBtn.textContent = isEventCreator ? '+' : '🫧'; fabBtn.style.background = isEventCreator ? 'var(--accent)' : 'var(--purple)'; }
   const mapBtn = document.getElementById('map-create-btn');
   if (mapBtn) { mapBtn.textContent = isEventCreator ? '+ Event' : '🫧 Bubble'; }
   const commNote = document.getElementById('events-community-note');
