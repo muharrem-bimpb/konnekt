@@ -443,13 +443,14 @@ def _clear_seeded_content(c):
                            [f"%{t}%" for t in seeded_titles]).fetchone()
     if not has_seeded:
         return  # already clean
-    c.execute("DELETE FROM events")
-    c.execute("DELETE FROM event_registrations")
-    c.execute("DELETE FROM life_bubbles")
-    c.execute("DELETE FROM zeitbank_offers")
-    c.execute("DELETE FROM activity_logs")
-    c.execute("DELETE FROM trails")
-    c.execute("DELETE FROM good_deeds")
+    # Children first, then parents
+    for tbl in ("event_registrations","event_comments","events",
+                "life_bubbles","zeitbank_offers",
+                "activity_logs","trails","good_deeds"):
+        try:
+            c.execute(f"DELETE FROM {tbl}")
+        except Exception:
+            pass
 
 def _ensure_admin_user(c):
     """Create the admin demo user on every boot (is_admin=1, is_moderator=1)."""
