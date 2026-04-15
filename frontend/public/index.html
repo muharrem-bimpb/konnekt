@@ -971,8 +971,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div id="trending-list" style="display:flex;gap:.6rem;overflow-x:auto;padding:.1rem 0 .5rem;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
       </div>
 
-      <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--accent2)"></span> Aktuelle Aktivitäten</div>
-      <div id="feed-list"><div class="loading">Lade Feed…</div></div>
     </div>
   </div>
 
@@ -2303,7 +2301,7 @@ function switchScreen(name, btn, swipeDir) {
   // Map always re-inits (Leaflet needs it), others only reload when stale
   if (name==='map')       { openMapScreen(); }
   if (stale) {
-    if (name==='feed')      { loadDashboard(); loadFeed(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
+    if (name==='feed')      { loadDashboard(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
     if (name==='volunteer') { loadEvents(); }
     if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
     if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
