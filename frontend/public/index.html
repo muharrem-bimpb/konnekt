@@ -15,28 +15,28 @@
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <title>Konnekt</title>
-<style>/* Prevent white flash before CSS loads */html,body{background:#0a0a0a;color:#efefef}</style>
+<style>/* Prevent white flash before CSS loads */html,body{background:#000000;color:#f8f8f2}</style>
 <style>
-/* ── Theme tokens v2 — Precision Lines ── */
+/* ── Theme tokens v3 — Black Neon ── */
 :root[data-theme="dark"] {
-  --bg:        #0a0a0a;
-  --card:      #111111;
-  --card2:     #181818;
-  --border:    #252525;
+  --bg:        #000000;
+  --card:      #0d0d0d;
+  --card2:     #141414;
+  --border:    #1e1e1e;
   --accent:    #4afa8c;
-  --accent2:   #38d9a9;
+  --accent2:   #ff79c6;
   --green:     #4afa8c;
   --neon:      #4afa8c;
-  --purple:    #a78bfa;
-  --orange:    #fb923c;
-  --pink:      #f472b6;
-  --red:       #f87171;
-  --text:      #efefef;
-  --muted:     #484848;
-  --dim:       #777777;
-  --shadow-sm: 0 1px 4px rgba(0,0,0,.6);
-  --shadow:    0 2px 12px rgba(0,0,0,.7);
-  --shadow-lg: 0 4px 24px rgba(0,0,0,.8);
+  --purple:    #bd93f9;
+  --orange:    #ffb86c;
+  --pink:      #ff79c6;
+  --red:       #ff5555;
+  --text:      #f8f8f2;
+  --muted:     #555566;
+  --dim:       #888899;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.8);
+  --shadow:    0 2px 12px rgba(0,0,0,.9);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,1);
   --radius:    8px;
   --radius-lg: 12px;
   --safe-top:  env(safe-area-inset-top, 0px);
@@ -258,6 +258,35 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
   #screen-map       { height: calc(100dvh - 50px - var(--safe-top)); }
   .topbar { padding-left: calc(64px + 1rem); left: 64px; }
   .fab { bottom: 1.5rem; right: 1.5rem; }
+}
+
+/* ── Map tile brightness fix ── */
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(1.7) contrast(0.82) saturate(1.2);
+}
+
+/* ── Neon glow on accent elements ── */
+[data-theme="dark"] .nav-item.active {
+  text-shadow: 0 0 8px rgba(74,250,140,.5);
+}
+[data-theme="dark"] .nav-item.active::after {
+  box-shadow: 0 0 6px rgba(74,250,140,.6);
+}
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .badge-pts {
+  box-shadow: 0 0 10px rgba(74,250,140,.25);
+}
+[data-theme="dark"] .topbar-brand .brand-dot {
+  box-shadow: 0 0 6px rgba(74,250,140,.7);
+}
+[data-theme="dark"] .w-dot.active {
+  box-shadow: 0 0 6px rgba(74,250,140,.6);
+}
+[data-theme="dark"] .card {
+  border-color: #1e1e1e;
+}
+[data-theme="dark"] .card:hover {
+  border-color: #2e2e2e;
 }
 
 /* ── Desktop 3-column world layout ── */
@@ -856,7 +885,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 </div>
 
 <!-- ══ LOADING OVERLAY ══ -->
-<div id="screen-loading" style="display:flex;position:fixed;inset:0;z-index:9999;background:#0a0a0a;align-items:center;justify-content:center;flex-direction:column;gap:0;overflow:hidden">
+<div id="screen-loading" style="display:flex;position:fixed;inset:0;z-index:9999;background:#000000;align-items:center;justify-content:center;flex-direction:column;gap:0;overflow:hidden">
   <!-- Curtain lines — two vertical bars that split open -->
   <div id="splash-curtain-l" style="position:absolute;inset:0 50% 0 0;background:#111;transform-origin:left center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
   <div id="splash-curtain-r" style="position:absolute;inset:0 0 0 50%;background:#111;transform-origin:right center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
