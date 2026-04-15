@@ -322,22 +322,20 @@ input.field:focus, select.field:focus {
   #screen-nahbar.active,
   #screen-map.active,
   #screen-feed.active { border-top: 2px solid var(--accent); }
-  /* Non-world screens overlay the full row */
+  /* Non-world screens: hide worlds-row, take full width */
   #screen-volunteer,
   #screen-coupons,
-  #screen-profile {
-    position: absolute;
-    inset: 0;
-    display: none !important;
-    z-index: 50;
-    order: 99;
-    background: var(--bg);
-    height: 100%;
-    overflow-y: auto;
-  }
+  #screen-profile { display: none !important; }
   #screen-volunteer.active,
   #screen-coupons.active,
-  #screen-profile.active { display: flex !important; }
+  #screen-profile.active {
+    display: flex !important;
+    flex: 1;
+    height: calc(100dvh - 50px - var(--safe-top));
+    overflow-y: auto;
+  }
+  /* Hide the 3-column row when a non-world tab is active */
+  #app.tab-active #worlds-row { display: none !important; }
   /* Hide swipe hints and world dots — all worlds visible at once */
   #world-indicator,
   .swipe-edge { display: none !important; }
@@ -2284,6 +2282,9 @@ function invalidateScreen(name) { delete _screenLoaded[name]; } // call after mu
 function switchScreen(name, btn, swipeDir) {
   const isDesktop = window.innerWidth >= 1024;
   const isWorld   = WORLDS.includes(name);
+
+  // Toggle worlds-row visibility on desktop
+  document.getElementById('app')?.classList.toggle('tab-active', isDesktop && !isWorld);
 
   if (isDesktop && isWorld) {
     // Desktop 3-column: worlds always visible — just clear non-world overlays
