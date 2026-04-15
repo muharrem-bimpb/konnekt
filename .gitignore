@@ -9,3 +9,4 @@ __pycache__/
 *.egg-info/
 *.db-shm
 *.db-wal
+.venv/
