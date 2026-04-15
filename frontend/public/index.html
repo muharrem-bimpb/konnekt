@@ -558,11 +558,24 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 .fab:active { opacity: .7; }
 
 /* ── Modal ── */
+@keyframes modalSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes modalSlideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(105%); opacity: 0; }
+}
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 1100;
   background: rgba(0,0,0,.7); align-items: flex-end; justify-content: center;
+  transition: background .22s;
 }
-.modal-overlay.active { display: flex; animation: screenIn .18s cubic-bezier(.25,.8,.4,1); }
+.modal-overlay.active { display: flex; }
+.modal-overlay.active .modal { animation: modalSlideUp .26s cubic-bezier(.25,.8,.4,1) both; }
+.modal-overlay.closing { pointer-events: none; }
+.modal-overlay.closing .modal { animation: modalSlideDown .24s cubic-bezier(.4,0,.6,1) both; }
+.modal-handle { width: 36px; height: 4px; background: var(--muted); border-radius: 99px; margin: 0 auto 1rem; cursor: grab; touch-action: none; }
 .modal {
   background: var(--card); border: 1px solid var(--border); border-top: 2px solid var(--border); border-radius: 12px 12px 0 0;
   width: 100%; max-width: 600px; padding: 1.25rem 1.1rem;
@@ -573,7 +586,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   .modal-overlay { align-items: center; }
   .modal { border-radius: 12px; max-height: 85dvh; max-width: 520px; border-top: 1px solid var(--border); }
 }
-.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 1rem; }
 .modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.2rem; position: relative; text-align: center; padding: 0 2.2rem; }
 .modal-close { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: var(--card2); border: none; color: var(--dim); border-radius: 8px; padding: .35rem .65rem; font-size: .85rem; cursor: pointer; }
 .modal .field-group { margin-bottom: .65rem; }
@@ -868,24 +880,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
       <div id="feed-bubbles-list"><div class="loading">Lade…</div></div>
       <button class="bubble-drop-btn" onclick="openDropBubble()">🫧 Eigene Bubble droppen — sag wer du bist & was du tust!</button>
-
-      <div class="neon-line" style="margin-bottom:.85rem"></div>
-
-      <!-- Quick action strip -->
-      <div style="display:flex;gap:.4rem;margin-bottom:.85rem">
-        <button onclick="switchScreen('nahbar',document.querySelector('.nav-item[onclick*=nahbar]'));setTimeout(()=>document.getElementById('deed-form')?.scrollIntoView({behavior:'smooth'}),300)" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);cursor:pointer;color:var(--text)">
-          <span style="font-size:.85rem">💚</span>
-          <span style="font-size:.7rem;font-weight:700">Gute Tat</span>
-        </button>
-        <button onclick="openCreateEventOrBubble()" id="feed-create-btn" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius);cursor:pointer;color:var(--text)">
-          <span style="font-size:.85rem">🫧</span>
-          <span id="feed-create-label" style="font-size:.7rem;font-weight:700">Bubble</span>
-        </button>
-        <button onclick="openDropBubble()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:.3rem;padding:.55rem .3rem;background:var(--card);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius);cursor:pointer;color:var(--text)">
-          <span style="font-size:.85rem">🫧</span>
-          <span style="font-size:.7rem;font-weight:700">Bubble</span>
-        </button>
-      </div>
 
       <!-- Upcoming reminder strip -->
       <div id="upcoming-reminder" style="display:none;margin-bottom:.5rem"></div>
@@ -1259,16 +1253,16 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   <!-- Bottom nav -->
   <nav class="bottom-nav">
     <button class="nav-item" onclick="switchScreen('feed',this)">
-      <span class="nav-icon">📊</span><span class="nav-label">Discover</span>
+      <span class="nav-icon">⚡</span><span class="nav-label">Feed</span>
     </button>
     <button class="nav-item" onclick="switchScreen('volunteer',this)">
-      <span class="nav-icon">🌱</span><span class="nav-label">Events</span>
+      <span class="nav-icon">🌱</span><span class="nav-label">Aktionen</span>
     </button>
     <button class="nav-item active" onclick="switchScreen('map',this)">
       <span class="nav-icon">🗺️</span><span class="nav-label">Karte</span>
     </button>
     <button class="nav-item" onclick="switchScreen('coupons',this)">
-      <span class="nav-icon">🎟️</span><span class="nav-label">Coupons</span>
+      <span class="nav-icon">🎟️</span><span class="nav-label">Vorteile</span>
     </button>
     <button class="nav-item" onclick="switchScreen('nahbar',this)">
       <span class="nav-icon">💛</span><span class="nav-label">Nahbar</span>
@@ -2153,10 +2147,6 @@ function _syncCreateButtons() {
   if (fabBtn) { fabBtn.textContent = isEventCreator ? '+' : '🫧'; fabBtn.style.background = isEventCreator ? 'var(--accent)' : 'var(--purple)'; }
   const mapBtn = document.getElementById('map-create-btn');
   if (mapBtn) { mapBtn.textContent = isEventCreator ? '+ Event' : '🫧 Bubble'; }
-  const feedLbl = document.getElementById('feed-create-label');
-  if (feedLbl) feedLbl.textContent = isEventCreator ? 'Event' : 'Bubble';
-  const feedBtn = document.getElementById('feed-create-btn');
-  if (feedBtn) { feedBtn.style.borderLeftColor = isEventCreator ? 'var(--accent)' : 'var(--purple)'; }
   const commNote = document.getElementById('events-community-note');
   if (commNote) commNote.style.display = isEventCreator ? 'none' : 'flex';
 }
@@ -4254,8 +4244,86 @@ function catColorStrip(category, isHangout) {
   return `<span class="card-color-strip" style="background:${tc.color}"></span>`;
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  overlay.classList.remove('closing');
+  overlay.classList.add('active');
+  // Wire drag-to-dismiss once per modal
+  if (!overlay._dragDismissWired) {
+    overlay._dragDismissWired = true;
+    _wireDragDismiss(overlay);
+  }
+}
+
+function closeModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay || !overlay.classList.contains('active')) return;
+  overlay.classList.add('closing');
+  // Reset any in-progress drag state
+  const modal = overlay.querySelector('.modal');
+  if (modal) { modal.style.transform = ''; modal.style.transition = ''; }
+  setTimeout(() => {
+    overlay.classList.remove('active', 'closing');
+    overlay.style.background = '';
+  }, 250);
+}
+
+function _wireDragDismiss(overlay) {
+  const modal = overlay.querySelector('.modal');
+  const handle = modal?.querySelector('.modal-handle');
+  if (!modal || !handle) return;
+
+  let startY = 0, lastY = 0, active = false;
+
+  handle.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    lastY  = startY;
+    active = true;
+    modal.style.transition = 'none';
+    e.stopPropagation();
+  }, {passive: true});
+
+  // Track on the overlay so movement outside the handle still registers
+  overlay.addEventListener('touchmove', e => {
+    if (!active) return;
+    lastY = e.touches[0].clientY;
+    const dy = Math.max(0, lastY - startY); // only downward
+    modal.style.transform = `translateY(${dy}px)`;
+    overlay.style.background = `rgba(0,0,0,${Math.max(0, 0.7 - dy / 350)})`;
+  }, {passive: true});
+
+  overlay.addEventListener('touchend', () => {
+    if (!active) return;
+    active = false;
+    const dy = Math.max(0, lastY - startY);
+    if (dy > 90) {
+      // Commit dismiss
+      modal.style.transition = 'transform .22s cubic-bezier(.4,0,.6,1), opacity .22s';
+      modal.style.transform   = 'translateY(110%)';
+      modal.style.opacity     = '0';
+      overlay.style.background = 'rgba(0,0,0,0)';
+      setTimeout(() => {
+        overlay.classList.remove('active', 'closing');
+        overlay.style.background = '';
+        modal.style.transform = '';
+        modal.style.opacity   = '';
+        modal.style.transition = '';
+      }, 230);
+    } else {
+      // Snap back
+      modal.style.transition = 'transform .22s cubic-bezier(.25,.8,.4,1)';
+      modal.style.transform   = '';
+      overlay.style.background = '';
+      setTimeout(() => { modal.style.transition = ''; }, 230);
+    }
+  }, {passive: true});
+
+  // Also dismiss when tapping the backdrop
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
