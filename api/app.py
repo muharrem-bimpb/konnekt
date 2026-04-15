@@ -426,7 +426,9 @@ def init_db():
                 c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
                 pass
-        # Always ensure demo token/user exists first (other seeds depend on having a user)
+        # Purge all demo/test backdoor accounts (one-time, idempotent)
+        c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
+        c.execute("DELETE FROM users WHERE password_hash IN ('TEST_NO_LOGIN','DEMO_NO_LOGIN')")
         _ensure_admin_user(c)
         # Always ensure demo seniors exist (needed for Nahbar visits flow)
         _ensure_seniors(c)
