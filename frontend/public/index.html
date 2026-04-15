@@ -260,6 +260,79 @@ input.field:focus, select.field:focus { border-color: var(--accent); box-shadow:
   .fab { bottom: 1.5rem; right: 1.5rem; }
 }
 
+/* ── Desktop 3-column world layout ── */
+@media (min-width: 1024px) {
+  #worlds-row {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+  }
+  /* All 3 world columns always visible side by side */
+  #screen-nahbar,
+  #screen-map,
+  #screen-feed {
+    display: flex !important;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    animation: none !important;
+    min-height: 0;
+    height: calc(100dvh - 50px - var(--safe-top));
+  }
+  /* Reorder DOM (feed, map, nahbar) → display (nahbar, map, feed) */
+  #screen-nahbar { order: 1; border-right: 1px solid var(--border); }
+  #screen-map    { order: 2; border-right: 1px solid var(--border); height: calc(100dvh - 50px - var(--safe-top)) !important; }
+  #screen-feed   { order: 3; }
+  /* Active world gets accent top border */
+  #screen-nahbar.active,
+  #screen-map.active,
+  #screen-feed.active { border-top: 2px solid var(--accent); }
+  /* Non-world screens overlay the full row */
+  #screen-volunteer,
+  #screen-coupons,
+  #screen-profile {
+    position: absolute;
+    inset: 0;
+    display: none !important;
+    z-index: 50;
+    order: 99;
+    background: var(--bg);
+    height: 100%;
+    overflow-y: auto;
+  }
+  #screen-volunteer.active,
+  #screen-coupons.active,
+  #screen-profile.active { display: flex !important; }
+  /* Hide swipe hints and world dots — all worlds visible at once */
+  #world-indicator,
+  .swipe-edge { display: none !important; }
+  /* Column label strips */
+  .world-col-header {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .85rem .4rem;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .world-col-header .col-dot {
+    width: 4px; height: 12px; border-radius: 2px; flex-shrink: 0;
+  }
+}
+@media (max-width: 1023px) {
+  /* On mobile keep worlds-row transparent — single-screen mode */
+  #worlds-row { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .world-col-header { display: none; }
+}
+
 /* ── Cards ── */
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
@@ -830,7 +903,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <!-- Screens -->
+  <div id="worlds-row">
   <div class="screen" id="screen-feed">
+    <div class="world-col-header"><span class="col-dot" style="background:var(--accent)"></span>⚡ Feed</div>
     <div class="scroll-body">
       <!-- Community Challenge -->
       <div class="challenge-card" id="challenge-card" style="display:none">
@@ -940,6 +1015,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
   <!-- Map screen: full-screen map with mode toggles -->
   <div class="screen active" id="screen-map" style="flex-direction:column;overflow:hidden">
+    <div class="world-col-header"><span class="col-dot" style="background:var(--purple)"></span>🗺️ Karte</div>
     <div style="flex:1;position:relative;min-height:0;overflow:hidden">
       <!-- position:absolute+inset:0 is the only reliable way to make Leaflet fill a flex child -->
       <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
@@ -1018,6 +1094,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <div class="screen" id="screen-nahbar">
+    <div class="world-col-header"><span class="col-dot" style="background:var(--pink)"></span>💛 Nahbar</div>
     <div class="scroll-body">
       <div class="nahbar-hero">
         <h2>Kein Nachbar allein 💛</h2>
@@ -1251,6 +1328,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 
   <!-- Bottom nav -->
+  </div><!-- /worlds-row -->
   <nav class="bottom-nav">
     <button class="nav-item" onclick="switchScreen('feed',this)">
       <span class="nav-icon">⚡</span><span class="nav-label">Feed</span>
@@ -1562,7 +1640,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <div class="field-label">Adresse <span style="font-size:.68rem;color:var(--dim);font-weight:400">— tippe für Vorschläge</span></div>
       <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort" autocomplete="off"
              oninput="evAddrSearch(this.value);clearFieldErr('ev-city')"
-             onblur="setTimeout(()=>document.getElementById('ev-addr-suggestions').style.display='none',200)">
+             onblur="setTimeout(()=>document.getElementById('ev-addr-suggestions').style.display='none',400)">
       <input type="hidden" id="ev-lat" value="0">
       <input type="hidden" id="ev-lng" value="0">
       <div id="ev-addr-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);max-height:180px;overflow-y:auto"></div>
@@ -2194,18 +2272,32 @@ function _markLoaded(name) { _screenLoaded[name] = Date.now(); }
 function invalidateScreen(name) { delete _screenLoaded[name]; } // call after mutations
 
 function switchScreen(name, btn, swipeDir) {
-  document.querySelectorAll('#app .screen').forEach(s => {
-    s.classList.remove('active', 'slide-left', 'slide-right');
-  });
+  const isDesktop = window.innerWidth >= 1024;
+  const isWorld   = WORLDS.includes(name);
+
+  if (isDesktop && isWorld) {
+    // Desktop 3-column: worlds always visible — just clear non-world overlays
+    document.querySelectorAll('#app .screen').forEach(s => {
+      const sName = s.id.replace('screen-', '');
+      if (!WORLDS.includes(sName)) s.classList.remove('active', 'slide-left', 'slide-right');
+    });
+  } else {
+    document.querySelectorAll('#app .screen').forEach(s => {
+      s.classList.remove('active', 'slide-left', 'slide-right');
+    });
+  }
+
   const scr = document.getElementById('screen-'+name);
   if (scr) {
     scr.classList.add('active');
-    if (swipeDir === 'right') {
-      scr.classList.add('slide-right');
-      setTimeout(() => scr.classList.remove('slide-right'), 350);
-    } else if (swipeDir === 'left') {
-      scr.classList.add('slide-left');
-      setTimeout(() => scr.classList.remove('slide-left'), 350);
+    if (!isDesktop || !isWorld) {
+      if (swipeDir === 'right') {
+        scr.classList.add('slide-right');
+        setTimeout(() => scr.classList.remove('slide-right'), 350);
+      } else if (swipeDir === 'left') {
+        scr.classList.add('slide-left');
+        setTimeout(() => scr.classList.remove('slide-left'), 350);
+      }
     }
   }
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -3140,7 +3232,7 @@ async function evAddrSearch(val) {
         const lng  = parseFloat(it.lon);
         const shortLabel = [it.address?.road, it.address?.house_number, it.address?.city||it.address?.town||it.address?.village].filter(Boolean).join(' ');
         return `<div style="padding:.55rem .85rem;font-size:.82rem;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text)"
-                     onmousedown="selectAddrSuggestion('${shortLabel||addr.slice(0,60)}','${it.address?.city||it.address?.town||it.address?.village||''}',${lat},${lng})"
+                     onclick="selectAddrSuggestion('${shortLabel||addr.slice(0,60)}','${it.address?.city||it.address?.town||it.address?.village||''}',${lat},${lng})"
                      >${esc(shortLabel||addr.slice(0,70))}</div>`;
       }).join('');
       sug.style.display='';
