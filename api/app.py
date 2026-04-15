@@ -478,20 +478,13 @@ def _purge_test_accounts(c):
     ).fetchall()]
     if not ids:
         return
-    placeholders = ','.join('?' * len(ids))
-    for tbl, col in [
-        ('sessions','user_id'), ('good_deeds','user_id'), ('event_registrations','user_id'),
-        ('life_bubbles','user_id'), ('coupon_redemptions','user_id'), ('klopfs','sender_id'),
-        ('klopfs','receiver_id'), ('senior_visits','senior_id'), ('senior_visits','visitor_id'),
-        ('zeitbank_offers','user_id'), ('activity_logs','user_id'), ('push_subscriptions','user_id'),
-        ('gps_trails','user_id'), ('notifications','user_id'), ('event_comments','user_id'),
-    ]:
-        try:
-            c.execute(f"DELETE FROM {tbl} WHERE {col} IN ({placeholders})", ids)
-        except Exception:
-            pass
-    c.execute(f"DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
-    c.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+    c.execute("PRAGMA foreign_keys = OFF")
+    try:
+        placeholders = ','.join('?' * len(ids))
+        c.execute(f"DELETE FROM users WHERE id IN ({placeholders})", ids)
+        c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
+    finally:
+        c.execute("PRAGMA foreign_keys = ON")
 
 def _ensure_seniors(c):
     """Create demo senior users if none exist — needed for Nahbar visit flow."""
