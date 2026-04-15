@@ -859,7 +859,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       ✉️ Magic Link — kein Passwort nötig
     </button>
 
-    <button class="btn-secondary" onclick="demoLogin()" style="font-size:.82rem;color:var(--dim)">✨ Demo ohne Account</button>
 
     <!-- Test accounts for UI testing -->
     <div id="test-accounts" style="margin-top:.5rem;background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:12px;padding:.65rem">
@@ -2094,19 +2093,6 @@ async function submitAuth() {
   }
 }
 
-async function demoLogin() {
-  token = 'demo-token-konnekt-2026';
-  localStorage.setItem('konnekt_token', token);
-  try { await loadApp(); showManualInstallBar(); }
-  catch(e) { token = ''; localStorage.removeItem('konnekt_token'); showAuthError('Demo nicht verfügbar.'); }
-}
-
-async function testLogin(testToken, name) {
-  token = testToken;
-  localStorage.setItem('konnekt_token', token);
-  try { await loadApp(); showToast(`✓ Eingeloggt als ${name}`); }
-  catch(e) { token = ''; localStorage.removeItem('konnekt_token'); showAuthError('Test-Konto nicht verfügbar — warte auf Serverstart.'); }
-}
 
 function showAuthError(msg) {
   const el = document.getElementById('auth-error');
