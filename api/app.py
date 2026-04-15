@@ -4,7 +4,7 @@ Konnekt — Social Impact Platform API
 Two pillars: VolunteerHub + Nahbar (anti-loneliness)
 Production-ready Flask REST API
 """
-import os, json, sqlite3, hashlib, secrets, time, random
+import os, json, sqlite3, hashlib, secrets, time, random, math, uuid, base64
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
@@ -269,8 +269,26 @@ def init_db():
             address TEXT DEFAULT '',
             city TEXT DEFAULT '',
             expires_at TEXT NOT NULL,
+            photo_data TEXT DEFAULT NULL,
+            audio_data TEXT DEFAULT NULL,
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        -- Add media columns to existing bubbles tables if not present
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS surprise_rewards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            sent_at TEXT DEFAULT (datetime('now')),
+            year INTEGER NOT NULL DEFAULT (CAST(strftime('%Y','now') AS INTEGER))
         );
         CREATE TABLE IF NOT EXISTS trails (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -402,6 +420,12 @@ def init_db():
                 pass
         # Back-fill: any already-completed visits count as both confirmed
         c.execute("UPDATE senior_visits SET visitor_confirmed=1, senior_confirmed=1 WHERE completed=1")
+        # Add media columns to life_bubbles (migration)
+        for col, defn in [("photo_data", "TEXT DEFAULT NULL"), ("audio_data", "TEXT DEFAULT NULL")]:
+            try:
+                c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
+            except sqlite3.OperationalError:
+                pass
         # Always ensure demo token/user exists first (other seeds depend on having a user)
         _ensure_admin_user(c)
         _ensure_demo_token(c)
@@ -757,6 +781,14 @@ def _seed_past_activity(c):
                       (uid, 150 + i*30, f"Monats-Aktivität {i}", "seed", 0, mo.strftime('%Y-%m-%dT%H:%M:%S')))
         except Exception:
             pass
+
+def haversine_m(lat1, lon1, lat2, lon2):
+    """Return distance in meters between two lat/lng points."""
+    R = 6_371_000
+    p = math.pi / 180
+    a = (0.5 - math.cos((lat2 - lat1) * p) / 2
+         + math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2)
+    return 2 * R * math.asin(math.sqrt(a))
 
 def geocode_address(address, city):
     """Use Nominatim (OSM) — free, no API key needed."""
@@ -2236,6 +2268,7 @@ def get_bubbles():
     with get_db() as c:
         q = """SELECT b.id, b.title, b.emoji, b.description, b.lat, b.lng,
                       b.address, b.city, b.expires_at, b.created_at,
+                      b.photo_data, b.audio_data,
                       u.display_name, u.avatar_url
                FROM life_bubbles b JOIN users u ON b.user_id=u.id
                WHERE b.expires_at > datetime('now')"""
@@ -2249,7 +2282,9 @@ def get_bubbles():
 @app.post("/api/bubbles")
 @require_auth
 def drop_bubble():
-    """Drop a life bubble — a spontaneous moment others can join."""
+    """Drop a life bubble — a spontaneous moment others can join.
+    Accepts JSON with optional photo_data (base64 JPEG ≤300KB) and audio_data (base64 webm ≤600KB).
+    """
     d = request.json or {}
     if not d.get("title"):
         return jsonify({"error": "title required"}), 400
@@ -2259,13 +2294,21 @@ def drop_bubble():
         lat, lng = geocode_address(d.get("address", ""), d.get("city", ""))
     hours = min(max(int(d.get("hours", 3)), 1), 8)
     expires = (datetime.utcnow() + timedelta(hours=hours)).isoformat()
+    # Validate media sizes (base64 strings — roughly 1.33× raw bytes)
+    photo_data = d.get("photo_data") or None
+    audio_data = d.get("audio_data") or None
+    if photo_data and len(photo_data) > 400_000:   # ~300KB raw
+        return jsonify({"error": "Foto zu gross (max. 300KB)"}), 413
+    if audio_data and len(audio_data) > 800_000:   # ~600KB raw
+        return jsonify({"error": "Audio zu lang (max. 15 Sek.)"}), 413
     with get_db() as c:
         c.execute("""
-            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city, expires_at, photo_data, audio_data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (g.user_id, d["title"][:100], d.get("emoji", "✨"),
               d.get("description", "")[:200],
-              lat, lng, d.get("address", ""), d.get("city", ""), expires))
+              lat, lng, d.get("address", ""), d.get("city", ""), expires,
+              photo_data, audio_data))
         bid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
     return jsonify({"id": bid, "ok": True}), 201
 
@@ -2397,14 +2440,27 @@ def get_trail_progress(tid):
 @app.post("/api/trails/<int:tid>/checkin/<int:sid>")
 @require_auth
 def trail_checkin(tid, sid):
-    """Check in at a trail stop (honour system — no GPS verification for now)."""
+    """Check in at a trail stop with optional server-side GPS proximity validation (200m)."""
+    d = request.json or {}
+    user_lat = d.get("lat")
+    user_lng = d.get("lng")
     with get_db() as c:
         tr = c.execute("SELECT * FROM trails WHERE id=? AND active=1", (tid,)).fetchone()
         if not tr:
             return jsonify({"error": "Trail nicht gefunden"}), 404
-        stop = c.execute("SELECT * FROM trail_stops WHERE id=? AND trail_id=?", (sid, tid)).fetchone()
+        stop = c.execute("""
+            SELECT ts.*, b.lat as biz_lat, b.lng as biz_lng
+            FROM trail_stops ts JOIN businesses b ON ts.business_id=b.id
+            WHERE ts.id=? AND ts.trail_id=?
+        """, (sid, tid)).fetchone()
         if not stop:
             return jsonify({"error": "Stop nicht gefunden"}), 404
+        # Server-side GPS proximity check (200m) when client sends coordinates
+        biz_lat, biz_lng = stop["biz_lat"], stop["biz_lng"]
+        if user_lat is not None and user_lng is not None and biz_lat and biz_lng:
+            dist = haversine_m(float(user_lat), float(user_lng), biz_lat, biz_lng)
+            if dist > 200:
+                return jsonify({"error": f"Zu weit entfernt ({int(dist)}m). Max. 200m."}), 400
         try:
             c.execute("INSERT INTO trail_progress (trail_id,user_id,stop_id) VALUES (?,?,?)", (tid, g.user_id, sid))
         except sqlite3.IntegrityError:
@@ -3900,6 +3956,109 @@ def qr_redirect_info():
         "qr_target": base + "/landing",
         "instructions": "Print QR pointing to /landing — it shows stats + install button"
     })
+
+# ── Surprise Rewards (long-term contributor recognition) ─────────────────────
+
+@app.get("/api/admin/surprise-rewards")
+@require_auth
+def admin_surprise_rewards():
+    """List users eligible for a physical surprise package.
+    Criteria: 10+ actions in last 6 months AND avg quality rating > 8.5,
+    not already rewarded this calendar year.
+    """
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or not caller["is_admin"]:
+            return jsonify({"error": "Nur für Admins"}), 403
+        rows = c.execute("""
+            WITH actions AS (
+                SELECT user_id, COUNT(*) as cnt
+                FROM (
+                    SELECT organizer_id as user_id FROM events
+                        WHERE created_at >= datetime('now','-6 months')
+                    UNION ALL
+                    SELECT user_id FROM event_ratings WHERE role='participant_rates_organizer'
+                        AND created_at >= datetime('now','-6 months')
+                    UNION ALL
+                    SELECT user_id FROM life_bubbles
+                        WHERE created_at >= datetime('now','-6 months')
+                    UNION ALL
+                    SELECT user_id FROM senior_visits WHERE completed=1
+                        AND scheduled_at >= datetime('now','-6 months')
+                    UNION ALL
+                    SELECT user_id FROM good_deeds
+                        WHERE created_at >= datetime('now','-6 months')
+                ) GROUP BY user_id
+            ),
+            quality AS (
+                SELECT rated_id as user_id, ROUND(AVG(score),2) as avg_score, COUNT(*) as n
+                FROM event_ratings GROUP BY rated_id
+            )
+            SELECT u.id, u.display_name, u.email, u.city, u.created_at,
+                   a.cnt as action_count, q.avg_score, q.n as rating_count,
+                   sr.sent_at as reward_sent_at
+            FROM users u
+            JOIN actions a ON a.user_id = u.id
+            JOIN quality q ON q.user_id = u.id
+            LEFT JOIN surprise_rewards sr ON sr.user_id = u.id
+                AND sr.year = CAST(strftime('%Y','now') AS INTEGER)
+            WHERE a.cnt >= 10 AND q.avg_score >= 8.5 AND sr.id IS NULL
+            ORDER BY q.avg_score DESC, a.cnt DESC
+        """).fetchall()
+    return jsonify({"candidates": [dict(r) for r in rows]})
+
+@app.post("/api/admin/surprise-rewards/<int:uid>/send")
+@require_auth
+def mark_surprise_sent(uid):
+    """Mark a surprise package as sent and notify the user."""
+    with get_db() as c:
+        caller = c.execute("SELECT is_admin FROM users WHERE id=?", (g.user_id,)).fetchone()
+        if not caller or not caller["is_admin"]:
+            return jsonify({"error": "Nur für Admins"}), 403
+        try:
+            year = datetime.utcnow().year
+            c.execute("INSERT INTO surprise_rewards (user_id, year) VALUES (?,?)", (uid, year))
+        except sqlite3.IntegrityError:
+            return jsonify({"error": "Bereits gesendet dieses Jahr"}), 409
+        # Notify the user
+        c.execute("""
+            INSERT INTO notifications (user_id, type, title, body, ref_type)
+            VALUES (?, 'surprise', '❤️ Eine kleine Überraschung ist unterwegs',
+                    'Ohne dich wäre das hier nur eine Plattform geblieben. Du hast ihr Leben gegeben. Danke.', 'reward')
+        """, (uid,))
+    return jsonify({"ok": True})
+
+# ── Push Notification Subscriptions ──────────────────────────────────────────
+
+@app.post("/api/push/subscribe")
+@require_auth
+def push_subscribe():
+    """Store a Web Push subscription for this user."""
+    d = request.json or {}
+    endpoint = d.get("endpoint")
+    p256dh   = (d.get("keys") or {}).get("p256dh")
+    auth_key = (d.get("keys") or {}).get("auth")
+    if not endpoint or not p256dh or not auth_key:
+        return jsonify({"error": "Invalid subscription object"}), 400
+    with get_db() as c:
+        try:
+            c.execute("""
+                INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+                VALUES (?,?,?,?)
+                ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id
+            """, (g.user_id, endpoint, p256dh, auth_key))
+        except Exception:
+            pass
+    return jsonify({"ok": True})
+
+@app.delete("/api/push/subscribe")
+@require_auth
+def push_unsubscribe():
+    d = request.json or {}
+    with get_db() as c:
+        c.execute("DELETE FROM push_subscriptions WHERE endpoint=? AND user_id=?",
+                  (d.get("endpoint",""), g.user_id))
+    return jsonify({"ok": True})
 
 if __name__ == "__main__":
     app.run(host=HOST, port=PORT, debug=False)

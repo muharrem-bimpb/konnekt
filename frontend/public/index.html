@@ -1357,6 +1357,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <button type="button" id="atab-btn-events" onclick="switchAdminTab('events')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🔍 KI</button>
       <button type="button" id="atab-btn-fraud"  onclick="switchAdminTab('fraud')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">⚠️ Betrug</button>
       <button type="button" id="atab-btn-stats"  onclick="switchAdminTab('stats')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">📊 Stats</button>
+      <button type="button" id="atab-btn-rewards" onclick="switchAdminTab('rewards')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.65rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">❤️ Danke</button>
     </div>
     <!-- Queue tab -->
     <div id="atab-queue">
@@ -1380,6 +1381,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <!-- Platform Stats tab -->
     <div id="atab-stats" style="display:none">
       <div id="admin-stats-content"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- Surprise Rewards tab -->
+    <div id="atab-rewards" style="display:none">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:.85rem;line-height:1.6;border-left:3px solid var(--accent);padding-left:.75rem">
+        Diese Menschen haben der App Leben gegeben. Kein Algorithmus — eine echte menschliche Geste. Schick ihnen etwas Physisches: eine Postkarte, Schokolade. Einmal pro Jahr.
+      </div>
+      <div id="admin-rewards-list"><div class="loading">Lade…</div></div>
     </div>
   </div>
 </div>
@@ -1718,6 +1726,22 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         </select>
       </div>
     </div>
+    <!-- Media capture strip -->
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem">
+      <button type="button" id="bubble-cam-btn" onclick="bubbleCapturePhoto()"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.55rem;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.78rem;font-weight:700;cursor:pointer">
+        📸 <span>Foto</span>
+      </button>
+      <button type="button" id="bubble-mic-btn" onclick="bubbleToggleRecording()"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.55rem;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.78rem;font-weight:700;cursor:pointer">
+        🎤 <span id="bubble-mic-label">Voice</span>
+      </button>
+      <button type="button" id="bubble-media-clear" onclick="bubbleClearMedia()" style="display:none;padding:.55rem .7rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);color:#f87171;font-size:.78rem;cursor:pointer">✕</button>
+    </div>
+    <!-- Hidden camera input fallback -->
+    <input type="file" id="bubble-cam-input" accept="image/*" capture="environment" style="display:none" onchange="bubblePhotoFromFile(this)">
+    <!-- Preview area -->
+    <div id="bubble-media-preview" style="display:none;margin-bottom:.75rem;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)"></div>
     <div id="bubble-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
     <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:linear-gradient(135deg,var(--purple),var(--accent));box-shadow:0 4px 16px rgba(139,92,246,.3)">🫧 Bubble droppen!</button>
   </div>
@@ -4747,7 +4771,7 @@ function closeAdminPanel() {
 }
 
 function switchAdminTab(tab) {
-  ['queue','biz','events','fraud','stats'].forEach(t => {
+  ['queue','biz','events','fraud','stats','rewards'].forEach(t => {
     const panel = document.getElementById(`atab-${t}`);
     if (panel) panel.style.display = t === tab ? '' : 'none';
     const btn = document.getElementById(`atab-btn-${t}`);
@@ -4756,11 +4780,56 @@ function switchAdminTab(tab) {
       btn.style.color = t === tab ? 'white' : 'var(--dim)';
     }
   });
-  if (tab === 'queue')  loadAdminQueue();
-  if (tab === 'biz')    loadAdminBiz();
-  if (tab === 'events') loadAdminEvents();
-  if (tab === 'fraud')  loadAdminFraud();
-  if (tab === 'stats')  loadAdminStats();
+  if (tab === 'queue')   loadAdminQueue();
+  if (tab === 'biz')     loadAdminBiz();
+  if (tab === 'events')  loadAdminEvents();
+  if (tab === 'fraud')   loadAdminFraud();
+  if (tab === 'stats')   loadAdminStats();
+  if (tab === 'rewards') loadSurpriseRewards();
+}
+
+async function loadSurpriseRewards() {
+  const el = document.getElementById('admin-rewards-list');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Lade Kandidaten…</div>';
+  try {
+    const d = await apiFetch('/api/admin/surprise-rewards');
+    if (!d.candidates.length) {
+      el.innerHTML = '<div class="empty">Noch keine Kandidaten (min. 10 Aktionen + Ø 8.5 Bewertung in 6 Monaten).</div>';
+      return;
+    }
+    el.innerHTML = d.candidates.map(u => `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-bottom:.65rem">
+        <div style="display:flex;align-items:flex-start;gap:.75rem">
+          <div style="font-size:1.6rem">❤️</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.88rem">${esc(u.display_name)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${esc(u.city||'–')} · Dabei seit ${u.created_at?.slice(0,7)||'?'}</div>
+            <div style="display:flex;gap:.65rem;margin-top:.3rem;flex-wrap:wrap">
+              <span style="font-size:.7rem;background:rgba(74,250,140,.1);color:var(--accent);border:1px solid rgba(74,250,140,.2);border-radius:99px;padding:.15rem .5rem">⭐ Ø ${u.avg_score} (${u.rating_count} Bew.)</span>
+              <span style="font-size:.7rem;background:var(--card2);border:1px solid var(--border);border-radius:99px;padding:.15rem .5rem">🌱 ${u.action_count} Aktionen</span>
+            </div>
+          </div>
+          <button onclick="markRewardSent(${u.id},this)"
+            style="flex-shrink:0;padding:.4rem .75rem;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">
+            Gesendet ✓
+          </button>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="empty">Fehler: ${esc(e.message)}</div>`; }
+}
+
+async function markRewardSent(uid, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await apiFetch(`/api/admin/surprise-rewards/${uid}/send`, 'POST');
+    btn.closest('div[style]').style.opacity = '.45';
+    btn.textContent = '✓ Sent';
+    showToast('❤️ Überraschung markiert — Benachrichtigung gesendet');
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Gesendet ✓';
+    showToast(e.message || 'Fehler');
+  }
 }
 
 async function loadAdminBiz() {
@@ -5223,6 +5292,153 @@ function selectBubbleEmoji(e, btn) {
   btn.classList.add('selected');
 }
 
+// ── Bubble media (camera + voice) ────────────────────────────────────────────
+let _bubblePhotoData = null;   // base64 JPEG string
+let _bubbleAudioData = null;   // base64 webm string
+let _bubbleRecorder  = null;
+let _bubbleRecChunks = [];
+let _bubbleRecTimer  = null;
+
+function bubbleClearMedia() {
+  _bubblePhotoData = _bubbleAudioData = null;
+  if (_bubbleRecorder && _bubbleRecorder.state !== 'inactive') _bubbleRecorder.stop();
+  _bubbleRecorder = null;
+  clearInterval(_bubbleRecTimer);
+  document.getElementById('bubble-media-preview').style.display = 'none';
+  document.getElementById('bubble-media-preview').innerHTML = '';
+  document.getElementById('bubble-media-clear').style.display = 'none';
+  document.getElementById('bubble-mic-label').textContent = 'Voice';
+  document.getElementById('bubble-mic-btn').style.borderColor = '';
+  document.getElementById('bubble-mic-btn').style.color = '';
+}
+
+function bubbleCapturePhoto() {
+  // Try getUserMedia first (PWA camera), fall back to file input
+  if (navigator.mediaDevices?.getUserMedia) {
+    _bubbleOpenCameraModal();
+  } else {
+    document.getElementById('bubble-cam-input').click();
+  }
+}
+
+function bubblePhotoFromFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _bubbleResizeAndStore(file);
+  input.value = '';
+}
+
+function _bubbleOpenCameraModal() {
+  // Create an inline viewfinder overlay
+  const ov = document.createElement('div');
+  ov.id = 'bubble-cam-ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem';
+  ov.innerHTML = `
+    <video id="bubble-cam-video" autoplay playsinline style="width:100%;max-height:75dvh;object-fit:cover"></video>
+    <div style="display:flex;gap:1rem">
+      <button onclick="_bubbleTakeSnap()" style="padding:.75rem 1.8rem;background:#4afa8c;color:#000;border:none;border-radius:8px;font-weight:800;font-size:1rem;cursor:pointer">📸 Aufnehmen</button>
+      <button onclick="_bubbleCloseCamera()" style="padding:.75rem 1.2rem;background:#252525;color:#efefef;border:none;border-radius:8px;cursor:pointer">Abbrechen</button>
+    </div>`;
+  document.body.appendChild(ov);
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false})
+    .then(stream => {
+      const v = document.getElementById('bubble-cam-video');
+      if (v) { v.srcObject = stream; v._stream = stream; }
+    })
+    .catch(() => {
+      _bubbleCloseCamera();
+      document.getElementById('bubble-cam-input').click();
+    });
+}
+
+function _bubbleTakeSnap() {
+  const v = document.getElementById('bubble-cam-video');
+  if (!v) return;
+  const canvas = document.createElement('canvas');
+  const scale = Math.min(1, 800 / v.videoWidth);
+  canvas.width  = v.videoWidth  * scale;
+  canvas.height = v.videoHeight * scale;
+  canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+  _bubbleCloseCamera();
+  _bubbleSetPhoto(dataUrl);
+}
+
+function _bubbleCloseCamera() {
+  const v = document.getElementById('bubble-cam-video');
+  if (v?._stream) v._stream.getTracks().forEach(t => t.stop());
+  document.getElementById('bubble-cam-ov')?.remove();
+}
+
+function _bubbleResizeAndStore(file) {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 800 / img.width);
+    canvas.width = img.width * scale; canvas.height = img.height * scale;
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    _bubbleSetPhoto(canvas.toDataURL('image/jpeg', 0.72));
+  };
+  img.src = url;
+}
+
+function _bubbleSetPhoto(dataUrl) {
+  _bubblePhotoData = dataUrl.split(',')[1]; // strip "data:image/jpeg;base64,"
+  const prev = document.getElementById('bubble-media-preview');
+  prev.innerHTML = `<img src="${dataUrl}" style="width:100%;max-height:200px;object-fit:cover;display:block">`;
+  prev.style.display = '';
+  document.getElementById('bubble-media-clear').style.display = '';
+}
+
+async function bubbleToggleRecording() {
+  if (_bubbleRecorder && _bubbleRecorder.state === 'recording') {
+    _bubbleRecorder.stop();
+    return;
+  }
+  if (_bubbleAudioData) { bubbleClearMedia(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    _bubbleRecChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    _bubbleRecorder = new MediaRecorder(stream, {mimeType});
+    _bubbleRecorder.ondataavailable = e => { if (e.data.size) _bubbleRecChunks.push(e.data); };
+    _bubbleRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(_bubbleRecTimer);
+      const blob = new Blob(_bubbleRecChunks, {type: mimeType});
+      const reader = new FileReader();
+      reader.onload = () => {
+        _bubbleAudioData = reader.result.split(',')[1];
+        const url = URL.createObjectURL(blob);
+        const prev = document.getElementById('bubble-media-preview');
+        prev.innerHTML += `<audio controls src="${url}" style="width:100%;padding:.5rem;background:var(--card2)"></audio>`;
+        prev.style.display = '';
+        document.getElementById('bubble-media-clear').style.display = '';
+        document.getElementById('bubble-mic-label').textContent = 'Voice ✓';
+        document.getElementById('bubble-mic-btn').style.borderColor = 'var(--accent)';
+        document.getElementById('bubble-mic-btn').style.color = 'var(--accent)';
+      };
+      reader.readAsDataURL(blob);
+    };
+    _bubbleRecorder.start();
+    // Auto-stop at 15s
+    let secs = 0;
+    _bubbleRecTimer = setInterval(() => {
+      secs++;
+      document.getElementById('bubble-mic-label').textContent = `${15 - secs}s`;
+      if (secs >= 15) _bubbleRecorder?.stop();
+    }, 1000);
+    document.getElementById('bubble-mic-label').textContent = '⏹ 15s';
+    document.getElementById('bubble-mic-btn').style.borderColor = '#f87171';
+    document.getElementById('bubble-mic-btn').style.color = '#f87171';
+  } catch {
+    showToast('Mikrofon nicht verfügbar');
+  }
+}
+
 async function submitDropBubble() {
   const title = document.getElementById('bubble-title').value.trim();
   const errEl = document.getElementById('bubble-error');
@@ -5237,11 +5453,14 @@ async function submitDropBubble() {
       description: document.getElementById('bubble-desc').value.trim(),
       address: document.getElementById('bubble-addr').value.trim(),
       city: currentUser?.city || '',
-      hours: parseInt(document.getElementById('bubble-hours').value) || 3
+      hours: parseInt(document.getElementById('bubble-hours').value) || 3,
+      photo_data: _bubblePhotoData || null,
+      audio_data: _bubbleAudioData || null
     });
     // Reset
     document.getElementById('bubble-title').value = '';
     document.getElementById('bubble-desc').value = '';
+    bubbleClearMedia();
     closeModal('modal-drop-bubble');
     showToast('🫧 Bubble gedroppt! Leute in der Nähe sehen sie jetzt.');
     invalidateScreen('feed');
@@ -5267,16 +5486,28 @@ function renderBubbleCard(b) {
   const clickHandler = hasCoords
     ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"`
     : '';
-  return `<div class="bubble-card" ${clickHandler}>
-    <div class="bubble-emoji">${esc(b.emoji||'✨')}</div>
-    <div class="bubble-body">
-      <div class="bubble-title">${esc(b.title)}</div>
-      ${b.description ? `<div class="bubble-desc">${esc(b.description)}</div>` : ''}
-      <div class="bubble-meta">
-        <span>👤 ${esc(b.display_name||'')}</span>
-        ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
-        <span class="bubble-expires">⏱ ${timeLeft}</span>
-        ${hasCoords ? `<span style="color:var(--purple);font-size:.68rem;font-weight:700">🗺 Auf Karte →</span>` : ''}
+  const photoHtml = b.photo_data
+    ? `<img src="data:image/jpeg;base64,${b.photo_data}" style="width:100%;max-height:180px;object-fit:cover;border-radius:6px 6px 0 0;display:block;margin-bottom:.5rem" loading="lazy">`
+    : '';
+  const audioHtml = b.audio_data
+    ? `<audio controls src="data:audio/webm;base64,${b.audio_data}" style="width:100%;margin:.35rem 0;border-radius:4px" preload="none"></audio>`
+    : '';
+  return `<div class="bubble-card" style="padding:0;overflow:hidden" ${clickHandler}>
+    ${photoHtml}
+    <div style="padding:.65rem .75rem">
+      <div style="display:flex;gap:.5rem;align-items:flex-start">
+        <div class="bubble-emoji" style="flex-shrink:0">${esc(b.emoji||'✨')}</div>
+        <div class="bubble-body" style="min-width:0">
+          <div class="bubble-title">${esc(b.title)}</div>
+          ${b.description ? `<div class="bubble-desc">${esc(b.description)}</div>` : ''}
+          ${audioHtml}
+          <div class="bubble-meta">
+            <span>👤 ${esc(b.display_name||'')}</span>
+            ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
+            <span class="bubble-expires">⏱ ${timeLeft}</span>
+            ${hasCoords ? `<span style="color:var(--purple);font-size:.68rem;font-weight:700">🗺 →</span>` : ''}
+          </div>
+        </div>
       </div>
     </div>
   </div>`;
