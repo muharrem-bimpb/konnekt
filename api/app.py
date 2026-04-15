@@ -428,25 +428,28 @@ def init_db():
                 pass
         # Purge all demo/test backdoor accounts (one-time, idempotent)
         _purge_test_accounts(c)
+        # Clear all seeded/fake content — launch with clean slate
+        _clear_seeded_content(c)
         _ensure_admin_user(c)
-        # Always ensure demo seniors exist (needed for Nahbar visits flow)
-        _ensure_seniors(c)
-        # Seed demo data if empty
-        if c.execute("SELECT COUNT(*) FROM businesses").fetchone()[0] == 0:
-            _seed_demo(c)
-        # Seed demo events independently; re-seed if all events are in the past
-        total_ev = c.execute("SELECT COUNT(*) FROM events").fetchone()[0]
-        future_ev = c.execute("SELECT COUNT(*) FROM events WHERE starts_at >= datetime('now')").fetchone()[0]
-        if total_ev == 0 or future_ev == 0:
-            _seed_events(c)
-        # Seed demo bubbles if none active
-        if c.execute("SELECT COUNT(*) FROM life_bubbles WHERE expires_at > datetime('now')").fetchone()[0] == 0:
-            _seed_bubbles(c)
-        # Seed demo trail if none exists
-        if c.execute("SELECT COUNT(*) FROM trails").fetchone()[0] == 0:
-            _seed_trail(c)
-        # Seed past activity for Anna (achievements + analytics)
-        _seed_past_activity(c)
+
+def _clear_seeded_content(c):
+    """One-time launch cleanup: wipe all fake/seeded content. Runs until no seeded events remain."""
+    seeded_titles = ("UNO Spielabend", "Brettspiele Café", "Improv Theater",
+                     "Deutschkurs für Geflüchtete", "Quartierreinigung",
+                     "Senioren-Kaffeenachmittag", "Park Yoga", "Sprachencafé")
+    placeholders = ','.join('?' * len(seeded_titles))
+    like_clauses = ' OR '.join('title LIKE ?' for _ in seeded_titles)
+    has_seeded = c.execute(f"SELECT 1 FROM events WHERE {like_clauses} LIMIT 1",
+                           [f"%{t}%" for t in seeded_titles]).fetchone()
+    if not has_seeded:
+        return  # already clean
+    c.execute("DELETE FROM events")
+    c.execute("DELETE FROM event_registrations")
+    c.execute("DELETE FROM life_bubbles")
+    c.execute("DELETE FROM zeitbank_offers")
+    c.execute("DELETE FROM activity_logs")
+    c.execute("DELETE FROM trails")
+    c.execute("DELETE FROM good_deeds")
 
 def _ensure_admin_user(c):
     """Create the admin demo user on every boot (is_admin=1, is_moderator=1)."""
