@@ -1081,12 +1081,18 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
     </div>
     <!-- Bubbles list strip below map -->
-    <div id="bubbles-scroll" style="display:none;max-height:40vh;overflow-y:auto;padding:.75rem 1rem;border-top:1px solid var(--border)">
+    <div id="bubbles-scroll" style="display:none;max-height:40vh;overflow-y:auto;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+        <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">🫧 Live Bubbles</span>
+        <button onclick="switchScreen('feed', document.querySelector('.nav-item[onclick*=feed]'))" style="background:none;border:none;color:var(--accent);font-size:.75rem;font-weight:700;cursor:pointer;padding:.2rem .5rem">← Feed</button>
+      </div>
+      <div style="padding:.75rem 1rem">
       <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(59,130,246,.05));border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:1rem;margin-bottom:.85rem">
         <div style="font-size:.85rem;font-weight:700;margin-bottom:.25rem">🫧 Was sind Life Bubbles?</div>
         <div style="font-size:.76rem;color:var(--dim);line-height:1.5">Spontane Momente, die du teilst. Spielst du gerade UNO im Park? Klingt Klavier im Generationen Haus? Dropp eine Bubble — andere sehen sie auf der Karte und können einfach vorbeikommen. Keine Anmeldung, kein Stress.</div>
       </div>
       <div id="bubbles-list"><div class="loading">Lade Bubbles…</div></div>
+      </div>
     </div>
     <!-- FABs -->
     <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:var(--purple);color:white">🫧</button>
@@ -1841,22 +1847,6 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         </select>
       </div>
     </div>
-    <!-- Media capture strip -->
-    <div style="display:flex;gap:.5rem;margin-bottom:.75rem">
-      <button type="button" id="bubble-cam-btn" onclick="bubbleCapturePhoto()"
-        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.55rem;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.78rem;font-weight:700;cursor:pointer">
-        📸 <span>Foto</span>
-      </button>
-      <button type="button" id="bubble-mic-btn" onclick="bubbleToggleRecording()"
-        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.55rem;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.78rem;font-weight:700;cursor:pointer">
-        🎤 <span id="bubble-mic-label">Voice</span>
-      </button>
-      <button type="button" id="bubble-media-clear" onclick="bubbleClearMedia()" style="display:none;padding:.55rem .7rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);color:#f87171;font-size:.78rem;cursor:pointer">✕</button>
-    </div>
-    <!-- Hidden camera input fallback -->
-    <input type="file" id="bubble-cam-input" accept="image/*" capture="environment" style="display:none" onchange="bubblePhotoFromFile(this)">
-    <!-- Preview area -->
-    <div id="bubble-media-preview" style="display:none;margin-bottom:.75rem;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)"></div>
     <div id="bubble-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
     <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:linear-gradient(135deg,var(--purple),var(--accent));box-shadow:0 4px 16px rgba(139,92,246,.3)">🫧 Bubble droppen!</button>
   </div>
@@ -5565,9 +5555,7 @@ async function submitDropBubble() {
       description: document.getElementById('bubble-desc').value.trim(),
       address: document.getElementById('bubble-addr').value.trim(),
       city: currentUser?.city || '',
-      hours: parseInt(document.getElementById('bubble-hours').value) || 3,
-      photo_data: _bubblePhotoData || null,
-      audio_data: _bubbleAudioData || null
+      hours: parseInt(document.getElementById('bubble-hours').value) || 3
     });
     // Reset
     document.getElementById('bubble-title').value = '';
@@ -5598,21 +5586,13 @@ function renderBubbleCard(b) {
   const clickHandler = hasCoords
     ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"`
     : '';
-  const photoHtml = b.photo_data
-    ? `<img src="data:image/jpeg;base64,${b.photo_data}" style="width:100%;max-height:180px;object-fit:cover;border-radius:6px 6px 0 0;display:block;margin-bottom:.5rem" loading="lazy">`
-    : '';
-  const audioHtml = b.audio_data
-    ? `<audio controls src="data:audio/webm;base64,${b.audio_data}" style="width:100%;margin:.35rem 0;border-radius:4px" preload="none"></audio>`
-    : '';
   return `<div class="bubble-card" style="padding:0;overflow:hidden" ${clickHandler}>
-    ${photoHtml}
     <div style="padding:.65rem .75rem">
       <div style="display:flex;gap:.5rem;align-items:flex-start">
         <div class="bubble-emoji" style="flex-shrink:0">${esc(b.emoji||'✨')}</div>
         <div class="bubble-body" style="min-width:0">
           <div class="bubble-title">${esc(b.title)}</div>
           ${b.description ? `<div class="bubble-desc">${esc(b.description)}</div>` : ''}
-          ${audioHtml}
           <div class="bubble-meta">
             <span>👤 ${esc(b.display_name||'')}</span>
             ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
