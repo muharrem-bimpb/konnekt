@@ -2259,6 +2259,8 @@ async function loadApp() {
     const lastTab = localStorage.getItem('konnekt_last_tab') || 'map';
     const lastBtn = document.querySelector(`.nav-item[onclick*="${lastTab}"]`);
     switchScreen(lastTab, lastBtn);
+    // Desktop 3-col: all world columns always visible — init map unconditionally
+    if (window.innerWidth >= 1024) openMapScreen();
     // Pre-load other tabs in background
     loadFeed();
     loadForYou();

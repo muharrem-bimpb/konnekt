@@ -478,9 +478,12 @@ def _ensure_admin_user(c):
 
 def _nuke_for_prod(c):
     """One-time production reset: wipe all users, content, and fake data. Runs exactly once."""
-    done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_done'").fetchone()
-    if done:
-        return
+    try:
+        done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_done'").fetchone()
+        if done:
+            return
+    except Exception:
+        return  # table missing — skip, will retry next boot
     # Delete in FK-safe order
     for tbl in (
         "push_subscriptions", "senior_visits", "good_deeds", "trails",
