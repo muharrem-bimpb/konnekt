@@ -477,11 +477,38 @@ def _ensure_admin_user(c):
 
 
 def _purge_test_accounts(c):
-    """Kill sessions and lock backdoor accounts without touching FK'd child rows."""
+    """Kill sessions, lock backdoor accounts, and delete all their content."""
     c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
     c.execute("UPDATE users SET password_hash='LOCKED',email=email||'.locked' WHERE password_hash IN ('TEST_NO_LOGIN','DEMO_NO_LOGIN')")
     # Lock senior demo accounts (Nahbar placeholder users — not real people)
     c.execute("UPDATE users SET password_hash='LOCKED',email=email||'.locked' WHERE password_hash='SENIOR_NO_LOGIN' AND email NOT LIKE '%.locked'")
+    # Delete all content (offers, bubbles, trails, etc.) owned by any locked account
+    locked_ids = [r[0] for r in c.execute(
+        "SELECT id FROM users WHERE password_hash IN ('LOCKED','SENIOR_NO_LOGIN')"
+    ).fetchall()]
+    if locked_ids:
+        ph = ','.join('?' * len(locked_ids))
+        for tbl, col in [
+            ("zeitbank_offers", "user_id"),
+            ("life_bubbles",    "user_id"),
+            ("activity_logs",   "user_id"),
+            ("good_deeds",      "user_id"),
+            ("trails",          "user_id"),
+        ]:
+            try:
+                c.execute(f"DELETE FROM {tbl} WHERE {col} IN ({ph})", locked_ids)
+            except Exception:
+                pass
+        # Event registrations + comments before events
+        for tbl, col in [("event_registrations","user_id"),("event_comments","user_id")]:
+            try:
+                c.execute(f"DELETE FROM {tbl} WHERE {col} IN ({ph})", locked_ids)
+            except Exception:
+                pass
+        try:
+            c.execute(f"DELETE FROM events WHERE creator_id IN ({ph})", locked_ids)
+        except Exception:
+            pass
 
 def _ensure_seniors(c):
     """Create demo senior users if none exist — needed for Nahbar visit flow."""
