@@ -3135,48 +3135,57 @@ function locateMeOnMap() {
   );
 }
 
-async function _navigateToBubble(lat, lng, name) {
-  if (_routeLayer) { leafletMap.removeLayer(_routeLayer); _routeLayer = null; }
+function _navigateToBubble(lat, lng, name) {
+  const funnyComment = dist => {
+    if (dist < 50)  return "bro it's literally right there 💀";
+    if (dist < 150) return "touch grass distance 🌿";
+    if (dist < 300) return "you could yell and they'd hear 📣";
+    if (dist < 600) return "a solid casual stroll ☕";
+    if (dist < 1200) return "earn that snack 🥨";
+    if (dist < 2500) return "legs don't fail me now 🦵";
+    if (dist < 5000) return "maybe stretch first 🧘";
+    return "bro just take the tram 🚋";
+  };
 
-  // Get current position if we don't have it yet
-  if (!_myGpsPos) {
-    await new Promise(res => navigator.geolocation.getCurrentPosition(p => {
-      _myGpsPos = [p.coords.latitude, p.coords.longitude]; res();
-    }, res, {timeout: 5000}));
-  }
-
+  let distLine = '';
   if (_myGpsPos) {
-    const [fromLat, fromLng] = _myGpsPos;
-    const distM = Math.round(_haversine(fromLat, fromLng, lat, lng));
+    const distM = Math.round(_haversine(_myGpsPos[0], _myGpsPos[1], lat, lng));
     const distLabel = distM < 1000 ? `${distM} m` : `${(distM/1000).toFixed(1)} km`;
-    const walkMin = Math.round(distM / 83); // ~5 km/h walking
-
-    try {
-      // OSRM public routing — real roads/paths, no key needed
-      const r = await fetch(`https://router.project-osrm.org/route/v1/walking/${fromLng},${fromLat};${lng},${lat}?geometries=geojson&overview=full`);
-      const d = await r.json();
-      const coords = d.routes[0].geometry.coordinates.map(([a,b]) => [b,a]);
-      const routeDistM = Math.round(d.routes[0].distance);
-      const routeMin = Math.round(d.routes[0].duration / 60);
-      const routeLabel = routeDistM < 1000 ? `${routeDistM} m` : `${(routeDistM/1000).toFixed(1)} km`;
-      _routeLayer = L.polyline(coords, {color:'#4afa8c', weight:4, opacity:.9}).addTo(leafletMap);
-      _routeLayer.bindTooltip(`🚶 ${routeLabel} · ~${routeMin} min`, {permanent:true, className:'route-tooltip', direction:'center'}).openTooltip();
-      leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
-    } catch {
-      // Fallback: straight line with air distance
-      _routeLayer = L.polyline([_myGpsPos, [lat, lng]], {
-        color:'#4afa8c', weight:3, dashArray:'8 5', opacity:.8
-      }).addTo(leafletMap);
-      _routeLayer.bindTooltip(`✈️ Luftlinie ${distLabel} · ~${walkMin} min`, {permanent:true, className:'route-tooltip', direction:'center'}).openTooltip();
-      leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
-    }
+    distLine = `<p style="margin:.4rem 0 .1rem;font-size:1.1rem;font-weight:700;color:#4afa8c">${distLabel}</p>
+    <p style="margin:0 0 1rem;font-size:.8rem;color:#aaa">${funnyComment(distM)}</p>`;
   }
 
-  // Open native nav app
-  const url = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const mapsUrl = /iPhone|iPad|iPod/i.test(navigator.userAgent)
     ? `maps://maps.apple.com/?daddr=${lat},${lng}`
     : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  window.open(url, '_blank');
+
+  const old = document.getElementById('nav-sheet');
+  if (old) old.remove();
+  const sheet = document.createElement('div');
+  sheet.id = 'nav-sheet';
+  sheet.innerHTML = `
+    <div style="text-align:center;padding:.5rem 0 .2rem">
+      <div style="font-size:.8rem;color:#888;margin-bottom:.3rem">📍 ${name}</div>
+      ${distLine}
+      <button onclick="window.open('${mapsUrl}','_blank');document.getElementById('nav-sheet').remove()"
+        style="background:#4afa8c;color:#000;border:none;border-radius:10px;padding:.55rem 1.6rem;font-weight:700;font-size:.95rem;cursor:pointer;width:100%">
+        Öffne Maps 🗺️
+      </button>
+      <button onclick="document.getElementById('nav-sheet').remove()"
+        style="background:transparent;color:#666;border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
+        Abbrechen
+      </button>
+    </div>`;
+  Object.assign(sheet.style, {
+    position:'fixed', bottom:'0', left:'0', right:'0', zIndex:'99999',
+    background:'#1a1a1a', borderTop:'1px solid #333', borderRadius:'16px 16px 0 0',
+    padding:'1rem 1.4rem calc(1.2rem + var(--safe-bot))', boxShadow:'0 -4px 24px #000a'
+  });
+  document.body.appendChild(sheet);
+  // dismiss on backdrop tap
+  setTimeout(() => document.addEventListener('click', function h(e){
+    if (!sheet.contains(e.target)) { sheet.remove(); document.removeEventListener('click', h); }
+  }), 100);
 }
 
 function initMap() {
