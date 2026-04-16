@@ -1,22 +1,8 @@
-// Konnekt Service Worker — offline PWA support
-const CACHE = 'konnekt-v7';
-const STATIC = ['/', '/manifest.json'];
-
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
-  self.skipWaiting();
-});
-
+// Konnekt Service Worker — PWA install only, no caching
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
+  // Nuke every old cache so stale HTML can never get stuck again
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))));
   self.clients.claim();
 });
-
-self.addEventListener('fetch', e => {
-  if (e.request.url.includes('/api/')) return; // Never cache API calls
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request).then(r => r || caches.match('/')))
-  );
-});
+// No fetch handler → every request goes straight to the network
