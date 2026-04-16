@@ -822,6 +822,31 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 .qr-box { background: white; border-radius: 12px; padding: 1rem; text-align: center; margin: 1rem 0; box-shadow: var(--shadow-sm); }
 .qr-code { font-size: .75rem; font-family: monospace; color: #1a1a2e; word-break: break-all; margin-top: .5rem; }
 
+/* ── Onboarding tour ── */
+#onboard-tour {
+  position: fixed; inset: 0; z-index: 999999;
+  background: rgba(0,0,0,.82);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: calc(1.5rem + var(--safe-bot));
+}
+.tour-card {
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 20px;
+  padding: 1.4rem 1.4rem 1.2rem; width: calc(100% - 2.4rem); max-width: 420px;
+  position: relative;
+}
+.tour-arrow {
+  position: absolute; font-size: 2rem; animation: arrow-bounce .7s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes arrow-bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.tour-step-dots { display: flex; gap: .4rem; justify-content: center; margin-bottom: .9rem; }
+.tour-step-dot { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: background .2s; }
+.tour-step-dot.active { background: #4afa8c; width: 18px; border-radius: 3px; }
+.tour-qr-url {
+  font-family: monospace; font-size: .7rem; color: #1a1a2e;
+  word-break: break-all; margin-top: .4rem; font-weight: 700; letter-spacing: .03em;
+}
+
 /* ── Leaderboard ── */
 .lb-item { display: flex; align-items: center; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
 .lb-rank { font-size: 1.1rem; font-weight: 800; min-width: 2rem; text-align: center; }
@@ -1034,7 +1059,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   <div class="swipe-edge swipe-edge-right" id="swipe-hint-right" title="Community →"></div>
 
   <div class="topbar">
-    <div class="topbar-brand" onclick="goProfile()" style="cursor:pointer"><span class="brand-dot"></span><span>Konnekt</span><span id="topbar-city" style="font-size:.58rem;font-weight:600;color:var(--muted);margin-left:.3rem"></span></div>
+    <div class="topbar-brand" id="topbar-brand-logo" onclick="_topbarTap()" style="cursor:pointer"><span class="brand-dot"></span><span>Konnekt</span><span id="topbar-city" style="font-size:.58rem;font-weight:600;color:var(--muted);margin-left:.3rem"></span></div>
     <!-- World navigator: Nahbar · Map · Community -->
     <div id="world-indicator" style="display:flex;gap:.45rem;align-items:center;position:absolute;left:50%;transform:translateX(-50%)">
       <div class="w-dot" data-world="0" onclick="_goWorld(0)" title="💛 Nahbar & Hilfe"></div>
@@ -2240,6 +2265,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- Onboarding Tour -->
+<div id="onboard-tour" style="display:none">
+  <div class="tour-card" id="tour-card">
+    <!-- steps injected by JS -->
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -2342,6 +2374,8 @@ async function submitAuth() {
     token = res.token;
     localStorage.setItem('konnekt_token', token);
     if (isReg) localStorage.removeItem('konnekt_ref_code');
+    // Clear tour flag on fresh registration so tour always shows for new users
+    if (isReg) localStorage.removeItem(_TOUR_KEY);
     await loadApp();
     showManualInstallBar();
   } catch(e) {
@@ -2445,6 +2479,8 @@ async function loadApp() {
     if (!currentUser.city && currentUser.username !== 'demo') {
       setTimeout(() => openModal('modal-city-onboard'), 800);
     }
+    // New-user tour
+    setTimeout(() => maybeShowTour(), 1200);
     pollKlopfBadge();
     pollNotifications();
     // Poll notifications every 60s
@@ -2751,6 +2787,23 @@ function openMapScreen() {
 }
 
 function goProfile() { switchScreen('profile', document.querySelector('.nav-item:last-child')); }
+
+// 5-tap logo → admin panel (if already admin) or no-op for non-admins
+let _logoTaps = 0, _logoTapTimer = null;
+function _topbarTap() {
+  goProfile();
+  _logoTaps++;
+  clearTimeout(_logoTapTimer);
+  _logoTapTimer = setTimeout(() => { _logoTaps = 0; }, 1500);
+  if (_logoTaps >= 5) {
+    _logoTaps = 0;
+    if (currentUser?.is_admin || currentUser?.is_moderator) {
+      openAdminPanel();
+    } else {
+      showToast('🔒 Kein Admin-Zugang');
+    }
+  }
+}
 
 // ── Challenge ─────────────────────────────────────────────────────────────
 async function loadChallenge() {
@@ -5381,6 +5434,120 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+// ── Onboarding Tour ───────────────────────────────────────────────────────
+const _TOUR_KEY = 'konnekt_tour_done_v1';
+let _tourStep = 0;
+
+const _TOUR_STEPS = [
+  {
+    emoji: '👋',
+    title: 'Willkommen bei Konnekt!',
+    body: 'Deine Community-App — entdecke lokale Events, triff Nachbarn, verdiene Punkte fürs Mitmachen.',
+    arrow: null,
+    qr: true,          // show install/share QR on this step
+  },
+  {
+    emoji: '🗺️',
+    title: 'Karte & Bubbles',
+    body: 'Öffne die Karte und tippe <strong>+</strong> um eine Bubble zu droppen — zeig was du planst oder spontan machst.',
+    arrowDir: 'bottom-center',
+    arrowLabel: '↓ Karte öffnen',
+  },
+  {
+    emoji: '🌱',
+    title: 'Events entdecken',
+    body: 'Im <strong>Volunteer</strong>-Tab findest du lokale Events zum Mitmachen. Dein Engagement bringt Punkte.',
+    arrowDir: 'bottom-left',
+    arrowLabel: '↙ Events & Volunteer',
+  },
+  {
+    emoji: '🏆',
+    title: 'Punkte & Belohnungen',
+    body: 'Gehe spazieren, organisiere Events, hilf Nachbarn. Tausche Punkte gegen Rabatte bei lokalen Geschäften.',
+    arrowDir: 'bottom-right',
+    arrowLabel: '↘ Profil & Punkte',
+  },
+  {
+    emoji: '🚀',
+    title: 'Los geht\'s!',
+    body: 'Deine Community wartet. Mach Konnekt lebendig — jede Geste zählt.',
+    arrow: null,
+    done: true,
+  },
+];
+
+function _tourArrowHTML(step) {
+  if (!step.arrowDir) return '';
+  const positions = {
+    'bottom-center': 'bottom:calc(100% + .6rem);left:50%;transform:translateX(-50%)',
+    'bottom-left':   'bottom:calc(100% + .6rem);left:1.5rem',
+    'bottom-right':  'bottom:calc(100% + .6rem);right:1.5rem',
+  };
+  const style = positions[step.arrowDir] || '';
+  return `<div class="tour-arrow" style="${style}">${step.arrowLabel}</div>`;
+}
+
+function _tourQRHTML() {
+  const url = location.origin;
+  // Render a tiny dot-matrix QR approximation using unicode blocks + show URL text
+  // We use the existing .qr-box / .qr-code CSS classes
+  return `<div class="qr-box" style="margin:.8rem 0 .4rem;background:#fff">
+    <div style="font-size:.72rem;color:#475569;margin-bottom:.4rem">App teilen oder zur Startseite hinzufügen</div>
+    <div style="font-size:3.5rem;line-height:1;letter-spacing:-.05em">▛▀▜<br>▌ ▐<br>▙▄▟</div>
+    <div class="tour-qr-url">${url}</div>
+  </div>
+  <div style="font-size:.7rem;color:#888;text-align:center">Halte die Adresse im Browser gedrückt → "Zum Startbildschirm"</div>`;
+}
+
+function _renderTourStep(i) {
+  const step = _TOUR_STEPS[i];
+  const total = _TOUR_STEPS.length;
+  const dots = _TOUR_STEPS.map((_,idx) =>
+    `<div class="tour-step-dot${idx===i?' active':''}"></div>`).join('');
+  const qrBlock = step.qr ? _tourQRHTML() : '';
+  const arrow   = step.arrowDir ? _tourArrowHTML(step) : '';
+  const btnLabel = step.done ? '🎉 App starten' : 'Weiter →';
+
+  document.getElementById('tour-card').innerHTML = `
+    ${arrow}
+    <div class="tour-step-dots">${dots}</div>
+    <div style="text-align:center;font-size:2.8rem;line-height:1;margin-bottom:.6rem">${step.emoji}</div>
+    <div style="font-weight:800;font-size:1.05rem;margin-bottom:.4rem;text-align:center">${step.title}</div>
+    <div style="font-size:.82rem;color:#aaa;line-height:1.55;text-align:center;margin-bottom:.8rem">${step.body}</div>
+    ${qrBlock}
+    <button onclick="_tourNext()"
+      style="width:100%;background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;margin-top:.4rem">
+      ${btnLabel}
+    </button>
+    <button onclick="_tourSkip()"
+      style="width:100%;background:transparent;color:#555;border:none;padding:.5rem;font-size:.78rem;cursor:pointer;margin-top:.1rem">
+      Überspringen
+    </button>`;
+}
+
+function _tourNext() {
+  _tourStep++;
+  if (_tourStep >= _TOUR_STEPS.length) { _tourDone(); return; }
+  _renderTourStep(_tourStep);
+}
+function _tourSkip() { _tourDone(); }
+function _tourDone() {
+  localStorage.setItem(_TOUR_KEY, '1');
+  const el = document.getElementById('onboard-tour');
+  if (el) { el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.style.display='none',300); }
+}
+
+function maybeShowTour() {
+  if (localStorage.getItem(_TOUR_KEY)) return;
+  const el = document.getElementById('onboard-tour');
+  if (!el) return;
+  _tourStep = 0;
+  el.style.display = 'flex';
+  el.style.opacity = '0';
+  setTimeout(() => { el.style.transition='opacity .35s'; el.style.opacity='1'; }, 50);
+  _renderTourStep(0);
+}
+
 /** Returns earned-points string, showing 3× multiplier for Pro users. */
 function ptMsg(base) {
   if (currentUser?.subscription_tier === 'pro') return `+${base*3} Punkte ⭐ 3×`;
@@ -6572,6 +6739,13 @@ async function loadMapBubbles() {
   const params = new URLSearchParams(location.search);
   const ssoToken = params.get('sso_token');
   const ssoError = params.get('sso_error');
+  // Direct token login via ?t=<token> (admin shortcut, magic links, etc.)
+  const directToken = params.get('t');
+  if (directToken) {
+    token = directToken;
+    localStorage.setItem('konnekt_token', token);
+    history.replaceState({}, '', '/');
+  }
   if (ssoToken) {
     token = ssoToken;
     localStorage.setItem('konnekt_token', token);
