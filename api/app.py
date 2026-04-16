@@ -20,6 +20,15 @@ import requests as req
 load_dotenv()
 
 app = Flask(__name__, static_folder="../frontend/public", static_url_path="")
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+@app.after_request
+def no_cache(resp):
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers.pop('ETag', None)
+    resp.headers.pop('Last-Modified', None)
+    return resp
 CORS(app, origins="*")
 
 HOST   = os.getenv("HOST", "0.0.0.0")

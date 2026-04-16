@@ -6093,6 +6093,11 @@ if (token) {
   loadApp().then(() => showManualInstallBar()).catch(() => {
     token = ''; localStorage.removeItem('konnekt_token');
   });
+} else {
+  // No token — skip splash, go straight to auth
+  _splashDismiss(document.getElementById('screen-loading'));
+  const a = document.getElementById('screen-auth');
+  if (a) { a.style.display = 'flex'; a.classList.add('active'); }
 }
 updateThemeUI(savedTheme);
 
