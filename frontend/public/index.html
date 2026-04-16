@@ -6568,7 +6568,7 @@ function renderBubbleCard(b) {
   const { label, color } = _bubbleTimeLeft(b.expires_at);
   const hasCoords = b.lat && b.lng;
   const clickHandler = hasCoords ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"` : '';
-  return `<div class="bubble-card" style="padding:0;overflow:hidden" ${clickHandler}>
+  return `<div class="bubble-card" style="padding:0;overflow:hidden" data-bid="${b.id}" ${clickHandler}>
     <div style="padding:.65rem .75rem">
       <div style="display:flex;gap:.5rem;align-items:flex-start">
         <div class="bubble-emoji" style="flex-shrink:0">${esc(b.emoji||'✨')}</div>
@@ -6587,12 +6587,20 @@ function renderBubbleCard(b) {
   </div>`;
 }
 
-// Global bubble countdown ticker — updates countdowns + fades dying map markers
+// Global bubble countdown ticker — updates countdowns, removes expired from list + map
 setInterval(() => {
   document.querySelectorAll('.bubble-expires[data-expires]').forEach(el => {
-    const { label, color } = _bubbleTimeLeft(el.dataset.expires);
-    el.textContent = '⏱ ' + label;
-    el.style.color = color;
+    const exp = el.dataset.expires.includes('Z') ? el.dataset.expires : el.dataset.expires + 'Z';
+    const secs = Math.floor((new Date(exp).getTime() - Date.now()) / 1000);
+    if (secs <= 0) {
+      // Remove the card from whatever list it's in
+      const card = el.closest('.bubble-card');
+      if (card) card.remove();
+    } else {
+      const { label, color } = _bubbleTimeLeft(el.dataset.expires);
+      el.textContent = '⏱ ' + label;
+      el.style.color = color;
+    }
   });
   // Real-time bubble expiry: remove from map when countdown hits 0, fade last 5min
   document.querySelectorAll('[data-bubble-expires]').forEach(el => {
@@ -6629,7 +6637,9 @@ async function loadBubblesView() {
   if (!list) return;
   try {
     const city = currentUser?.city || '';
-    const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    const raw = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    const now = Date.now();
+    const bubbles = raw.filter(b => new Date((b.expires_at.includes('Z') ? b.expires_at : b.expires_at + 'Z')).getTime() > now);
     if (!bubbles.length) {
       list.innerHTML = '<div class="empty">Keine aktiven Bubbles gerade.<br>Sei der Erste — dropp deine!</div>';
       return;
