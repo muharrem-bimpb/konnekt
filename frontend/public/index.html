@@ -5904,15 +5904,19 @@ async function submitDropBubble() {
   }
 }
 
+function _bubbleTimeLeft(isoStr) {
+  const secs = Math.max(0, Math.floor((new Date(isoStr.includes('Z') ? isoStr : isoStr + 'Z') - Date.now()) / 1000));
+  if (secs <= 0)   return { label: 'Abgelaufen', color: '#ef4444' };
+  if (secs < 60)   return { label: `${secs}s`,              color: 'var(--orange)' };
+  if (secs < 3600) return { label: `${Math.floor(secs/60)}min ${secs%60}s`, color: 'var(--orange)' };
+  const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = secs%60;
+  return { label: `${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`, color: 'var(--accent)' };
+}
+
 function renderBubbleCard(b) {
-  const now = new Date();
-  const exp = new Date(b.expires_at + (b.expires_at.includes('Z') ? '' : 'Z'));
-  const minsLeft = Math.max(0, Math.round((exp - now) / 60000));
-  const timeLeft = minsLeft < 60 ? `${minsLeft}min` : `${Math.round(minsLeft/60)}h`;
+  const { label, color } = _bubbleTimeLeft(b.expires_at);
   const hasCoords = b.lat && b.lng;
-  const clickHandler = hasCoords
-    ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"`
-    : '';
+  const clickHandler = hasCoords ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"` : '';
   return `<div class="bubble-card" style="padding:0;overflow:hidden" ${clickHandler}>
     <div style="padding:.65rem .75rem">
       <div style="display:flex;gap:.5rem;align-items:flex-start">
@@ -5923,7 +5927,7 @@ function renderBubbleCard(b) {
           <div class="bubble-meta">
             <span>👤 ${esc(b.display_name||'')}</span>
             ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
-            <span class="bubble-expires">⏱ ${timeLeft}</span>
+            <span class="bubble-expires" data-expires="${b.expires_at}" style="color:${color};font-weight:700">⏱ ${label}</span>
             ${hasCoords ? `<span style="color:var(--purple);font-size:.68rem;font-weight:700">🗺 →</span>` : ''}
           </div>
         </div>
@@ -5931,6 +5935,15 @@ function renderBubbleCard(b) {
     </div>
   </div>`;
 }
+
+// Global bubble countdown ticker — one interval updates every visible bubble
+setInterval(() => {
+  document.querySelectorAll('.bubble-expires[data-expires]').forEach(el => {
+    const { label, color } = _bubbleTimeLeft(el.dataset.expires);
+    el.textContent = '⏱ ' + label;
+    el.style.color = color;
+  });
+}, 1000);
 
 function flyToMapBubble(lat, lng) {
   switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
