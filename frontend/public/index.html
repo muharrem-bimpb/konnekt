@@ -6191,6 +6191,7 @@ function showBubblesView(pill) {
 
 // ── Map modes (events / bubbles) ───────────────────────────────────────────
 let bubbleMapMarkers   = [];
+let auraMapMarkers     = [];
 let eventMapMarkers    = [];
 let shopMapMarkers     = [];
 
@@ -6210,6 +6211,7 @@ function setMapMode(mode) {
   // Clear all markers + reset counter
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
   bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m)); bubbleMapMarkers = [];
+  auraMapMarkers.forEach(m => leafletMap.removeLayer(m)); auraMapMarkers = [];
   shopMapMarkers.forEach(m => leafletMap.removeLayer(m)); shopMapMarkers = [];
   _heatLayers.forEach(l => leafletMap.removeLayer(l)); _heatLayers = [];
   const _ct = document.getElementById('map-counter-text'); if (_ct) _ct.textContent = '…';
@@ -6257,7 +6259,10 @@ async function loadMapBubbles() {
   try {
     const city = currentUser?.city || '';
     const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    bubbleMapMarkers.forEach(m => leafletMap.removeLayer(m));
+    auraMapMarkers.forEach(m => leafletMap.removeLayer(m));
     bubbleMapMarkers = [];
+    auraMapMarkers = [];
     // Detect gatherings: group bubbles within ~80m of each other
     const grouped = {};
     bubbles.filter(b => b.lat && b.lng).forEach(b => {
@@ -6278,14 +6283,14 @@ async function loadMapBubbles() {
         const rings = lvl === 'xl' ? 3 : lvl === 'lg' ? 3 : 2;
         const ringHtml = Array.from({length: rings}, () => '<span class="aura-ring"></span>').join('');
         const emoji = n >= 8 ? '🔥' : n >= 5 ? '⚡' : n >= 3 ? '✨' : '👥';
-        L.marker([b.lat, b.lng], {
+        auraMapMarkers.push(L.marker([b.lat, b.lng], {
           icon: L.divIcon({
             className: '',
             html: `<div class="gathering-aura aura-${lvl}">${ringHtml}<span class="aura-count">${emoji} ${n}</span></div>`,
             iconSize: [0, 0], iconAnchor: [0, 0]
           }),
           zIndexOffset: -1000, interactive: false
-        }).addTo(leafletMap);
+        }).addTo(leafletMap));
       }
       const { label: timeLabel } = _bubbleTimeLeft(b.expires_at);
       const hangoutBadge = isHangout ? `<span style="background:#7c3aed;color:#fff;font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:700">🎪 HANGOUT</span>` : '';
