@@ -2351,6 +2351,8 @@ def delete_bubble(bid):
             return jsonify({"error": "not found"}), 404
         if b["user_id"] != g.user_id:
             return jsonify({"error": "forbidden"}), 403
+        c.execute("DELETE FROM bubble_join_requests WHERE bubble_id=?", (bid,))
+        c.execute("DELETE FROM bubble_approach_log WHERE bubble_id=?", (bid,))
         c.execute("DELETE FROM life_bubbles WHERE id=?", (bid,))
     return jsonify({"ok": True})
 
