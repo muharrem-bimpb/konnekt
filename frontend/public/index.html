@@ -330,6 +330,19 @@ input.field:focus, select.field:focus {
 .route-tooltip { background:#000 !important; border:1px solid #4afa8c !important; color:#4afa8c !important; font-weight:700; font-size:.75rem; border-radius:8px; padding:.3rem .6rem; }
 .route-tooltip::before { display:none; }
 
+/* ── Walk tracker overlay ── */
+#walk-overlay {
+  position: fixed; inset: 0; z-index: 99998; background: rgba(0,0,0,.85);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+#walk-panel {
+  background: #111; border-radius: 20px 20px 0 0; padding: 1.4rem 1.4rem calc(1.6rem + var(--safe-bot));
+  width: 100%; max-width: 480px; border-top: 1px solid #2a2a2a;
+}
+.walk-stat { text-align: center; }
+.walk-stat .val { font-size: 2.4rem; font-weight: 900; color: #4afa8c; line-height: 1; }
+.walk-stat .lbl { font-size: .7rem; color: #666; text-transform: uppercase; letter-spacing: .06em; margin-top: .1rem; }
+
 /* ── Gathering aura ── */
 .gathering-aura {
   position: absolute; top: 50%; left: 50%;
@@ -1393,7 +1406,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
 
         <div style="margin-top:1.2rem">
-          <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Meine Bubbles & Hangouts</div>
+          <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span><span class="section-dot" style="background:var(--purple)"></span> Meine Bubbles & Hangouts</span>
+            <button onclick="startWalk()" style="background:linear-gradient(135deg,#4afa8c,#22c55e);color:#000;border:none;border-radius:99px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">🚶 Spazieren</button>
+          </div>
           <div id="my-bubbles-list"><div class="loading">Lade…</div></div>
           <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
           <div id="my-events-list"><div class="loading">Lade…</div></div>
@@ -4447,6 +4463,183 @@ function _haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+// ── Walk Tracker ──────────────────────────────────────────────────────────
+let _walk = null; // active session state
+
+function startWalk() {
+  if (_walk) { _showWalkOverlay(); return; }
+  _walk = {
+    startTime: Date.now(),
+    steps: 0,
+    distanceM: 0,
+    route: [],       // [[lat,lng], ...]
+    lastPos: null,
+    peakAbove: false,
+    watchId: null,
+    motionFn: null,
+    timerInterval: null,
+  };
+
+  // GPS tracking
+  if (navigator.geolocation) {
+    _walk.watchId = navigator.geolocation.watchPosition(pos => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      if (accuracy > 50) return; // skip noisy readings
+      _myGpsPos = [lat, lng];
+      if (_walk.lastPos) {
+        const d = _haversine(_walk.lastPos[0], _walk.lastPos[1], lat, lng);
+        if (d > 3 && d < 200) { // filter teleports & noise
+          _walk.distanceM += d;
+          _walk.route.push([lat, lng]);
+        }
+      } else {
+        _walk.route.push([lat, lng]);
+      }
+      _walk.lastPos = [lat, lng];
+      _updateWalkDisplay();
+    }, null, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+  }
+
+  // Step counting via accelerometer
+  const STEP_HIGH = 12.5, STEP_LOW = 9.5;
+  _walk.motionFn = e => {
+    const a = e.accelerationIncludingGravity;
+    if (!a) return;
+    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    if (!_walk.peakAbove && mag > STEP_HIGH) { _walk.peakAbove = true; _walk.steps++; }
+    if (_walk.peakAbove && mag < STEP_LOW)   { _walk.peakAbove = false; }
+  };
+
+  // Request motion permission on iOS 13+
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(s => {
+      if (s === 'granted') window.addEventListener('devicemotion', _walk.motionFn);
+    }).catch(() => {});
+  } else {
+    window.addEventListener('devicemotion', _walk.motionFn);
+  }
+
+  _walk.timerInterval = setInterval(_updateWalkDisplay, 1000);
+  _showWalkOverlay();
+}
+
+function _updateWalkDisplay() {
+  if (!_walk) return;
+  const elapsed = Math.floor((Date.now() - _walk.startTime) / 1000);
+  const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+  const ss = String(elapsed % 60).padStart(2,'0');
+  const distLabel = _walk.distanceM < 1000
+    ? `${Math.round(_walk.distanceM)}m`
+    : `${(_walk.distanceM/1000).toFixed(2)}km`;
+  const elapsed10 = elapsed >= 600;
+
+  const timeEl   = document.getElementById('walk-time');
+  const stepsEl  = document.getElementById('walk-steps');
+  const distEl   = document.getElementById('walk-dist');
+  const stopBtn  = document.getElementById('walk-stop-btn');
+  if (timeEl)  timeEl.textContent  = `${mm}:${ss}`;
+  if (stepsEl) stepsEl.textContent = _walk.steps;
+  if (distEl)  distEl.textContent  = distLabel;
+  if (stopBtn) {
+    stopBtn.style.opacity = elapsed10 ? '1' : '.4';
+    stopBtn.textContent = elapsed10
+      ? '🏁 Beenden & Punkte kassieren'
+      : `🏁 Noch ${Math.ceil((600-elapsed)/60)} Min...`;
+  }
+}
+
+function _showWalkOverlay() {
+  const old = document.getElementById('walk-overlay');
+  if (old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'walk-overlay';
+  const elapsed = _walk ? Math.floor((Date.now() - _walk.startTime)/1000) : 0;
+  const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+  const ss = String(elapsed % 60).padStart(2,'0');
+  overlay.innerHTML = `
+    <div id="walk-panel">
+      <div style="text-align:center;margin-bottom:1rem">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:.2rem">🚶 Spaziergang läuft</div>
+        <div style="font-size:.75rem;color:#666">Geh raus — Punkte warten auf dich</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;margin-bottom:1.2rem">
+        <div class="walk-stat">
+          <div class="val" id="walk-time">${mm}:${ss}</div>
+          <div class="lbl">Zeit</div>
+        </div>
+        <div class="walk-stat">
+          <div class="val" id="walk-steps">${_walk?.steps||0}</div>
+          <div class="lbl">Schritte</div>
+        </div>
+        <div class="walk-stat">
+          <div class="val" id="walk-dist">${_walk?.distanceM?Math.round(_walk.distanceM)+'m':'0m'}</div>
+          <div class="lbl">Distanz</div>
+        </div>
+      </div>
+      <button id="walk-stop-btn" onclick="stopWalk()"
+        style="width:100%;background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;opacity:.4">
+        🏁 Noch ${Math.ceil((600-elapsed)/60)} Min...
+      </button>
+      <button onclick="document.getElementById('walk-overlay').remove()"
+        style="width:100%;background:transparent;color:#555;border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
+        Minimieren (läuft weiter)
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+  _updateWalkDisplay();
+}
+
+async function stopWalk() {
+  if (!_walk) return;
+  const elapsed = Math.floor((Date.now() - _walk.startTime) / 1000);
+  if (elapsed < 60) { showToast('Zu kurz — noch etwas laufen!'); return; }
+
+  // cleanup
+  if (_walk.watchId) navigator.geolocation.clearWatch(_walk.watchId);
+  if (_walk.motionFn) window.removeEventListener('devicemotion', _walk.motionFn);
+  clearInterval(_walk.timerInterval);
+  const session = { ..._walk };
+  _walk = null;
+
+  const overlay = document.getElementById('walk-overlay');
+  if (overlay) overlay.querySelector('#walk-panel').innerHTML =
+    '<div style="text-align:center;padding:2rem 0;color:#4afa8c;font-size:1.1rem">Speichere…</div>';
+
+  try {
+    const res = await apiFetch('/api/walk/complete', 'POST', {
+      steps: session.steps,
+      distance_m: Math.round(session.distanceM),
+      duration_s: elapsed,
+      route_json: session.route.length ? JSON.stringify(session.route) : null,
+    });
+    const pts = res.points_earned;
+    const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const ss = String(elapsed % 60).padStart(2,'0');
+    const distLabel = session.distanceM < 1000
+      ? `${Math.round(session.distanceM)} m` : `${(session.distanceM/1000).toFixed(2)} km`;
+
+    if (overlay) overlay.querySelector('#walk-panel').innerHTML = `
+      <div style="text-align:center;padding:.5rem 0">
+        <div style="font-size:3rem;margin-bottom:.4rem">🎉</div>
+        <div style="font-size:1.2rem;font-weight:900;color:#4afa8c;margin-bottom:.2rem">+${pts} Punkte!</div>
+        <div style="font-size:.8rem;color:#888;margin-bottom:1rem">${session.steps} Schritte · ${distLabel} · ${mm}:${ss} min</div>
+        <button onclick="document.getElementById('walk-overlay').remove();loadProfile()"
+          style="background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.7rem 2rem;font-size:.95rem;font-weight:800;cursor:pointer">
+          Super! 💪
+        </button>
+      </div>`;
+    // draw route on map if we have coords
+    if (session.route.length > 1 && leafletMap) {
+      if (_routeLayer) leafletMap.removeLayer(_routeLayer);
+      _routeLayer = L.polyline(session.route, {color:'#4afa8c',weight:4,opacity:.85}).addTo(leafletMap);
+      leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
+    }
+  } catch(e) {
+    showToast(e.message || 'Fehler beim Speichern');
+    if (overlay) overlay.remove();
+  }
+}
+
 // ── My Bubbles (profile history) ──────────────────────────────────────────
 async function loadMyBubbles() {
   const list = document.getElementById('my-bubbles-list');
@@ -4458,13 +4651,22 @@ async function loadMyBubbles() {
       const exp = new Date(b.expires_at + (b.expires_at.includes('Z')?'':'Z'));
       const alive = exp > new Date();
       const { label: tl } = _bubbleTimeLeft(b.expires_at);
-      return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.7rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.65rem">
-        <div style="font-size:1.5rem;flex-shrink:0">${b.emoji||'✨'}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.85rem;font-weight:700">${esc(b.title)}</div>
-          <div style="font-size:.7rem;color:var(--muted)">${b.is_hangout?'🎪 Hangout · ':''} ${alive?`⏱ ${tl}`:'Abgelaufen'} ${b.is_hangout&&b.max_attendees?` · ${b.approved_count}/${b.max_attendees} zugelassen`:''} ${b.pending_count>0?`· <span style="color:var(--orange)">${b.pending_count} ausstehend</span>`:''}</div>
+      const pendingBtn = (b.is_hangout && b.pending_count > 0)
+        ? `<button onclick="toggleBubbleRequests(${b.id},this)" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:.25rem .6rem;font-size:.7rem;font-weight:700;cursor:pointer;margin-top:.35rem;display:block">
+             ✋ ${b.pending_count} Anfrage${b.pending_count>1?'n':''}
+           </button>`
+        : '';
+      return `<div id="bubble-card-${b.id}" style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.7rem;margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <div style="font-size:1.5rem;flex-shrink:0">${b.emoji||'✨'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.85rem;font-weight:700">${esc(b.title)}</div>
+            <div style="font-size:.7rem;color:var(--muted)">${b.is_hangout?'🎪 Hangout · ':''} ${alive?`⏱ ${tl}`:'Abgelaufen'} ${b.is_hangout&&b.max_attendees?` · ${b.approved_count||0}/${b.max_attendees} zugelassen`:''}</div>
+            ${pendingBtn}
+          </div>
+          <button onclick="deleteBubble(${b.id})" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:.2rem .4rem;flex-shrink:0" title="Löschen">🗑️</button>
         </div>
-        <button onclick="deleteBubble(${b.id})" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:.2rem .4rem" title="Löschen">🗑️</button>
+        <div id="requests-panel-${b.id}" style="display:none;margin-top:.5rem"></div>
       </div>`;
     }).join('');
   } catch { list.innerHTML = '<div class="empty">–</div>'; }
@@ -4478,6 +4680,42 @@ async function deleteBubble(bid) {
     loadMyBubbles();
     if (currentMapMode === 'bubbles') loadMapBubbles();
   } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function toggleBubbleRequests(bid, btn) {
+  const panel = document.getElementById(`requests-panel-${bid}`);
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="font-size:.75rem;color:var(--muted)">Lade…</div>';
+  try {
+    const reqs = await apiFetch(`/api/bubbles/${bid}/requests`);
+    const pending = reqs.filter(r => r.status === 'pending');
+    if (!pending.length) { panel.innerHTML = '<div style="font-size:.75rem;color:var(--muted)">Keine ausstehenden Anfragen.</div>'; return; }
+    panel.innerHTML = pending.map(r => `
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-top:1px solid var(--border)">
+        <div style="font-size:.85rem;flex:1">${esc(r.display_name)} <span style="color:var(--muted);font-size:.68rem">${r.city||''}</span></div>
+        <button onclick="approveBubbleReq(${bid},${r.user_id},this)" style="background:#4afa8c;color:#000;border:none;border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✓</button>
+        <button onclick="denyBubbleReq(${bid},${r.user_id},this)" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✕</button>
+      </div>`).join('');
+  } catch { panel.innerHTML = '<div style="font-size:.75rem;color:var(--muted)">–</div>'; }
+}
+
+async function approveBubbleReq(bid, uid, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/bubbles/${bid}/approve/${uid}`, 'POST');
+    showToast('✓ Zugelassen');
+    loadMyBubbles();
+  } catch(e) { showToast(e.message||'Fehler'); btn.disabled = false; }
+}
+
+async function denyBubbleReq(bid, uid, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/bubbles/${bid}/deny/${uid}`, 'POST');
+    showToast('Abgelehnt');
+    loadMyBubbles();
+  } catch(e) { showToast(e.message||'Fehler'); btn.disabled = false; }
 }
 
 // ── Map location picker ────────────────────────────────────────────────────

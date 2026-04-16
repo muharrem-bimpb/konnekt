@@ -303,6 +303,17 @@ def init_db():
             alerted_at TEXT DEFAULT (datetime('now')),
             UNIQUE(bubble_id, user_id)
         );
+        CREATE TABLE IF NOT EXISTS walks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            steps INTEGER DEFAULT 0,
+            distance_m INTEGER DEFAULT 0,
+            duration_s INTEGER DEFAULT 0,
+            points_earned INTEGER DEFAULT 0,
+            route_json TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         -- Add media columns to existing bubbles tables if not present
         CREATE TABLE IF NOT EXISTS push_subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2355,6 +2366,42 @@ def delete_bubble(bid):
         c.execute("DELETE FROM bubble_approach_log WHERE bubble_id=?", (bid,))
         c.execute("DELETE FROM life_bubbles WHERE id=?", (bid,))
     return jsonify({"ok": True})
+
+# ── Walk Tracker ─────────────────────────────────────────────────────────────
+
+@app.post("/api/walk/complete")
+@require_auth
+def walk_complete():
+    d = request.json or {}
+    steps      = max(0, int(d.get("steps", 0)))
+    distance_m = max(0, int(d.get("distance_m", 0)))
+    duration_s = max(0, int(d.get("duration_s", 0)))
+    route_json = d.get("route_json")  # JSON string of [[lat,lng],...]
+
+    if duration_s < 60:
+        return jsonify({"error": "Zu kurz — mindestens 1 Minute laufen"}), 400
+
+    # Points: 1pt per 100 steps + 1pt per 150m + bonus for duration
+    pts = (steps // 100) + (distance_m // 150)
+    if duration_s >= 600:  pts += 5   # 10 min bonus
+    if duration_s >= 1200: pts += 5   # 20 min bonus
+    if duration_s >= 1800: pts += 10  # 30 min bonus
+    pts = min(pts, 80)  # cap per session
+
+    with get_db() as c:
+        c.execute("INSERT INTO walks (user_id,steps,distance_m,duration_s,points_earned,route_json) VALUES (?,?,?,?,?,?)",
+                  (g.user_id, steps, distance_m, duration_s, pts, route_json))
+    earned = award_points(g.user_id, pts, f"Spaziergang {distance_m}m · {steps} Schritte", "walk")
+    return jsonify({"ok": True, "points_earned": earned, "steps": steps, "distance_m": distance_m})
+
+@app.get("/api/walk/history")
+@require_auth
+def walk_history():
+    with get_db() as c:
+        rows = c.execute(
+            "SELECT id,steps,distance_m,duration_s,points_earned,created_at FROM walks WHERE user_id=? ORDER BY created_at DESC LIMIT 20",
+            (g.user_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 # ── Dashboard Analytics ───────────────────────────────────────────────────────
 
