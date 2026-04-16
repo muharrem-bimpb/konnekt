@@ -326,6 +326,14 @@ input.field:focus, select.field:focus {
   .fab { bottom: 1.5rem; right: 1.5rem; }
 }
 
+/* ── Gathering ring pulse ── */
+@keyframes ring-pulse {
+  0%   { stroke-opacity: .7; r: 28; }
+  50%  { stroke-opacity: .2; r: 34; }
+  100% { stroke-opacity: .7; r: 28; }
+}
+.gathering-ring path { animation: ring-pulse 2s ease-in-out infinite; }
+
 /* ── Map tile brightness fix ── */
 [data-theme="dark"] .leaflet-tile-pane {
   filter: brightness(1.7) contrast(0.82) saturate(1.2);
@@ -1357,7 +1365,9 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <div id="points-history"><div class="empty">Noch keine Transaktionen.</div></div>
 
         <div style="margin-top:1.2rem">
-          <div class="section-title"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
+          <div class="section-title"><span class="section-dot" style="background:var(--purple)"></span> Meine Bubbles & Hangouts</div>
+          <div id="my-bubbles-list"><div class="loading">Lade…</div></div>
+          <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
           <div id="my-events-list"><div class="loading">Lade…</div></div>
         </div>
 
@@ -1764,7 +1774,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 
 <!-- Create Event Modal -->
 <!-- ══ MAP LOCATION PICKER MODAL ══ -->
-<div class="modal-overlay" id="modal-map-picker" style="padding:0;align-items:stretch">
+<div class="modal-overlay" id="modal-map-picker" style="padding:0;align-items:stretch;z-index:10000">
   <div class="modal" style="max-width:100%;width:100%;height:90dvh;border-radius:18px 18px 0 0;margin:auto 0 0;display:flex;flex-direction:column">
     <div class="modal-handle"></div>
     <div class="modal-title" style="flex-shrink:0">📍 Standort wählen
@@ -2043,6 +2053,26 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
           <option value="6">6 Stunden</option>
           <option value="8">8 Stunden</option>
         </select>
+      </div>
+    </div>
+    <!-- Hangout toggle -->
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <label style="display:flex;align-items:center;gap:.65rem;cursor:pointer">
+        <input type="checkbox" id="bubble-is-hangout" onchange="toggleHangoutFields(this.checked)" style="width:18px;height:18px;accent-color:var(--purple)">
+        <span style="font-size:.85rem;font-weight:700;color:var(--text)">🎪 Hangout (privat + Kapazität)</span>
+      </label>
+      <div id="hangout-fields" style="display:none;margin-top:.65rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+        <div class="field-group">
+          <div class="field-label">Max. Personen</div>
+          <input class="field" id="bubble-max" type="number" min="2" max="100" placeholder="z.B. 12">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Adresse verbergen</div>
+          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;cursor:pointer">
+            <input type="checkbox" id="bubble-blur" checked style="accent-color:var(--purple)">
+            <span style="font-size:.78rem;color:var(--muted)">Bis Anfrage OK</span>
+          </label>
+        </div>
       </div>
     </div>
     <div id="bubble-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
@@ -2542,7 +2572,7 @@ function switchScreen(name, btn, swipeDir) {
     if (name==='volunteer') { loadEvents(); }
     if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
     if (name==='nahbar')    { loadLobbies(); loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
-    if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
+    if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyBubbles(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
   }
 
   // Sync world indicator dots
@@ -3069,24 +3099,52 @@ function showMapView(pill) {
   switchScreen('map', document.querySelector('.nav-item[onclick*="map"]'));
 }
 
+function _myMarkerIcon() {
+  const u = currentUser;
+  const emoji = u?.avatar_url?.startsWith('emoji:') ? u.avatar_url.slice(6) : null;
+  const initial = (u?.display_name || u?.username || '?')[0].toUpperCase();
+  const inner = emoji
+    ? `<span style="font-size:1rem;line-height:1">${emoji}</span>`
+    : `<span style="font-size:.7rem;font-weight:800;color:#fff">${initial}</span>`;
+  return L.divIcon({
+    className: '',
+    html: `<div style="background:var(--accent,#4afa8c);border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(74,250,140,.3),0 2px 8px rgba(0,0,0,.4)">${inner}</div>`,
+    iconSize: [32,32], iconAnchor: [16,16]
+  });
+}
+
+let _myGpsPos = null;
+let _routeLayer = null;
+
 function locateMeOnMap() {
   if (!leafletMap) return;
   if (!navigator.geolocation) { showToast('Standort nicht verfügbar.'); return; }
   navigator.geolocation.getCurrentPosition(
     pos => {
-      leafletMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
-      // Drop a temporary marker
+      _myGpsPos = [pos.coords.latitude, pos.coords.longitude];
+      leafletMap.setView(_myGpsPos, 15);
       if (window._myLocMarker) leafletMap.removeLayer(window._myLocMarker);
-      const icon = L.divIcon({
-        className: '',
-        html: '<div style="background:#3b82f6;border:3px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 0 0 4px rgba(59,130,246,.3)"></div>',
-        iconSize: [16,16], iconAnchor: [8,8]
-      });
-      window._myLocMarker = L.marker([pos.coords.latitude, pos.coords.longitude], {icon}).addTo(leafletMap);
+      window._myLocMarker = L.marker(_myGpsPos, {icon: _myMarkerIcon(), zIndexOffset: 1000}).addTo(leafletMap);
       showToast('Standort gefunden.');
     },
     () => showToast('Standort konnte nicht ermittelt werden.')
   );
+}
+
+function _navigateToBubble(lat, lng, name) {
+  // Draw route line
+  if (_routeLayer) leafletMap.removeLayer(_routeLayer);
+  if (_myGpsPos) {
+    _routeLayer = L.polyline([_myGpsPos, [lat, lng]], {
+      color: '#4afa8c', weight: 3, dashArray: '8 6', opacity: .85
+    }).addTo(leafletMap);
+    leafletMap.fitBounds(_routeLayer.getBounds(), {padding: [40,40]});
+  }
+  // Open native nav
+  const url = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ? `maps://maps.apple.com/?daddr=${lat},${lng}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  window.open(url, '_blank');
 }
 
 function initMap() {
@@ -4278,6 +4336,83 @@ async function submitShopInterest() {
     document.getElementById('si-email').value = '';
     document.getElementById('si-msg').value = '';
   } catch(e) { errEl.textContent = e.message || 'Fehler — bitte nochmal versuchen.'; errEl.style.display = 'block'; }
+}
+
+// ── Hangout helpers ───────────────────────────────────────────────────────
+function toggleHangoutFields(on) {
+  const f = document.getElementById('hangout-fields');
+  if (f) f.style.display = on ? 'grid' : 'none';
+}
+
+async function requestJoinBubble(bid) {
+  try {
+    await apiFetch(`/api/bubbles/${bid}/join`, 'POST');
+    showToast('✓ Anfrage gesendet — Besitzer wird benachrichtigt');
+    loadMapBubbles();
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+// ── 200m proximity watcher ────────────────────────────────────────────────
+let _proxWatchId = null;
+let _proxBubbles = [];
+
+function _startProximityWatch(bubbles) {
+  _proxBubbles = (bubbles || []).filter(b => b.lat && b.lng && b.owner_id !== currentUser?.id);
+  if (_proxWatchId || !navigator.geolocation || !_proxBubbles.length) return;
+  _proxWatchId = navigator.geolocation.watchPosition(pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    _myGpsPos = [lat, lng];
+    // Update user marker if visible
+    if (window._myLocMarker && leafletMap) {
+      window._myLocMarker.setLatLng([lat, lng]);
+    }
+    _proxBubbles.forEach(b => {
+      const dist = _haversine(lat, lng, b.lat, b.lng);
+      if (dist <= 200) {
+        apiFetch(`/api/bubbles/${b.id}/approaching`, 'POST').catch(() => {});
+      }
+    });
+  }, null, { enableHighAccuracy: true, maximumAge: 15000 });
+}
+
+function _haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000, r = Math.PI/180;
+  const dLat = (lat2-lat1)*r, dLon = (lon2-lon1)*r;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── My Bubbles (profile history) ──────────────────────────────────────────
+async function loadMyBubbles() {
+  const list = document.getElementById('my-bubbles-list');
+  if (!list) return;
+  try {
+    const rows = await apiFetch('/api/my/bubbles');
+    if (!rows.length) { list.innerHTML = '<div class="empty">Noch keine Bubbles gedroppt.</div>'; return; }
+    list.innerHTML = rows.map(b => {
+      const exp = new Date(b.expires_at + (b.expires_at.includes('Z')?'':'Z'));
+      const alive = exp > new Date();
+      const { label: tl } = _bubbleTimeLeft(b.expires_at);
+      return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.7rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.65rem">
+        <div style="font-size:1.5rem;flex-shrink:0">${b.emoji||'✨'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:700">${esc(b.title)}</div>
+          <div style="font-size:.7rem;color:var(--muted)">${b.is_hangout?'🎪 Hangout · ':''} ${alive?`⏱ ${tl}`:'Abgelaufen'} ${b.is_hangout&&b.max_attendees?` · ${b.approved_count}/${b.max_attendees} zugelassen`:''} ${b.pending_count>0?`· <span style="color:var(--orange)">${b.pending_count} ausstehend</span>`:''}</div>
+        </div>
+        <button onclick="deleteBubble(${b.id})" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:.2rem .4rem" title="Löschen">🗑️</button>
+      </div>`;
+    }).join('');
+  } catch { list.innerHTML = '<div class="empty">–</div>'; }
+}
+
+async function deleteBubble(bid) {
+  if (!confirm('Bubble löschen?')) return;
+  try {
+    await apiFetch(`/api/bubbles/${bid}`, 'DELETE');
+    showToast('Bubble gelöscht');
+    loadMyBubbles();
+    if (currentMapMode === 'bubbles') loadMapBubbles();
+  } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
 // ── Map location picker ────────────────────────────────────────────────────
@@ -5871,7 +6006,8 @@ async function submitDropBubble() {
   if (!title) { errEl.textContent = 'Bitte eine Beschreibung eingeben.'; errEl.style.display = ''; return; }
   btn.disabled = true; btn.textContent = 'Wird gedroppt…';
   try {
-    await apiFetch('/api/bubbles', 'POST', {
+    const isHangout = document.getElementById('bubble-is-hangout')?.checked || false;
+    const res = await apiFetch('/api/bubbles', 'POST', {
       title,
       emoji: selectedBubbleEmoji,
       description: document.getElementById('bubble-desc').value.trim(),
@@ -5879,15 +6015,24 @@ async function submitDropBubble() {
       lat: parseFloat(document.getElementById('bubble-lat')?.value) || 0,
       lng: parseFloat(document.getElementById('bubble-lng')?.value) || 0,
       city: currentUser?.city || '',
-      hours: parseInt(document.getElementById('bubble-hours').value) || 3
+      hours: parseInt(document.getElementById('bubble-hours').value) || 3,
+      is_hangout: isHangout,
+      max_attendees: isHangout ? (parseInt(document.getElementById('bubble-max')?.value) || 0) : 0,
+      location_blur: isHangout ? (document.getElementById('bubble-blur')?.checked || false) : false,
     });
-    // Reset
+    // Reset form
     document.getElementById('bubble-title').value = '';
     document.getElementById('bubble-desc').value = '';
     document.getElementById('bubble-addr').value = '';
     const bl = document.getElementById('bubble-lat'); if (bl) bl.value = '0';
     const blg = document.getElementById('bubble-lng'); if (blg) blg.value = '0';
+    const bh = document.getElementById('bubble-is-hangout'); if (bh) { bh.checked = false; toggleHangoutFields(false); }
     bubbleClearMedia();
+    // Immediately show on map
+    if (res?.lat && res?.lng && leafletMap) {
+      setMapMode('bubbles');
+      setTimeout(() => { leafletMap.flyTo([res.lat, res.lng], 16, {animate:true, duration:0.8}); }, 300);
+    }
     closeModal('modal-drop-bubble');
     showToast('🫧 Bubble gedroppt! Leute in der Nähe sehen sie jetzt.');
     invalidateScreen('feed');
@@ -6048,28 +6193,59 @@ async function loadMapBubbles() {
     const city = currentUser?.city || '';
     const bubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
     bubbleMapMarkers = [];
+    // Detect gatherings: group bubbles within ~80m of each other
+    const grouped = {};
+    bubbles.filter(b => b.lat && b.lng).forEach(b => {
+      const key = `${Math.round(b.lat*500)}_${Math.round(b.lng*500)}`;
+      (grouped[key] = grouped[key] || []).push(b);
+    });
     bubbles.forEach(b => {
       if (!b.lat || !b.lng) return;
+      const key = `${Math.round(b.lat*500)}_${Math.round(b.lng*500)}`;
+      const cluster = grouped[key];
+      const isBlurred = b.location_blurred;
+      const isHangout = b.is_hangout;
+      const isOwn = b.owner_id === currentUser?.id;
+      // Gathering ring behind marker if 2+ bubbles nearby
+      if (cluster.length >= 2 && cluster[0].id === b.id) {
+        L.circleMarker([b.lat, b.lng], {
+          radius: 28, color: '#4afa8c', weight: 2, fillColor: 'rgba(74,250,140,.08)',
+          fillOpacity: 1, className: 'gathering-ring'
+        }).addTo(leafletMap);
+      }
+      const { label: timeLabel } = _bubbleTimeLeft(b.expires_at);
+      const hangoutBadge = isHangout ? `<span style="background:#7c3aed;color:#fff;font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:700">🎪 HANGOUT</span>` : '';
+      const blurBadge = isBlurred ? `<span style="background:#f97316;color:#fff;font-size:.55rem;padding:.1rem .35rem;border-radius:99px">📍 ~Ort</span>` : '';
+      const size = isHangout ? 46 : 40;
       const icon = L.divIcon({
         className: '',
-        html: `<div class="bubble-marker" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:white;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2.5px solid white;cursor:pointer">${b.emoji||'✨'}</div>`,
-        iconSize: [42,42], iconAnchor: [21,21]
+        html: `<div style="background:${isHangout?'linear-gradient(135deg,#7c3aed,#4afa8c)':'linear-gradient(135deg,#8b5cf6,#3b82f6)'};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2.5px solid ${isOwn?'#4afa8c':'white'};cursor:pointer;box-shadow:${isOwn?'0 0 0 3px rgba(74,250,140,.4)':'none'}">${b.emoji||'✨'}</div>`,
+        iconSize: [size,size], iconAnchor: [size/2,size/2]
       });
       const marker = L.marker([b.lat, b.lng], {icon}).addTo(leafletMap);
       bubbleMapMarkers.push(marker);
-      const now = new Date();
-      const exp = new Date(b.expires_at + (b.expires_at.includes('Z') ? '' : 'Z'));
-      const minsLeft = Math.max(0, Math.round((exp - now) / 60000));
-      const timeLeft = minsLeft < 60 ? `${minsLeft}min` : `${Math.round(minsLeft/60)}h`;
-      marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:180px;padding:.1rem">
+      const navBtn = (!isBlurred && b.lat && b.lng)
+        ? `<button onclick="_navigateToBubble(${b.lat},${b.lng},'${b.title.replace(/'/g,"\\'")}');leafletMap.closePopup()" style="margin-top:.5rem;width:100%;background:#4afa8c;color:#000;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer">🧭 Navigieren</button>`
+        : '';
+      const joinBtn = (isHangout && !isOwn && !b.my_request)
+        ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer">Anfragen</button>`
+        : (b.my_request ? `<div style="margin-top:.4rem;font-size:.72rem;color:#888;text-align:center">${{pending:'⏳ Anfrage ausstehend',approved:'✅ Zugelassen',denied:'❌ Abgelehnt'}[b.my_request]||''}</div>` : '');
+      const capacityLine = isHangout && b.max_attendees
+        ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">👥 ${b.join_count||0}/${b.max_attendees} Plätze</div>` : '';
+      marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:.1rem">
+        <div style="display:flex;gap:.3rem;margin-bottom:.35rem;flex-wrap:wrap">${hangoutBadge}${blurBadge}</div>
         <div style="font-size:1.4rem;text-align:center;margin-bottom:.3rem">${b.emoji||'✨'}</div>
         <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;line-height:1.3">${b.title}</div>
         ${b.description ? `<div style="font-size:.75rem;color:#666;margin-bottom:.3rem">${b.description}</div>` : ''}
-        <div style="font-size:.72rem;color:#888">👤 ${b.display_name||''} · ⏱ noch ${timeLeft}</div>
+        <div style="font-size:.72rem;color:#888">👤 ${b.display_name||''} · ⏱ ${timeLabel}</div>
         ${b.address ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">📍 ${b.address}</div>` : ''}
+        ${capacityLine}
+        ${navBtn}${joinBtn}
       </div>`);
     });
     _updateMapCounter(null, bubbles.filter(b => b.lat && b.lng).length);
+    // Start proximity watcher after bubbles are loaded
+    _startProximityWatch(bubbles);
   } catch(e) { console.error('Bubble map error', e); }
 }
 

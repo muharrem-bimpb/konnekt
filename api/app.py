@@ -280,8 +280,28 @@ def init_db():
             expires_at TEXT NOT NULL,
             photo_data TEXT DEFAULT NULL,
             audio_data TEXT DEFAULT NULL,
+            is_hangout INTEGER DEFAULT 0,
+            max_attendees INTEGER DEFAULT 0,
+            location_blur INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS bubble_join_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bubble_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(bubble_id, user_id),
+            FOREIGN KEY(bubble_id) REFERENCES life_bubbles(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS bubble_approach_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bubble_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            alerted_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(bubble_id, user_id)
         );
         -- Add media columns to existing bubbles tables if not present
         CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -448,8 +468,14 @@ def init_db():
                 pass
         # Back-fill: any already-completed visits count as both confirmed
         c.execute("UPDATE senior_visits SET visitor_confirmed=1, senior_confirmed=1 WHERE completed=1")
-        # Add media columns to life_bubbles (migration)
-        for col, defn in [("photo_data", "TEXT DEFAULT NULL"), ("audio_data", "TEXT DEFAULT NULL")]:
+        # Add columns to life_bubbles (migrations)
+        for col, defn in [
+            ("photo_data",    "TEXT DEFAULT NULL"),
+            ("audio_data",    "TEXT DEFAULT NULL"),
+            ("is_hangout",    "INTEGER DEFAULT 0"),
+            ("max_attendees", "INTEGER DEFAULT 0"),
+            ("location_blur", "INTEGER DEFAULT 0"),
+        ]:
             try:
                 c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
@@ -2239,10 +2265,15 @@ def map_events():
 def get_bubbles():
     """Active life bubbles — spontaneous moments on the map."""
     city = request.args.get("city", "")
+    token = request.headers.get("Authorization","").replace("Bearer ","")
+    uid = None
     with get_db() as c:
+        if token:
+            sess = c.execute("SELECT user_id FROM sessions WHERE token=? AND expires_at>datetime('now')", (token,)).fetchone()
+            if sess: uid = sess["user_id"]
         q = """SELECT b.id, b.title, b.emoji, b.description, b.lat, b.lng,
                       b.address, b.city, b.expires_at, b.created_at,
-                      b.photo_data, b.audio_data,
+                      b.is_hangout, b.max_attendees, b.location_blur, b.user_id as owner_id,
                       u.display_name, u.avatar_url
                FROM life_bubbles b JOIN users u ON b.user_id=u.id
                WHERE b.expires_at > datetime('now')"""
@@ -2251,7 +2282,28 @@ def get_bubbles():
             q += " AND b.city LIKE ?"; params.append(f"%{city}%")
         q += " ORDER BY b.created_at DESC LIMIT 60"
         rows = c.execute(q, params).fetchall()
-    return jsonify([dict(r) for r in rows])
+        result = []
+        for r in rows:
+            row = dict(r)
+            # Blur location for hangouts unless owner or approved
+            if row["location_blur"] and row["owner_id"] != uid:
+                approved = False
+                if uid:
+                    req = c.execute("SELECT status FROM bubble_join_requests WHERE bubble_id=? AND user_id=?", (row["id"], uid)).fetchone()
+                    approved = req and req["status"] == "approved"
+                if not approved:
+                    row["lat"] = round(row["lat"] + (hash(str(row["id"])+"lat") % 100 - 50) * 0.00005, 5)
+                    row["lng"] = round(row["lng"] + (hash(str(row["id"])+"lng") % 100 - 50) * 0.00005, 5)
+                    row["address"] = row["city"] + " (genaue Adresse nach Anfrage)"
+                    row["location_blurred"] = True
+            # Join count for hangouts
+            if row["is_hangout"]:
+                row["join_count"] = c.execute("SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=? AND status='approved'", (row["id"],)).fetchone()[0]
+                if uid:
+                    req = c.execute("SELECT status FROM bubble_join_requests WHERE bubble_id=? AND user_id=?", (row["id"], uid)).fetchone()
+                    row["my_request"] = req["status"] if req else None
+            result.append(row)
+    return jsonify(result)
 
 @app.post("/api/bubbles")
 @require_auth
@@ -2276,15 +2328,19 @@ def drop_bubble():
     if audio_data and len(audio_data) > 800_000:   # ~600KB raw
         return jsonify({"error": "Audio zu lang (max. 15 Sek.)"}), 413
     with get_db() as c:
+        is_hangout   = 1 if d.get("is_hangout") else 0
+        max_att      = max(0, int(d.get("max_attendees") or 0))
+        location_blur = 1 if (is_hangout and d.get("location_blur")) else 0
         c.execute("""
-            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city, expires_at, photo_data, audio_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city,
+                                      expires_at, photo_data, audio_data, is_hangout, max_attendees, location_blur)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (g.user_id, d["title"][:100], d.get("emoji", "✨"),
-              d.get("description", "")[:200],
+              d.get("description", "")[:300],
               lat, lng, d.get("address", ""), d.get("city", ""), expires,
-              photo_data, audio_data))
+              photo_data, audio_data, is_hangout, max_att, location_blur))
         bid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
-    return jsonify({"id": bid, "ok": True}), 201
+    return jsonify({"id": bid, "ok": True, "lat": lat, "lng": lng}), 201
 
 @app.delete("/api/bubbles/<int:bid>")
 @require_auth
@@ -4033,6 +4089,97 @@ def push_unsubscribe():
         c.execute("DELETE FROM push_subscriptions WHERE endpoint=? AND user_id=?",
                   (d.get("endpoint",""), g.user_id))
     return jsonify({"ok": True})
+
+# ── Hangout join / approve / deny ─────────────────────────────────────────
+
+@app.post("/api/bubbles/<int:bid>/join")
+@require_auth
+def bubble_join_request(bid):
+    with get_db() as c:
+        b = c.execute("SELECT user_id, max_attendees, is_hangout FROM life_bubbles WHERE id=? AND expires_at>datetime('now')", (bid,)).fetchone()
+        if not b: return jsonify({"error": "Bubble nicht gefunden"}), 404
+        if not b["is_hangout"]: return jsonify({"error": "Keine Hangout-Bubble"}), 400
+        if b["user_id"] == g.user_id: return jsonify({"error": "Eigene Bubble"}), 400
+        approved_count = c.execute("SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=? AND status='approved'", (bid,)).fetchone()[0]
+        if b["max_attendees"] and approved_count >= b["max_attendees"]:
+            return jsonify({"error": "Hangout ist voll"}), 409
+        try:
+            c.execute("INSERT INTO bubble_join_requests (bubble_id, user_id) VALUES (?,?)", (bid, g.user_id))
+        except sqlite3.IntegrityError:
+            return jsonify({"error": "Anfrage bereits gesendet"}), 409
+        # Notify owner
+        requester = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+        c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                  (b["user_id"], "hangout_request", "Neue Hangout-Anfrage",
+                   f"{requester['display_name']} möchte teilnehmen", "bubble", bid))
+    return jsonify({"ok": True})
+
+@app.post("/api/bubbles/<int:bid>/approve/<int:uid>")
+@require_auth
+def bubble_approve(bid, uid):
+    with get_db() as c:
+        b = c.execute("SELECT user_id FROM life_bubbles WHERE id=?", (bid,)).fetchone()
+        if not b or b["user_id"] != g.user_id: return jsonify({"error": "Forbidden"}), 403
+        c.execute("UPDATE bubble_join_requests SET status='approved' WHERE bubble_id=? AND user_id=?", (bid, uid))
+        c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                  (uid, "hangout_approved", "Anfrage genehmigt!", "Du wurdest zum Hangout zugelassen — genaue Adresse jetzt sichtbar.", "bubble", bid))
+    return jsonify({"ok": True})
+
+@app.post("/api/bubbles/<int:bid>/deny/<int:uid>")
+@require_auth
+def bubble_deny(bid, uid):
+    with get_db() as c:
+        b = c.execute("SELECT user_id FROM life_bubbles WHERE id=?", (bid,)).fetchone()
+        if not b or b["user_id"] != g.user_id: return jsonify({"error": "Forbidden"}), 403
+        c.execute("UPDATE bubble_join_requests SET status='denied' WHERE bubble_id=? AND user_id=?", (bid, uid))
+    return jsonify({"ok": True})
+
+@app.get("/api/bubbles/<int:bid>/requests")
+@require_auth
+def bubble_requests(bid):
+    with get_db() as c:
+        b = c.execute("SELECT user_id FROM life_bubbles WHERE id=?", (bid,)).fetchone()
+        if not b or b["user_id"] != g.user_id: return jsonify({"error": "Forbidden"}), 403
+        rows = c.execute("""SELECT r.id, r.user_id, r.status, r.created_at, u.display_name, u.avatar_url, u.city
+                            FROM bubble_join_requests r JOIN users u ON u.id=r.user_id
+                            WHERE r.bubble_id=? ORDER BY r.created_at ASC""", (bid,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/bubbles/<int:bid>/approaching")
+@require_auth
+def bubble_approaching(bid):
+    """Called by client when user is within 200m of a bubble they don't own."""
+    with get_db() as c:
+        b = c.execute("SELECT user_id, title FROM life_bubbles WHERE id=? AND expires_at>datetime('now')", (bid,)).fetchone()
+        if not b or b["user_id"] == g.user_id: return jsonify({"ok": True})
+        # Throttle: alert owner once per 10 min per approaching user
+        existing = c.execute("SELECT alerted_at FROM bubble_approach_log WHERE bubble_id=? AND user_id=?", (bid, g.user_id)).fetchone()
+        if existing:
+            from datetime import datetime as dt
+            last = dt.fromisoformat(existing["alerted_at"])
+            if (dt.utcnow() - last).total_seconds() < 600: return jsonify({"ok": True})
+            c.execute("UPDATE bubble_approach_log SET alerted_at=datetime('now') WHERE bubble_id=? AND user_id=?", (bid, g.user_id))
+        else:
+            c.execute("INSERT INTO bubble_approach_log (bubble_id, user_id) VALUES (?,?)", (bid, g.user_id))
+        approacher = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+        c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                  (b["user_id"], "bubble_approach", "Jemand nähert sich! 📍",
+                   f"{approacher['display_name']} ist ~200m von deiner Bubble entfernt: {b['title'][:40]}", "bubble", bid))
+    return jsonify({"ok": True})
+
+# ── User's own bubbles & posts history ────────────────────────────────────
+
+@app.get("/api/my/bubbles")
+@require_auth
+def my_bubbles():
+    with get_db() as c:
+        rows = c.execute("""SELECT id, title, emoji, description, address, city, expires_at,
+                                   is_hangout, max_attendees, created_at,
+                                   (SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=life_bubbles.id AND status='approved') as approved_count,
+                                   (SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=life_bubbles.id AND status='pending')  as pending_count
+                            FROM life_bubbles WHERE user_id=? ORDER BY created_at DESC LIMIT 50""", (g.user_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
 
 # ── Shop interest leads ───────────────────────────────────────────────────
 
