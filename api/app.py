@@ -389,6 +389,25 @@ def init_db():
             FOREIGN KEY(event_id) REFERENCES events(id),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS lobbies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            creator_id INTEGER NOT NULL,
+            invite_code TEXT UNIQUE NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(creator_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS lobby_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lobby_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            joined_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(lobby_id, user_id),
+            FOREIGN KEY(lobby_id) REFERENCES lobbies(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         """)
         # Add subscription_tier column to users if not exists (migration)
         try:
@@ -489,6 +508,7 @@ def _nuke_for_prod(c):
         "push_subscriptions", "senior_visits", "good_deeds", "trails",
         "activity_logs", "event_registrations", "event_comments", "events",
         "life_bubbles", "zeitbank_offers", "coupons", "businesses", "sessions",
+        "lobby_members", "lobbies",
     ):
         try:
             c.execute(f"DELETE FROM {tbl}")
@@ -3998,6 +4018,108 @@ def push_unsubscribe():
         c.execute("DELETE FROM push_subscriptions WHERE endpoint=? AND user_id=?",
                   (d.get("endpoint",""), g.user_id))
     return jsonify({"ok": True})
+
+# ── Private Lobbies ───────────────────────────────────────────────────────
+
+@app.get("/api/lobbies")
+@require_auth
+def get_lobbies():
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT l.id, l.name, l.description, l.invite_code, l.created_at,
+                   COUNT(lm2.id) AS member_count,
+                   CASE WHEN l.creator_id=? THEN 1 ELSE 0 END AS is_owner
+            FROM lobbies l
+            JOIN lobby_members lm ON lm.lobby_id=l.id AND lm.user_id=?
+            LEFT JOIN lobby_members lm2 ON lm2.lobby_id=l.id
+            GROUP BY l.id ORDER BY l.created_at DESC
+        """, (g.user_id, g.user_id)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/lobbies")
+@require_auth
+def create_lobby():
+    d = request.json or {}
+    name = (d.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name erforderlich"}), 400
+    code = secrets.token_urlsafe(8)
+    with get_db() as c:
+        c.execute("INSERT INTO lobbies (name, description, creator_id, invite_code) VALUES (?,?,?,?)",
+                  (name, (d.get("description") or "").strip(), g.user_id, code))
+        lid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+        c.execute("INSERT INTO lobby_members (lobby_id, user_id, role) VALUES (?,?,?)", (lid, g.user_id, "owner"))
+    return jsonify({"id": lid, "invite_code": code}), 201
+
+@app.get("/api/lobbies/<int:lid>")
+@require_auth
+def get_lobby(lid):
+    with get_db() as c:
+        mem = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if not mem:
+            return jsonify({"error": "Kein Zugriff"}), 403
+        lobby = c.execute("SELECT id,name,description,invite_code,created_at FROM lobbies WHERE id=?", (lid,)).fetchone()
+        members = c.execute("""
+            SELECT u.id, u.display_name, u.avatar_url, u.city, lm.role, lm.joined_at
+            FROM lobby_members lm JOIN users u ON u.id=lm.user_id
+            WHERE lm.lobby_id=? ORDER BY lm.role DESC, lm.joined_at ASC
+        """, (lid,)).fetchall()
+    return jsonify({"lobby": dict(lobby), "members": [dict(m) for m in members], "my_role": mem["role"]})
+
+@app.post("/api/lobbies/join/<code>")
+@require_auth
+def join_lobby(code):
+    with get_db() as c:
+        lobby = c.execute("SELECT id FROM lobbies WHERE invite_code=?", (code,)).fetchone()
+        if not lobby:
+            return jsonify({"error": "Ungültiger Einladungslink"}), 404
+        lid = lobby["id"]
+        try:
+            c.execute("INSERT INTO lobby_members (lobby_id, user_id) VALUES (?,?)", (lid, g.user_id))
+        except sqlite3.IntegrityError:
+            pass  # already member
+    return jsonify({"id": lid})
+
+@app.delete("/api/lobbies/<int:lid>/members/<int:target_uid>")
+@require_auth
+def remove_lobby_member(lid, target_uid):
+    with get_db() as c:
+        role = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if not role or role["role"] != "owner":
+            return jsonify({"error": "Nur der Besitzer kann Mitglieder entfernen"}), 403
+        if target_uid == g.user_id:
+            return jsonify({"error": "Kannst du selbst nicht entfernen"}), 400
+        c.execute("DELETE FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, target_uid))
+    return jsonify({"ok": True})
+
+@app.post("/api/lobbies/<int:lid>/leave")
+@require_auth
+def leave_lobby(lid):
+    with get_db() as c:
+        role = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if not role:
+            return jsonify({"error": "Nicht Mitglied"}), 404
+        if role["role"] == "owner":
+            nxt = c.execute("SELECT user_id FROM lobby_members WHERE lobby_id=? AND user_id!=? LIMIT 1", (lid, g.user_id)).fetchone()
+            if nxt:
+                c.execute("UPDATE lobby_members SET role='owner' WHERE lobby_id=? AND user_id=?", (lid, nxt["user_id"]))
+            else:
+                c.execute("DELETE FROM lobby_members WHERE lobby_id=?", (lid,))
+                c.execute("DELETE FROM lobbies WHERE id=?", (lid,))
+                return jsonify({"ok": True, "deleted": True})
+        c.execute("DELETE FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id))
+    return jsonify({"ok": True})
+
+@app.post("/api/lobbies/<int:lid>/new-invite")
+@require_auth
+def new_lobby_invite(lid):
+    with get_db() as c:
+        role = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if not role or role["role"] != "owner":
+            return jsonify({"error": "Nur der Besitzer kann den Link erneuern"}), 403
+        code = secrets.token_urlsafe(8)
+        c.execute("UPDATE lobbies SET invite_code=? WHERE id=?", (code, lid))
+    return jsonify({"invite_code": code})
 
 if __name__ == "__main__":
     app.run(host=HOST, port=PORT, debug=False)

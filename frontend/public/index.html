@@ -1217,6 +1217,11 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
         <p>Verbinde dich mit Menschen in deiner Nähe. Besuche Senioren. Tausche Fähigkeiten. Hinterlasse Gutes.</p>
       </div>
 
+      <!-- Private Lobbys -->
+      <div class="section-title" style="margin-bottom:.5rem"><span class="section-dot" style="background:var(--purple)"></span> Meine Lobbys</div>
+      <div id="lobbies-list"></div>
+      <button class="btn-secondary" style="width:100%;margin-bottom:1rem" onclick="openModal('modal-create-lobby')">+ Neue Lobby erstellen</button>
+
       <!-- SOS / Notfall Button -->
       <div class="sos-card">
         <div class="sos-icon">🆘</div>
@@ -1488,6 +1493,49 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     <button id="dial-handle" onclick="toggleDial()" aria-label="Navigation öffnen">
       <span class="dial-grip"></span>
     </button>
+  </div>
+</div>
+
+<!-- ══ CREATE LOBBY MODAL ══ -->
+<div class="modal-overlay" id="modal-create-lobby">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔒 Neue Lobby <button class="modal-close" onclick="closeModal('modal-create-lobby')">✕</button></div>
+    <div class="modal-body">
+      <label class="form-label">Name *</label>
+      <input class="form-input" id="lobby-name" placeholder="z.B. Nachbarschaftsgruppe Nord" maxlength="60">
+      <label class="form-label" style="margin-top:.65rem">Beschreibung (optional)</label>
+      <textarea class="ta" id="lobby-desc" placeholder="Worum geht es in dieser Lobby?" rows="2" maxlength="200"></textarea>
+      <div id="lobby-create-err" style="display:none;color:#f87171;font-size:.8rem;margin-top:.4rem"></div>
+      <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitCreateLobby()">Lobby erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOBBY DETAIL MODAL ══ -->
+<div class="modal-overlay" id="modal-lobby-detail">
+  <div class="modal" style="max-height:88dvh">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="lobby-detail-title">Lobby <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button></div>
+    <div class="modal-body">
+      <div id="lobby-detail-desc" style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem"></div>
+      <!-- Invite link box -->
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:1rem">
+        <div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem;font-weight:600;letter-spacing:.04em">EINLADUNGSLINK</div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input id="lobby-invite-url" class="form-input" style="flex:1;font-size:.72rem;padding:.35rem .6rem" readonly onclick="this.select()">
+          <button class="btn-secondary" style="padding:.35rem .7rem;font-size:.78rem;flex-shrink:0" onclick="copyLobbyInvite()">Kopieren</button>
+        </div>
+        <div id="lobby-owner-actions" style="display:none;margin-top:.5rem;display:flex;gap:.5rem">
+          <button class="btn-secondary" style="font-size:.72rem;padding:.3rem .6rem" onclick="rotateLobbyInvite()">🔄 Neuer Link</button>
+        </div>
+      </div>
+      <!-- Members -->
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
+      <div id="lobby-members-list"></div>
+      <!-- Leave -->
+      <button class="btn-secondary" style="width:100%;margin-top:1rem;color:#f87171;border-color:#f87171" onclick="leaveLobby()">Lobby verlassen</button>
+    </div>
   </div>
 </div>
 
@@ -2288,6 +2336,16 @@ async function loadApp() {
       switchScreen(tabParam, tabBtn);
     }
     if (urlParams.get('event')) openEventDetail(parseInt(urlParams.get('event')));
+    const inviteCode = urlParams.get('invite');
+    if (inviteCode) {
+      try {
+        const r = await apiFetch(`/api/lobbies/join/${inviteCode}`, 'POST');
+        history.replaceState({}, '', location.pathname); // clean URL
+        showToast('✓ Lobby beigetreten!');
+        switchScreen('nahbar', document.querySelector('.nav-item[onclick*="nahbar"]'));
+        setTimeout(() => openLobbyDetail(r.id), 600);
+      } catch(e) { showToast(e.message || 'Einladung ungültig'); }
+    }
   } catch(e) {
     // Token invalid — back to auth, clear token
     _splashDismiss(loading);
@@ -2433,7 +2491,7 @@ function switchScreen(name, btn, swipeDir) {
     if (name==='feed')      { loadDashboard(); loadForYou(); loadUpcomingReminders(); loadTrending(); }
     if (name==='volunteer') { loadEvents(); }
     if (name==='coupons')   { loadCoupons(); updateCouponPts(); }
-    if (name==='nahbar')    { loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
+    if (name==='nahbar')    { loadLobbies(); loadZeitbank('offer'); loadActivities(); loadSeniors(); loadNearby(); loadMyVisits(); loadSeniorPendingVisits(); }
     if (name==='profile')   { loadProfile(); loadLeaderboard(); loadMyEvents(); loadMyRegistrations(); loadTierBanner(); switchProfileTab('profile'); }
   }
 
@@ -4129,6 +4187,127 @@ async function submitZeitbank() {
     showToast('✓ Gespeichert!');
     loadZeitbank(currentZbType);
   } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+// ── Private Lobbies ───────────────────────────────────────────────────────
+let _currentLobbyId = null;
+let _currentLobbyRole = null;
+let _currentLobbyCode = null;
+
+async function loadLobbies() {
+  const el = document.getElementById('lobbies-list');
+  if (!el) return;
+  try {
+    const lobbies = await apiFetch('/api/lobbies');
+    if (!lobbies.length) {
+      el.innerHTML = '<p style="font-size:.8rem;color:var(--dim);margin-bottom:.6rem">Noch keine Lobbys. Erstelle eine und lade Freunde ein.</p>';
+      return;
+    }
+    el.innerHTML = lobbies.map(l => `
+      <div class="card" style="margin-bottom:.55rem;cursor:pointer" onclick="openLobbyDetail(${l.id})">
+        <div class="card-body" style="display:flex;align-items:center;gap:.75rem;padding:.7rem .85rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--card2);border:1.5px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🔒</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.88rem;color:var(--text)">${esc(l.name)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${l.member_count} Mitglied${l.member_count!==1?'er':''} · ${l.is_owner?'<span style="color:var(--accent)">Besitzer</span>':'Mitglied'}</div>
+          </div>
+          <span style="color:var(--dim);font-size:.85rem">›</span>
+        </div>
+      </div>`).join('');
+  } catch { el.innerHTML = ''; }
+}
+
+async function submitCreateLobby() {
+  const name = document.getElementById('lobby-name').value.trim();
+  const desc = document.getElementById('lobby-desc').value.trim();
+  const errEl = document.getElementById('lobby-create-err');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Name erforderlich'; errEl.style.display = 'block'; return; }
+  try {
+    await apiFetch('/api/lobbies', 'POST', { name, description: desc });
+    closeModal('modal-create-lobby');
+    document.getElementById('lobby-name').value = '';
+    document.getElementById('lobby-desc').value = '';
+    loadLobbies();
+    showToast('✓ Lobby erstellt!');
+  } catch(e) { errEl.textContent = e.message || 'Fehler'; errEl.style.display = 'block'; }
+}
+
+async function openLobbyDetail(lid) {
+  _currentLobbyId = lid;
+  try {
+    const d = await apiFetch(`/api/lobbies/${lid}`);
+    _currentLobbyRole = d.my_role;
+    _currentLobbyCode = d.lobby.invite_code;
+    document.getElementById('lobby-detail-title').innerHTML =
+      `🔒 ${esc(d.lobby.name)} <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button>`;
+    document.getElementById('lobby-detail-desc').textContent = d.lobby.description || '';
+    _setLobbyInviteUrl(d.lobby.invite_code);
+    const oa = document.getElementById('lobby-owner-actions');
+    if (oa) oa.style.display = d.my_role === 'owner' ? 'flex' : 'none';
+    document.getElementById('lobby-members-list').innerHTML = d.members.map(m => {
+      const isMe = m.id === (currentUser && currentUser.id);
+      const canKick = d.my_role === 'owner' && !isMe && m.role !== 'owner';
+      return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--accent);flex-shrink:0">${esc((m.display_name||'?')[0].toUpperCase())}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:600;color:var(--text)">${esc(m.display_name||'Unbekannt')}</div>
+          <div style="font-size:.7rem;color:var(--muted)">${m.role==='owner'?'👑 Besitzer':'Mitglied'} · ${m.city||''}</div>
+        </div>
+        ${canKick?`<button onclick="kickLobbyMember(${m.id})" style="border:none;background:none;color:#f87171;font-size:.75rem;cursor:pointer;padding:.2rem .4rem">Entfernen</button>`:''}
+      </div>`;
+    }).join('');
+    openModal('modal-lobby-detail');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+function _setLobbyInviteUrl(code) {
+  const url = `${location.origin}?invite=${code}`;
+  const inp = document.getElementById('lobby-invite-url');
+  if (inp) inp.value = url;
+  _currentLobbyCode = code;
+}
+
+function copyLobbyInvite() {
+  const url = document.getElementById('lobby-invite-url')?.value;
+  if (!url) return;
+  if (navigator.share) {
+    navigator.share({ title: 'Konnekt Lobby', url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast('Link kopiert!')).catch(() => {
+      document.getElementById('lobby-invite-url').select();
+      document.execCommand('copy');
+      showToast('Link kopiert!');
+    });
+  }
+}
+
+async function rotateLobbyInvite() {
+  if (!_currentLobbyId) return;
+  try {
+    const r = await apiFetch(`/api/lobbies/${_currentLobbyId}/new-invite`, 'POST');
+    _setLobbyInviteUrl(r.invite_code);
+    showToast('Neuer Link generiert');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function kickLobbyMember(uid) {
+  if (!_currentLobbyId || !confirm('Mitglied entfernen?')) return;
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/members/${uid}`, 'DELETE');
+    openLobbyDetail(_currentLobbyId);
+    showToast('Mitglied entfernt');
+  } catch(e) { showToast(e.message || 'Fehler'); }
+}
+
+async function leaveLobby() {
+  if (!_currentLobbyId || !confirm('Lobby verlassen?')) return;
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/leave`, 'POST');
+    closeModal('modal-lobby-detail');
+    loadLobbies();
+    showToast('Du hast die Lobby verlassen');
+  } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
 // ── Good deeds ────────────────────────────────────────────────────────────
