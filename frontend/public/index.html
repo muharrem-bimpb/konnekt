@@ -413,17 +413,16 @@ input.field:focus, select.field:focus {
   100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
 }
 
-/* ── Map tile brightness fix ── */
-[data-theme="dark"] .leaflet-tile-pane {
-  filter: brightness(1.7) contrast(0.82) saturate(1.2);
-}
+/* ── Map tile filters ── */
 .leaflet-control-attribution { display: none !important; }
+/* Paper/sketch mode → bright, washed-out, matches white bg */
+[data-theme="dark"]  .leaflet-tile-pane { filter: brightness(1.5) saturate(.5) contrast(.88); }
+/* Ink/dark mode → dim and desaturated */
+[data-theme="light"] .leaflet-tile-pane { filter: brightness(.55) saturate(.4) contrast(1.1); }
 
 /* ── Sketch hover overrides ── */
 [data-theme="dark"] .card:hover  { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 [data-theme="light"] .card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
-[data-theme="dark"] .leaflet-tile-pane  { filter: saturate(.75) brightness(1.02); }
-[data-theme="light"] .leaflet-tile-pane { filter: brightness(.65) saturate(.5) contrast(1.1); }
 
 /* ── Desktop 3-column world layout ── */
 @media (min-width: 1024px) {
