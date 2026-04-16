@@ -4025,6 +4025,24 @@ def push_unsubscribe():
                   (d.get("endpoint",""), g.user_id))
     return jsonify({"ok": True})
 
+# ── Shop interest leads ───────────────────────────────────────────────────
+
+@app.post("/api/shop-interest")
+def shop_interest():
+    d = request.json or {}
+    shop  = (d.get("shop")  or "").strip()
+    email = (d.get("email") or "").strip()
+    msg   = (d.get("msg")   or "").strip()
+    if not shop or not email:
+        return jsonify({"error": "Shop-Name und E-Mail erforderlich"}), 400
+    with get_db() as c:
+        c.execute("""CREATE TABLE IF NOT EXISTS shop_leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shop_name TEXT NOT NULL, email TEXT NOT NULL,
+            message TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))""")
+        c.execute("INSERT INTO shop_leads (shop_name, email, message) VALUES (?,?,?)", (shop, email, msg))
+    return jsonify({"ok": True})
+
 # ── Private Lobbies ───────────────────────────────────────────────────────
 
 @app.get("/api/lobbies")

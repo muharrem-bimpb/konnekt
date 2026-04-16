@@ -1864,6 +1864,29 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
   </div>
 </div>
 
+<!-- ══ SHOP INTEREST MODAL ══ -->
+<div class="modal-overlay" id="modal-shop-interest">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📣 Shop anmelden <button class="modal-close" onclick="closeModal('modal-shop-interest')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.85rem;line-height:1.55">
+        Kennst du ein Café, Studio oder Geschäft das Konnekt-Nutzern ein Angebot machen will?
+        Oder bist du selbst Inhaber? Wir melden uns für ein kostenloses Erstgespräch.
+      </div>
+      <label class="form-label">Shop-Name *</label>
+      <input class="form-input" id="si-shop" placeholder="z.B. Café Zentral, Bern">
+      <label class="form-label" style="margin-top:.6rem">Deine E-Mail *</label>
+      <input class="form-input" id="si-email" type="email" placeholder="du@beispiel.ch">
+      <label class="form-label" style="margin-top:.6rem">Nachricht (optional)</label>
+      <textarea class="ta" id="si-msg" rows="2" placeholder="Was bietest du an, was interessiert dich?"></textarea>
+      <div id="si-err" style="display:none;color:#f87171;font-size:.78rem;margin-top:.4rem"></div>
+      <div id="si-ok" style="display:none;background:rgba(74,250,140,.1);border:1px solid rgba(74,250,140,.3);border-radius:8px;padding:.65rem;color:var(--accent);font-size:.82rem;margin-top:.65rem;text-align:center"></div>
+      <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitShopInterest()">Interesse anmelden</button>
+    </div>
+  </div>
+</div>
+
 <!-- Rating Modal -->
 <div class="modal-overlay" id="modal-rating">
   <div class="modal" style="max-width:380px">
@@ -3830,8 +3853,26 @@ async function loadCoupons() {
   const redeemedIds = new Set(myRedemptions.map(r => r.coupon_id));
   const redeemedMap = Object.fromEntries(myRedemptions.map(r => [r.coupon_id, r]));
 
-  if (!coupons.length && !myRedemptions.length) {
-    list.innerHTML = '<div class="empty">Keine Coupons verfügbar.</div>'; return;
+  if (!coupons.length) {
+    list.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(74,250,140,.07),rgba(189,147,249,.05));border:1px solid rgba(74,250,140,.2);border-radius:16px;padding:1.2rem;margin-bottom:.85rem;text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">🏗️</div>
+        <div style="font-weight:800;font-size:1rem;color:var(--text);margin-bottom:.4rem">Shops werden gerade onboarded</div>
+        <div style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:.75rem">
+          Deine <strong style="color:var(--accent)">${pts.toLocaleString()} Punkte</strong> sind sicher gespeichert —
+          du kannst sie einlösen sobald lokale Shops live sind.<br>
+          Wir arbeiten daran, Cafés, Sportclubs & Kulturhäuser in Bern zu gewinnen.
+        </div>
+        <div style="font-size:.72rem;color:var(--dim);background:var(--card2);border-radius:10px;padding:.6rem .85rem;margin-bottom:.85rem;text-align:left">
+          <div style="margin-bottom:.3rem">💡 <b>Wie es funktioniert:</b></div>
+          <div>→ Shop zahlt CHF 49–99/Monat Listungsgebühr</div>
+          <div>→ Du erhältst Shop-spezifische Coupons (z.B. 1 Gratis-Kaffee)</div>
+          <div>→ Jede Einlösung = verifizierter Neukunde für den Shop</div>
+          <div>→ Der Shop sieht Live-Statistiken im Business-Dashboard</div>
+        </div>
+        <button class="btn-secondary" style="font-size:.78rem;padding:.5rem 1rem" onclick="openModal('modal-shop-interest')">📣 Shop vorschlagen oder anmelden</button>
+      </div>`;
+    return;
   }
 
   // Helper: countdown string for valid_until
@@ -4218,6 +4259,25 @@ async function submitZeitbank() {
     showToast('✓ Gespeichert!');
     loadZeitbank(currentZbType);
   } catch(e) { showToast(e.message||'Fehler'); }
+}
+
+// ── Shop interest ─────────────────────────────────────────────────────────
+async function submitShopInterest() {
+  const shop  = document.getElementById('si-shop')?.value.trim();
+  const email = document.getElementById('si-email')?.value.trim();
+  const msg   = document.getElementById('si-msg')?.value.trim();
+  const errEl = document.getElementById('si-err');
+  const okEl  = document.getElementById('si-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!shop || !email) { errEl.textContent = 'Bitte Shop-Name und E-Mail angeben.'; errEl.style.display = 'block'; return; }
+  try {
+    await apiFetch('/api/shop-interest', 'POST', { shop, email, msg });
+    okEl.textContent = '✓ Danke! Wir melden uns in den nächsten Tagen.';
+    okEl.style.display = 'block';
+    document.getElementById('si-shop').value = '';
+    document.getElementById('si-email').value = '';
+    document.getElementById('si-msg').value = '';
+  } catch(e) { errEl.textContent = e.message || 'Fehler — bitte nochmal versuchen.'; errEl.style.display = 'block'; }
 }
 
 // ── Map location picker ────────────────────────────────────────────────────
