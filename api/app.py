@@ -544,7 +544,7 @@ def _ensure_admin_user(c):
 def _nuke_for_prod(c):
     """One-time production reset: wipe all content + locked/demo users. Runs exactly once per key."""
     try:
-        done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_v2'").fetchone()
+        done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_v3'").fetchone()
         if done:
             return
     except Exception:
@@ -553,10 +553,11 @@ def _nuke_for_prod(c):
     for tbl in (
         "push_subscriptions", "senior_visits", "good_deeds", "trails",
         "activity_logs", "event_registrations", "event_comments", "events",
-        "life_bubbles", "zeitbank_offers", "coupons", "businesses", "sessions",
+        "bubble_approach_log", "bubble_join_requests", "life_bubbles",
+        "zeitbank_offers", "coupons", "businesses", "sessions",
         "lobby_members", "lobbies", "notifications", "feed_items",
         "point_transactions", "coupon_redemptions", "neighbor_connections",
-        "zeitbank_offers",
+        "walks", "shop_leads",
     ):
         try:
             c.execute(f"DELETE FROM {tbl}")
@@ -567,7 +568,7 @@ def _nuke_for_prod(c):
         c.execute("DELETE FROM users")
     except Exception:
         pass
-    c.execute("INSERT OR REPLACE INTO konnekt_settings (key, val) VALUES ('prod_nuke_v2', '1')")
+    c.execute("INSERT OR REPLACE INTO konnekt_settings (key, val) VALUES ('prod_nuke_v3', '1')")
 
 def _purge_test_accounts(c):
     """Kill sessions, lock backdoor accounts, and delete all their content."""
@@ -4225,9 +4226,44 @@ def my_bubbles():
         rows = c.execute("""SELECT id, title, emoji, description, address, city, expires_at,
                                    is_hangout, max_attendees, created_at,
                                    (SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=life_bubbles.id AND status='approved') as approved_count,
-                                   (SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=life_bubbles.id AND status='pending')  as pending_count
-                            FROM life_bubbles WHERE user_id=? ORDER BY created_at DESC LIMIT 50""", (g.user_id,)).fetchall()
-    return jsonify([dict(r) for r in rows])
+                                   (SELECT COUNT(*) FROM bubble_join_requests WHERE bubble_id=life_bubbles.id AND status='pending')  as pending_count,
+                                   (SELECT COUNT(*) FROM bubble_approach_log WHERE bubble_id=life_bubbles.id) as approach_count
+                            FROM life_bubbles WHERE user_id=? ORDER BY created_at DESC LIMIT 100""", (g.user_id,)).fetchall()
+        result = []
+        for r in rows:
+            row = dict(r)
+            # Fetch engaged users (joined or approached)
+            engaged = c.execute("""
+                SELECT DISTINCT u.id, u.display_name, u.city, u.avatar_url, r.status as join_status
+                FROM bubble_join_requests r JOIN users u ON u.id=r.user_id
+                WHERE r.bubble_id=?
+                UNION
+                SELECT DISTINCT u.id, u.display_name, u.city, u.avatar_url, 'approached' as join_status
+                FROM bubble_approach_log a JOIN users u ON u.id=a.user_id
+                WHERE a.bubble_id=?
+            """, (r["id"], r["id"])).fetchall()
+            row["engaged_users"] = [dict(e) for e in engaged]
+            result.append(row)
+    return jsonify(result)
+
+@app.post("/api/klopfen/<int:uid>")
+@require_auth
+def send_klopfen(uid):
+    if uid == g.user_id:
+        return jsonify({"error": "Kannst du nicht dir selbst schicken"}), 400
+    with get_db() as c:
+        # Throttle: once per 24h per pair
+        existing = c.execute(
+            "SELECT id FROM notifications WHERE user_id=? AND type='klopfen' AND ref_id=? AND created_at > datetime('now','-24 hours')",
+            (uid, g.user_id)).fetchone()
+        if existing:
+            return jsonify({"error": "Bereits heute geklopft — warte 24h"}), 429
+        sender = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
+        name = sender["display_name"] if sender else "Jemand"
+        c.execute("INSERT INTO notifications (user_id,type,title,body,ref_type,ref_id) VALUES (?,?,?,?,?,?)",
+                  (uid, "klopfen", f"👋 {name} klopft an!",
+                   f"{name} möchte sich nochmal melden.", "user", g.user_id))
+    return jsonify({"ok": True})
 
 
 # ── Shop interest leads ───────────────────────────────────────────────────
