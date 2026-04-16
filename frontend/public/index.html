@@ -330,13 +330,37 @@ input.field:focus, select.field:focus {
 .route-tooltip { background:#000 !important; border:1px solid #4afa8c !important; color:#4afa8c !important; font-weight:700; font-size:.75rem; border-radius:8px; padding:.3rem .6rem; }
 .route-tooltip::before { display:none; }
 
-/* ── Gathering ring pulse ── */
-@keyframes ring-pulse {
-  0%   { stroke-opacity: .7; r: 28; }
-  50%  { stroke-opacity: .2; r: 34; }
-  100% { stroke-opacity: .7; r: 28; }
+/* ── Gathering aura ── */
+.gathering-aura {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
-.gathering-ring path { animation: ring-pulse 2s ease-in-out infinite; }
+.aura-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px solid #4afa8c;
+  animation: aura-expand 2.2s ease-out infinite;
+  opacity: 0;
+}
+.aura-ring:nth-child(2) { animation-delay: .7s; }
+.aura-ring:nth-child(3) { animation-delay: 1.4s; }
+.aura-sm  .aura-ring { width: 52px; height: 52px; }
+.aura-md  .aura-ring { width: 70px; height: 70px; border-color: #facc15; }
+.aura-lg  .aura-ring { width: 92px; height: 92px; border-color: #f97316; }
+.aura-xl  .aura-ring { width: 120px; height: 120px; border-color: #ef4444; animation-duration: 1.4s; }
+.aura-count {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: .65rem; font-weight: 800; color: #4afa8c;
+  background: rgba(0,0,0,.75); border-radius: 99px; padding: .05rem .35rem;
+  white-space: nowrap; pointer-events: none;
+}
+.aura-md  .aura-count { color: #facc15; }
+.aura-lg  .aura-count { color: #f97316; }
+.aura-xl  .aura-count { color: #ef4444; }
+@keyframes aura-expand {
+  0%   { transform: translate(-50%,-50%) scale(.5); opacity: .8; }
+  100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
+}
 
 /* ── Map tile brightness fix ── */
 [data-theme="dark"] .leaflet-tile-pane {
@@ -6247,11 +6271,20 @@ async function loadMapBubbles() {
       const isBlurred = b.location_blurred;
       const isHangout = b.is_hangout;
       const isOwn = b.owner_id === currentUser?.id;
-      // Gathering ring behind marker if 2+ bubbles nearby
+      // Gathering aura behind marker if 2+ bubbles nearby
       if (cluster.length >= 2 && cluster[0].id === b.id) {
-        L.circleMarker([b.lat, b.lng], {
-          radius: 28, color: '#4afa8c', weight: 2, fillColor: 'rgba(74,250,140,.08)',
-          fillOpacity: 1, className: 'gathering-ring'
+        const n = cluster.length;
+        const lvl = n >= 8 ? 'xl' : n >= 5 ? 'lg' : n >= 3 ? 'md' : 'sm';
+        const rings = lvl === 'xl' ? 3 : lvl === 'lg' ? 3 : 2;
+        const ringHtml = Array.from({length: rings}, () => '<span class="aura-ring"></span>').join('');
+        const emoji = n >= 8 ? '🔥' : n >= 5 ? '⚡' : n >= 3 ? '✨' : '👥';
+        L.marker([b.lat, b.lng], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="gathering-aura aura-${lvl}">${ringHtml}<span class="aura-count">${emoji} ${n}</span></div>`,
+            iconSize: [0, 0], iconAnchor: [0, 0]
+          }),
+          zIndexOffset: -1000, interactive: false
         }).addTo(leafletMap);
       }
       const { label: timeLabel } = _bubbleTimeLeft(b.expires_at);
