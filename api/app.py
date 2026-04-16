@@ -496,26 +496,32 @@ def _ensure_admin_user(c):
 
 
 def _nuke_for_prod(c):
-    """One-time production reset: wipe all users, content, and fake data. Runs exactly once."""
+    """One-time production reset: wipe all content + locked/demo users. Runs exactly once per key."""
     try:
-        done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_done'").fetchone()
+        done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_v2'").fetchone()
         if done:
             return
     except Exception:
         return  # table missing — skip, will retry next boot
-    # Delete in FK-safe order
+    # Wipe all content in FK-safe order
     for tbl in (
         "push_subscriptions", "senior_visits", "good_deeds", "trails",
         "activity_logs", "event_registrations", "event_comments", "events",
         "life_bubbles", "zeitbank_offers", "coupons", "businesses", "sessions",
-        "lobby_members", "lobbies",
+        "lobby_members", "lobbies", "notifications", "feed_items",
+        "point_transactions", "coupon_redemptions", "neighbor_connections",
+        "zeitbank_offers",
     ):
         try:
             c.execute(f"DELETE FROM {tbl}")
         except Exception:
             pass
-    c.execute("DELETE FROM users")
-    c.execute("INSERT OR REPLACE INTO konnekt_settings (key, val) VALUES ('prod_nuke_done', '1')")
+    # Wipe ALL users (clean slate — admin re-created by _ensure_admin_user)
+    try:
+        c.execute("DELETE FROM users")
+    except Exception:
+        pass
+    c.execute("INSERT OR REPLACE INTO konnekt_settings (key, val) VALUES ('prod_nuke_v2', '1')")
 
 def _purge_test_accounts(c):
     """Kill sessions, lock backdoor accounts, and delete all their content."""

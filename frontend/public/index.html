@@ -1763,6 +1763,25 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
 <!-- ══ MODALS ══ -->
 
 <!-- Create Event Modal -->
+<!-- ══ MAP LOCATION PICKER MODAL ══ -->
+<div class="modal-overlay" id="modal-map-picker" style="padding:0;align-items:stretch">
+  <div class="modal" style="max-width:100%;width:100%;height:90dvh;border-radius:18px 18px 0 0;margin:auto 0 0;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="flex-shrink:0">📍 Standort wählen
+      <button class="modal-close" onclick="closeModal('modal-map-picker')">✕</button>
+    </div>
+    <div style="padding:.4rem .85rem .6rem;flex-shrink:0;font-size:.78rem;color:var(--muted)">Tippe auf die Karte um einen Standort zu setzen</div>
+    <div style="flex:1;position:relative;min-height:0">
+      <div id="picker-map" style="position:absolute;inset:0"></div>
+      <div id="picker-crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.6rem;pointer-events:none;z-index:500;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))">📍</div>
+    </div>
+    <div style="padding:.75rem .85rem;flex-shrink:0;background:var(--bg);border-top:1px solid var(--border)">
+      <div id="picker-addr-display" style="font-size:.8rem;color:var(--muted);margin-bottom:.55rem;min-height:1.1em">Lade Adresse…</div>
+      <button class="btn-primary" style="width:100%" onclick="confirmMapPick()">✓ Standort bestätigen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-create-event">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -1828,7 +1847,10 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
     </div>
     <div class="field-group" style="margin-bottom:.85rem;position:relative">
-      <div class="field-label">Adresse <span style="font-size:.68rem;color:var(--dim);font-weight:400">— tippe für Vorschläge</span></div>
+      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Adresse <span style="font-size:.68rem;color:var(--dim);font-weight:400">— tippe für Vorschläge</span></span>
+        <button type="button" onclick="openMapPicker('event')" style="border:none;background:none;color:var(--accent);font-size:.75rem;font-weight:700;cursor:pointer;padding:0">🗺️ Auf Karte wählen</button>
+      </div>
       <input class="field" id="ev-addr" type="text" placeholder="Strasse Nr, Ort" autocomplete="off"
              oninput="evAddrSearch(this.value);clearFieldErr('ev-city')"
              onblur="setTimeout(()=>document.getElementById('ev-addr-suggestions').style.display='none',400)">
@@ -1980,8 +2002,13 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem">
       <div class="field-group">
-        <div class="field-label">Ort / Adresse</div>
+        <div class="field-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Ort / Adresse</span>
+          <button type="button" onclick="openMapPicker('bubble')" style="border:none;background:none;color:var(--accent);font-size:.72rem;font-weight:700;cursor:pointer;padding:0">🗺️ Karte</button>
+        </div>
         <input class="field" id="bubble-addr" type="text" placeholder="Münsterplatz, Bern">
+        <input type="hidden" id="bubble-lat" value="0">
+        <input type="hidden" id="bubble-lng" value="0">
       </div>
       <div class="field-group">
         <div class="field-label">Läuft ab in</div>
@@ -4193,6 +4220,68 @@ async function submitZeitbank() {
   } catch(e) { showToast(e.message||'Fehler'); }
 }
 
+// ── Map location picker ────────────────────────────────────────────────────
+let _pickerMap = null, _pickerMarker = null, _pickerTarget = null;
+
+function openMapPicker(target) {
+  _pickerTarget = target; // 'event' | 'bubble'
+  openModal('modal-map-picker');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!_pickerMap) {
+      _pickerMap = L.map('picker-map', { zoomControl: true })
+        .setView([46.9480, 7.4474], 14);
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const t = MAP_TILES[theme] || MAP_TILES.dark;
+      L.tileLayer(t.url, { attribution: '', maxZoom: 19 }).addTo(_pickerMap);
+      _pickerMap.on('click', e => _pickerSetPin(e.latlng.lat, e.latlng.lng));
+    }
+    _pickerMap.invalidateSize();
+    // Pre-set from existing coords if available
+    const latEl = document.getElementById(target === 'event' ? 'ev-lat' : 'bubble-lat');
+    const lngEl = document.getElementById(target === 'event' ? 'ev-lng' : 'bubble-lng');
+    const lat = parseFloat(latEl?.value) || 0;
+    const lng = parseFloat(lngEl?.value) || 0;
+    if (lat && lng) _pickerSetPin(lat, lng, false);
+    // Try GPS for initial view
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(p => {
+        if (!_pickerMarker) _pickerMap.setView([p.coords.latitude, p.coords.longitude], 15);
+      }, () => {});
+    }
+  }));
+}
+
+function _pickerSetPin(lat, lng, reverseGeo = true) {
+  if (_pickerMarker) _pickerMarker.remove();
+  _pickerMarker = L.marker([lat, lng]).addTo(_pickerMap);
+  _pickerMap.setView([lat, lng], Math.max(_pickerMap.getZoom(), 15));
+  const disp = document.getElementById('picker-addr-display');
+  if (!reverseGeo) { disp.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; return; }
+  disp.textContent = 'Lade Adresse…';
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+    .then(r => r.json())
+    .then(d => { disp.textContent = d.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`; })
+    .catch(() => { disp.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; });
+}
+
+function confirmMapPick() {
+  if (!_pickerMarker) { showToast('Bitte Standort auf Karte tippen'); return; }
+  const { lat, lng } = _pickerMarker.getLatLng();
+  const addr = document.getElementById('picker-addr-display')?.textContent || '';
+  // Short address: first two comma-separated parts
+  const shortAddr = addr.split(',').slice(0, 2).join(',').trim();
+  if (_pickerTarget === 'event') {
+    document.getElementById('ev-lat').value = lat;
+    document.getElementById('ev-lng').value = lng;
+    document.getElementById('ev-addr').value = shortAddr;
+  } else if (_pickerTarget === 'bubble') {
+    document.getElementById('bubble-lat').value = lat;
+    document.getElementById('bubble-lng').value = lng;
+    document.getElementById('bubble-addr').value = shortAddr;
+  }
+  closeModal('modal-map-picker');
+}
+
 // ── Private Lobbies ───────────────────────────────────────────────────────
 let _currentLobbyId = null;
 let _currentLobbyRole = null;
@@ -5727,12 +5816,17 @@ async function submitDropBubble() {
       emoji: selectedBubbleEmoji,
       description: document.getElementById('bubble-desc').value.trim(),
       address: document.getElementById('bubble-addr').value.trim(),
+      lat: parseFloat(document.getElementById('bubble-lat')?.value) || 0,
+      lng: parseFloat(document.getElementById('bubble-lng')?.value) || 0,
       city: currentUser?.city || '',
       hours: parseInt(document.getElementById('bubble-hours').value) || 3
     });
     // Reset
     document.getElementById('bubble-title').value = '';
     document.getElementById('bubble-desc').value = '';
+    document.getElementById('bubble-addr').value = '';
+    const bl = document.getElementById('bubble-lat'); if (bl) bl.value = '0';
+    const blg = document.getElementById('bubble-lng'); if (blg) blg.value = '0';
     bubbleClearMedia();
     closeModal('modal-drop-bubble');
     showToast('🫧 Bubble gedroppt! Leute in der Nähe sehen sie jetzt.');
