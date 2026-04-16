@@ -426,10 +426,10 @@ def init_db():
                 c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
             except sqlite3.OperationalError:
                 pass
-        # Purge all demo/test backdoor accounts (one-time, idempotent)
-        _purge_test_accounts(c)
-        # Clear all seeded/fake content — launch with clean slate
-        _clear_seeded_content(c)
+        # Create settings table for migration flags
+        c.execute("CREATE TABLE IF NOT EXISTS konnekt_settings (key TEXT PRIMARY KEY, val TEXT)")
+        # PROD NUKE: wipe everything once, clean slate for launch
+        _nuke_for_prod(c)
         _ensure_admin_user(c)
 
 def _clear_seeded_content(c):
@@ -475,6 +475,24 @@ def _ensure_admin_user(c):
         c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
                   (ADMIN_TOKEN, row["id"], expires))
 
+
+def _nuke_for_prod(c):
+    """One-time production reset: wipe all users, content, and fake data. Runs exactly once."""
+    done = c.execute("SELECT val FROM konnekt_settings WHERE key='prod_nuke_done'").fetchone()
+    if done:
+        return
+    # Delete in FK-safe order
+    for tbl in (
+        "push_subscriptions", "senior_visits", "good_deeds", "trails",
+        "activity_logs", "event_registrations", "event_comments", "events",
+        "life_bubbles", "zeitbank_offers", "coupons", "businesses", "sessions",
+    ):
+        try:
+            c.execute(f"DELETE FROM {tbl}")
+        except Exception:
+            pass
+    c.execute("DELETE FROM users")
+    c.execute("INSERT OR REPLACE INTO konnekt_settings (key, val) VALUES ('prod_nuke_done', '1')")
 
 def _purge_test_accounts(c):
     """Kill sessions, lock backdoor accounts, and delete all their content."""
