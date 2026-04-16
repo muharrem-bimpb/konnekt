@@ -6595,12 +6595,25 @@ setInterval(() => {
     el.textContent = '⏱ ' + label;
     el.style.color = color;
   });
-  // Fade map marker divs as they approach expiry
+  // Real-time bubble expiry: remove from map when countdown hits 0, fade last 5min
   document.querySelectorAll('[data-bubble-expires]').forEach(el => {
-    const secs = Math.max(0, Math.floor((new Date(el.dataset.bubbleExpires.includes('Z') ? el.dataset.bubbleExpires : el.dataset.bubbleExpires + 'Z') - Date.now()) / 1000));
-    if (secs <= 0)        { el.style.opacity = '0.15'; el.style.filter = 'grayscale(1)'; }
-    else if (secs < 300)  { el.style.opacity = String((0.25 + (secs / 300) * 0.75).toFixed(2)); el.style.filter = `grayscale(${((1 - secs/300)*0.8).toFixed(2)})`; }
-    else                  { el.style.opacity = '1'; el.style.filter = 'none'; }
+    const exp = el.dataset.bubbleExpires.includes('Z') ? el.dataset.bubbleExpires : el.dataset.bubbleExpires + 'Z';
+    const secs = Math.floor((new Date(exp).getTime() - Date.now()) / 1000);
+    if (secs <= 0) {
+      // Remove marker from map entirely
+      const bid = parseInt(el.dataset.bid);
+      if (bid && bubbleMarkerMap[bid] && leafletMap) {
+        leafletMap.removeLayer(bubbleMarkerMap[bid]);
+        const idx = bubbleMapMarkers.indexOf(bubbleMarkerMap[bid]);
+        if (idx > -1) bubbleMapMarkers.splice(idx, 1);
+        delete bubbleMarkerMap[bid];
+      }
+    } else if (secs < 300) {
+      el.style.opacity = String((0.25 + (secs / 300) * 0.75).toFixed(2));
+      el.style.filter = `grayscale(${((1 - secs/300)*0.8).toFixed(2)})`;
+    } else {
+      el.style.opacity = '1'; el.style.filter = 'none';
+    }
   });
 }, 1000);
 
@@ -6641,6 +6654,7 @@ function showBubblesView(pill) {
 // ── Map modes (events / bubbles) ───────────────────────────────────────────
 let bubbleMapMarkers   = [];
 let auraMapMarkers     = [];
+let bubbleMarkerMap    = {}; // bid → marker, for real-time removal
 let eventMapMarkers    = [];
 let shopMapMarkers     = [];
 
@@ -6712,13 +6726,20 @@ async function loadMapBubbles() {
     auraMapMarkers.forEach(m => leafletMap.removeLayer(m));
     bubbleMapMarkers = [];
     auraMapMarkers = [];
+    bubbleMarkerMap = {};
+    // Drop already-expired bubbles before rendering
+    const now = Date.now();
+    const liveBubbles = bubbles.filter(b => {
+      const exp = b.expires_at.includes('Z') ? b.expires_at : b.expires_at + 'Z';
+      return new Date(exp).getTime() > now;
+    });
     // Detect gatherings: group bubbles within ~80m of each other
     const grouped = {};
-    bubbles.filter(b => b.lat && b.lng).forEach(b => {
+    liveBubbles.filter(b => b.lat && b.lng).forEach(b => {
       const key = `${Math.round(b.lat*500)}_${Math.round(b.lng*500)}`;
       (grouped[key] = grouped[key] || []).push(b);
     });
-    bubbles.forEach(b => {
+    liveBubbles.forEach(b => {
       if (!b.lat || !b.lng) return;
       const key = `${Math.round(b.lat*500)}_${Math.round(b.lng*500)}`;
       const cluster = grouped[key];
@@ -6742,21 +6763,22 @@ async function loadMapBubbles() {
         }).addTo(leafletMap));
       }
       const { label: timeLabel } = _bubbleTimeLeft(b.expires_at);
-      const hangoutBadge = isHangout ? `<span style="background:#7c3aed;color:#fff;font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:700">🎪 HANGOUT</span>` : '';
-      const blurBadge = isBlurred ? `<span style="background:#f97316;color:#fff;font-size:.55rem;padding:.1rem .35rem;border-radius:99px">📍 ~Ort</span>` : '';
+      const hangoutBadge = isHangout ? `<span style="background:#9A9080;color:#F8F7F5;font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:500">🎪 Hangout</span>` : '';
+      const blurBadge = isBlurred ? `<span style="background:#B0A898;color:#F8F7F5;font-size:.55rem;padding:.1rem .35rem;border-radius:99px">📍 ~Ort</span>` : '';
       const size = isHangout ? 46 : 40;
       const icon = L.divIcon({
         className: '',
-        html: `<div data-bubble-expires="${b.expires_at}" style="background:${isHangout?'linear-gradient(135deg,#7c3aed,#4afa8c)':'linear-gradient(135deg,#8b5cf6,#3b82f6)'};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2.5px solid ${isOwn?'#4afa8c':'white'};cursor:pointer;box-shadow:${isOwn?'0 0 0 3px rgba(74,250,140,.4)':'none'};transition:opacity 1s">${b.emoji||'✨'}</div>`,
+        html: `<div data-bubble-expires="${b.expires_at}" data-bid="${b.id}" style="background:${isHangout?'linear-gradient(135deg,#8A8070,#A09080)':'linear-gradient(135deg,#9A9080,#B0A898)'};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px solid ${isOwn?'#9A8878':'rgba(255,255,255,.7)'};cursor:pointer;box-shadow:${isOwn?'0 0 0 3px rgba(154,136,120,.4)':'var(--shadow-sm)'};transition:opacity 1s">${b.emoji||'✨'}</div>`,
         iconSize: [size,size], iconAnchor: [size/2,size/2]
       });
       const marker = L.marker([b.lat, b.lng], {icon}).addTo(leafletMap);
       bubbleMapMarkers.push(marker);
+      bubbleMarkerMap[b.id] = marker;
       const navBtn = (!isBlurred && b.lat && b.lng)
-        ? `<button onclick="_navigateToBubble(${b.lat},${b.lng},'${b.title.replace(/'/g,"\\'")}');leafletMap.closePopup()" style="margin-top:.5rem;width:100%;background:#4afa8c;color:#000;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer">🧭 Navigieren</button>`
+        ? `<button onclick="_navigateToBubble(${b.lat},${b.lng},'${b.title.replace(/'/g,"\\'")}');leafletMap.closePopup()" style="margin-top:.5rem;width:100%;background:#282420;color:#F8F7F5;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:500;cursor:pointer">🧭 Navigieren</button>`
         : '';
       const joinBtn = (isHangout && !isOwn && !b.my_request)
-        ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer">Anfragen</button>`
+        ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:#9A8878;color:#F8F7F5;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:500;cursor:pointer">Anfragen</button>`
         : (b.my_request ? `<div style="margin-top:.4rem;font-size:.72rem;color:#888;text-align:center">${{pending:'⏳ Anfrage ausstehend',approved:'✅ Zugelassen',denied:'❌ Abgelehnt'}[b.my_request]||''}</div>` : '');
       const capacityLine = isHangout && b.max_attendees
         ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">👥 ${b.join_count||0}/${b.max_attendees} Plätze</div>` : '';
@@ -6771,7 +6793,7 @@ async function loadMapBubbles() {
         ${navBtn}${joinBtn}
       </div>`);
     });
-    _updateMapCounter(null, bubbles.filter(b => b.lat && b.lng).length);
+    _updateMapCounter(null, liveBubbles.filter(b => b.lat && b.lng).length);
     // Start proximity watcher after bubbles are loaded
     _startProximityWatch(bubbles);
   } catch(e) { console.error('Bubble map error', e); }
