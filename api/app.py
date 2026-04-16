@@ -819,6 +819,98 @@ def geocode_address(address, city):
         pass
     return 0.0, 0.0
 
+def _seed_dev_data():
+    """Seed rich demo data — localhost / FLASK_ENV=development only, never on Railway prod."""
+    if os.getenv("FLASK_ENV") != "development":
+        return
+    with get_db() as c:
+        done = c.execute("SELECT val FROM konnekt_settings WHERE key='dev_seed_v1'").fetchone()
+        if done:
+            return
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+
+        # ── Demo users with different profiles ──────────────────────────────
+        demo_users = [
+            # (username, email, display_name, city, lat, lng, bio, show_on_lonely_map)
+            ("anna_b",    "anna@demo.konnekt",   "Anna B.",    "Bern", 46.9491, 7.4440, "Mag Wandern und Brettspiele. Suche Spielrunden in der Nähe 🎲",   1),
+            ("luca_m",    "luca@demo.konnekt",   "Luca M.",    "Bern", 46.9531, 7.4490, "Musiker & Kaffeejunkie. Immer offen für spontane Jamsessions ☕",  1),
+            ("fatima_k",  "fatima@demo.konnekt", "Fatima K.",  "Bern", 46.9461, 7.4520, "Lerne gerne neue Sprachen. Biete Arabisch, suche Deutsch-Tandem",  1),
+            ("jakob_r",   "jakob@demo.konnekt",  "Jakob R.",   "Bern", 46.9560, 7.4410, "Rentner, frisch in Bern. Freue mich über Gesellschaft beim Spazieren 🌿", 1),
+            ("sara_l",    "sara@demo.konnekt",   "Sara L.",    "Bern", 46.9440, 7.4380, "Studentin, Kulturliebhaberin. Suche Leute fürs Kino 🎬",           0),
+            ("tom_n",     "tom@demo.konnekt",    "Tom N.",     "Bern", 46.9510, 7.4460, "Softwareentwickler, neu in Bern. Wer kennt gute Cafés? ☕",         1),
+            ("marie_z",   "marie@demo.konnekt",  "Marie Z.",   "Bern", 46.9475, 7.4510, "Krankenpflegerin. Engagiert bei Zeitbank Bern 💛",                 1),
+            ("oliver_w",  "oliver@demo.konnekt", "Oliver W.",  "Zurich", 47.3769, 8.5417, "Hobby-Koch. Organisiere manchmal Kochabende 🍳",               1),
+            ("priya_s",   "priya@demo.konnekt",  "Priya S.",   "Zurich", 47.3800, 8.5450, "Yoga & Meditation. Suche Gleichgesinnte 🧘",                   1),
+            ("felix_g",   "felix@demo.konnekt",  "Felix G.",   "Zurich", 47.3740, 8.5390, "Skater & Fotograf. Zeige dir Zürich abseits der Touristenpfade", 0),
+        ]
+        inserted_ids = {}
+        pw_hash = hashlib.sha256(("demo123" + SECRET[:16]).encode()).hexdigest()
+        for u in demo_users:
+            uname, email, dname, city, lat, lng, bio, lonely = u
+            try:
+                c.execute("""INSERT OR IGNORE INTO users
+                    (username,email,password_hash,display_name,bio,city,lat,lng,points_balance,show_on_lonely_map)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (uname, email, pw_hash, dname, bio, city, lat, lng, 50 + hash(uname)%300, lonely))
+                row = c.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+                if row: inserted_ids[uname] = row["id"]
+            except Exception:
+                pass
+
+        # Give each user a session token so you can log in instantly
+        token_map = {}
+        for uname, uid in inserted_ids.items():
+            tok = f"dev-{uname}-2026"
+            expires = (now + timedelta(days=365)).isoformat()
+            c.execute("INSERT OR REPLACE INTO sessions (token,user_id,expires_at) VALUES (?,?,?)",
+                      (tok, uid, expires))
+            token_map[uname] = tok
+
+        # ── Bubbles ────────────────────────────────────────────────────────
+        bern_uid = inserted_ids.get("anna_b") or next(iter(inserted_ids.values()), None)
+        zurich_uid = inserted_ids.get("oliver_w") or bern_uid
+        if bern_uid:
+            bubbles = [
+                (bern_uid,   "UNO am Rosengarten 🃏",      "🃏", "Spontane Runde! Platz für 4 mehr. Komm einfach!",           46.9572, 7.4542, "Rosengarten, Bern",          "Bern",   3, 0),
+                (bern_uid,   "Frisbee im Bundesgarten 🥏",  "🥏", "Wir spielen Frisbee, brauchen noch 2-3 Leute!",             46.9433, 7.4348, "Bundesgarten, Bern",         "Bern",   2, 0),
+                (bern_uid,   "Kaffee & Konversation ☕",    "☕", "Sitze allein im Café. Wer will reden? Alle Sprachen ok.",    46.9481, 7.4476, "Café de la Grenette, Bern",  "Bern",   1, 0),
+                (bern_uid,   "Skateboard Tricks 🛹",        "🛹", "Learning tricks, chill vibes, all levels welcome!",         46.9466, 7.4438, "Bundeshaus, Bern",           "Bern",   4, 0),
+                (inserted_ids.get("luca_m", bern_uid),
+                             "Jamsession gesucht 🎸",       "🎸", "Habe Gitarre dabei, suche Mitmusiker am Rosengarten.",      46.9575, 7.4550, "Rosengarten, Bern",          "Bern",   2, 0),
+                (zurich_uid, "Kochabend 🍳",  "🍳", "Privater Kochabend — 3 Plätze frei. Veg. Küche.",    47.3769, 8.5417, "Kreis 6, Zürich",   "Zurich", 2, 4),
+                (zurich_uid, "Yoga am See 🧘", "🧘", "Morgen-Yoga am Zürichsee. Bitte Matte mitbringen!", 47.3660, 8.5436, "Zürichsee, Zürich", "Zurich", 3, 0),
+            ]
+            for b in bubbles:
+                try:
+                    uid2, title, emoji, desc, lat, lng, addr, city, hrs, maxat = b
+                    expires = (now + timedelta(hours=hrs)).isoformat()
+                    is_h = 1 if maxat else 0
+                    c.execute("""INSERT INTO life_bubbles (user_id,title,emoji,description,lat,lng,address,city,expires_at,is_hangout,max_attendees,location_blur)
+                                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                              (uid2, title, emoji, desc, lat, lng, addr, city, expires, is_h, maxat, is_h))
+                except Exception:
+                    pass
+
+        # ── Events ─────────────────────────────────────────────────────────
+        _seed_events(c)
+
+        # ── Businesses + coupons ───────────────────────────────────────────
+        _seed_demo(c)
+
+        # ── Zeitbank ──────────────────────────────────────────────────────
+        _seed_zeitbank(c)
+
+        c.execute("INSERT OR REPLACE INTO konnekt_settings (key,val) VALUES ('dev_seed_v1','1')")
+
+    # Print quick-login tokens to console
+    print("\n" + "="*55)
+    print("  DEV QUICK-LOGIN TOKENS  (localhost only)")
+    print("="*55)
+    for uname, tok in token_map.items():
+        print(f"  {uname:<14}  http://localhost:8080/?t={tok}")
+    print("="*55 + "\n")
+
 init_db()
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -3318,6 +3410,7 @@ def _seed_zeitbank(c):
             pass
 
 _init_zeitbank()
+_seed_dev_data()
 
 @app.get("/api/zeitbank")
 def get_zeitbank():
