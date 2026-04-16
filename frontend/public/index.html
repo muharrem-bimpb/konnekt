@@ -70,6 +70,13 @@
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes mandalaSpin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg) scale(1); opacity: 1; }
+  80%  { opacity: .9; }
+  100% { transform: translateY(90vh) rotate(720deg) scale(.6); opacity: 0; }
+}
+@keyframes greetIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:translateY(0); } }
 @keyframes inkDrop {
   0%   { opacity: 0; transform: scale(.94) translateY(4px); }
   60%  { opacity: 1; transform: scale(1.01) translateY(-1px); }
@@ -84,11 +91,6 @@ html { font-size: 16px; height: 100%; overflow: hidden; }
 body {
   font-family: "Helvetica Neue", Helvetica, Arial, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><g transform='translate(200 200)' fill='none' stroke='%23706050' stroke-width='0.65'><circle r='188' stroke-width='0.35'/><circle r='168'/><circle r='148' stroke-width='0.4'/><circle r='128'/><circle r='108'/><circle r='88' stroke-width='0.5'/><circle r='70'/><circle r='52' stroke-width='0.4'/><circle r='36'/><circle r='22' stroke-width='0.5'/><circle r='10'/><line x1='0' y1='-188' x2='0' y2='188' stroke-width='0.35'/><line x1='-188' y1='0' x2='188' y2='0' stroke-width='0.35'/><line x1='-133' y1='-133' x2='133' y2='133' stroke-width='0.35'/><line x1='133' y1='-133' x2='-133' y2='133' stroke-width='0.35'/><line x1='-71' y1='-175' x2='71' y2='175' stroke-width='0.28'/><line x1='71' y1='-175' x2='-71' y2='175' stroke-width='0.28'/><line x1='-175' y1='-71' x2='175' y2='71' stroke-width='0.28'/><line x1='175' y1='-71' x2='-175' y2='71' stroke-width='0.28'/><ellipse rx='15' ry='36' transform='rotate(0)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(45)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(90)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(135)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(180)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(225)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(270)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(315)translate(0 -128)'/><ellipse rx='9' ry='22' transform='rotate(22.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(67.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(112.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(157.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(202.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(247.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(292.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(337.5)translate(0 -70)'/><circle cx='0' cy='-88' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='-62' r='2.5' fill='%23706050' stroke='none'/><circle cx='88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='0' cy='88' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='-88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='-62' r='2.5' fill='%23706050' stroke='none'/></g></svg>");
-  background-size: min(72vmin, 500px) min(72vmin, 500px);
-  background-position: 50% 50%;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
   color: var(--text);
   height: 100dvh; display: flex; flex-direction: column;
   padding-top: calc(62px + var(--safe-top));
@@ -96,6 +98,18 @@ body {
   overflow: hidden;
   transition: background-color .18s, color .18s;
 }
+/* Slowly rotating mandala — lives on ::before so it can spin independently */
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%; left: 50%;
+  width: min(72vmin, 500px); height: min(72vmin, 500px);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><g transform='translate(200 200)' fill='none' stroke='%23706050' stroke-width='0.65'><circle r='188' stroke-width='0.35'/><circle r='168'/><circle r='148' stroke-width='0.4'/><circle r='128'/><circle r='108'/><circle r='88' stroke-width='0.5'/><circle r='70'/><circle r='52' stroke-width='0.4'/><circle r='36'/><circle r='22' stroke-width='0.5'/><circle r='10'/><line x1='0' y1='-188' x2='0' y2='188' stroke-width='0.35'/><line x1='-188' y1='0' x2='188' y2='0' stroke-width='0.35'/><line x1='-133' y1='-133' x2='133' y2='133' stroke-width='0.35'/><line x1='133' y1='-133' x2='-133' y2='133' stroke-width='0.35'/><line x1='-71' y1='-175' x2='71' y2='175' stroke-width='0.28'/><line x1='71' y1='-175' x2='-71' y2='175' stroke-width='0.28'/><line x1='-175' y1='-71' x2='175' y2='71' stroke-width='0.28'/><line x1='175' y1='-71' x2='-175' y2='71' stroke-width='0.28'/><ellipse rx='15' ry='36' transform='rotate(0)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(45)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(90)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(135)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(180)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(225)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(270)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(315)translate(0 -128)'/><ellipse rx='9' ry='22' transform='rotate(22.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(67.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(112.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(157.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(202.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(247.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(292.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(337.5)translate(0 -70)'/><circle cx='0' cy='-88' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='-62' r='2.5' fill='%23706050' stroke='none'/><circle cx='88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='0' cy='88' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='-88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='-62' r='2.5' fill='%23706050' stroke='none'/></g></svg>");
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  pointer-events: none; z-index: -1; opacity: 0.05;
+  animation: mandalaSpin 120s linear infinite;
+}
+[data-theme="light"] body::before { opacity: 0.07; }
 /* Subtle paper grain overlay */
 body::after {
   content: '';
@@ -1073,7 +1087,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
   <div class="swipe-edge swipe-edge-right" id="swipe-hint-right" title="Community →"></div>
 
   <div class="topbar">
-    <div class="topbar-brand" id="topbar-brand-logo" onclick="_topbarTap()" style="cursor:pointer"><span class="brand-dot"></span><span>Konnekt</span><span id="topbar-city" style="font-size:.58rem;font-weight:600;color:var(--muted);margin-left:.3rem"></span></div>
+    <div class="topbar-brand" id="topbar-brand-logo" onclick="_topbarTap()" style="cursor:pointer"><span class="brand-dot"></span><span>Konnekt</span><span id="topbar-city" style="font-size:.58rem;font-weight:600;color:var(--muted);margin-left:.3rem"></span><span id="topbar-greeting" style="font-size:.55rem;font-weight:500;color:var(--dim);margin-left:.4rem;display:none"></span></div>
     <!-- World navigator: Nahbar · Map · Community -->
     <div id="world-indicator" style="display:flex;gap:.45rem;align-items:center;position:absolute;left:50%;transform:translateX(-50%)">
       <div class="w-dot" data-world="0" onclick="_goWorld(0)" title="💛 Nahbar & Hilfe"></div>
@@ -1248,7 +1262,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <button onclick="switchScreen('feed', document.querySelector('.nav-item[onclick*=feed]'))" style="background:none;border:none;color:var(--accent);font-size:.75rem;font-weight:700;cursor:pointer;padding:.2rem .5rem">← Feed</button>
       </div>
       <div style="padding:.75rem 1rem">
-      <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(59,130,246,.05));border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:1rem;margin-bottom:.85rem">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:.85rem">
         <div style="font-size:.85rem;font-weight:700;margin-bottom:.25rem">🫧 Was sind Life Bubbles?</div>
         <div style="font-size:.76rem;color:var(--dim);line-height:1.5">Spontane Momente, die du teilst. Spielst du gerade UNO im Park? Klingt Klavier im Generationen Haus? Dropp eine Bubble — andere sehen sie auf der Karte und können einfach vorbeikommen. Keine Anmeldung, kein Stress.</div>
       </div>
@@ -1261,7 +1275,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 
   <div class="screen" id="screen-coupons">
     <div class="scroll-body">
-      <div style="background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(0,255,136,.05));border:1px solid rgba(245,158,11,.2);border-radius:16px;padding:1rem;margin-bottom:1rem;text-align:center;box-shadow:var(--shadow)">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:1rem;text-align:center;box-shadow:var(--shadow)">
         <div style="font-size:.8rem;color:var(--dim)">Deine Punkte</div>
         <div style="font-size:2.5rem;font-weight:800;color:var(--orange)" id="coupon-pts">–</div>
         <div style="font-size:.72rem;color:var(--muted)">Durch Ehrenamt & gute Taten verdient</div>
@@ -1285,7 +1299,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
       <!-- Trails pane -->
       <div id="reward-pane-trails" style="display:none">
-        <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:12px;padding:.85rem;margin-bottom:.85rem;font-size:.78rem;color:var(--orange)">
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.85rem;margin-bottom:.85rem;font-size:.78rem;color:var(--muted)">
           🗺️ <b>Trails</b> — Besuche lokale Cafés & Shops in einer Route und verdiene Bonuspunkte. Neue Stammkunden für die Betriebe, neue Entdeckungen für dich.
         </div>
         <div id="trails-list"><div class="loading">Lade Trails…</div></div>
@@ -1399,7 +1413,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div id="tier-banner" style="margin-bottom:1rem"></div>
 
       <!-- Lonely map opt-in -->
-      <div id="lonely-map-toggle-card" style="background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
+      <div id="lonely-map-toggle-card" style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
         <div style="font-size:1.5rem">🤝</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700">Auf Nahbar-Karte zeigen</div>
@@ -1414,7 +1428,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
 
       <!-- Invite friends -->
-      <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(0,255,136,.05));border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
         <div style="font-size:1.5rem">🔗</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700;color:var(--text)">Freunde einladen</div>
@@ -1424,7 +1438,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
 
       <!-- Event Manager card — only for NGO/admin -->
-      <div id="ngo-event-manager-card" style="display:none;background:linear-gradient(135deg,rgba(74,250,140,.08),rgba(74,250,140,.03));border:1px solid rgba(74,250,140,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
+      <div id="ngo-event-manager-card" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
         <div style="font-size:1.5rem">🗂️</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700">Event Manager</div>
@@ -1447,7 +1461,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <div style="margin-top:1.2rem">
           <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
             <span><span class="section-dot" style="background:var(--purple)"></span> Meine Bubbles & Hangouts</span>
-            <button onclick="startWalk()" style="background:linear-gradient(135deg,#4afa8c,#22c55e);color:#000;border:none;border-radius:99px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">🚶 Spazieren</button>
+            <button onclick="startWalk()" style="background:var(--text);color:var(--bg);border:none;border-radius:99px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">🚶 Spazieren</button>
           </div>
           <div id="my-bubbles-list"><div class="loading">Lade…</div></div>
           <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
@@ -1480,13 +1494,13 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--orange)"></span> Achievements</div>
         <div id="achievements-list" style="margin-bottom:1rem"><div class="loading">Lade…</div></div>
         <!-- Certificate -->
-        <button onclick="window.open('/api/certificate?token='+encodeURIComponent(token),'_blank')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.65rem;background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(16,185,129,.06));border:1px solid rgba(59,130,246,.25);border-radius:12px;font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer;margin-bottom:1rem">
+        <button onclick="window.open('/api/certificate?token='+encodeURIComponent(token),'_blank')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.65rem;background:var(--card2);border:1px solid var(--border);border-radius:12px;font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer;margin-bottom:1rem">
           📜 Ehrenamtszertifikat herunterladen
         </button>
       </div>
 
       <!-- Register business CTA (non-business users) -->
-      <div id="biz-reg-cta" style="display:none;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
+      <div id="biz-reg-cta" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
         <div style="font-size:1.5rem">🏪</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700">Hast du ein Geschäft?</div>
@@ -1496,7 +1510,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
 
       <!-- Business pending review status (shown after registration, before verification) -->
-      <div id="biz-pending-card" style="display:none;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
+      <div id="biz-pending-card" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
         <div style="font-size:1.5rem">⏳</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700;color:var(--orange)">Geschäft in Prüfung</div>
@@ -1507,7 +1521,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 
       <!-- Business dashboard button — only visible to verified business owners -->
       <div id="biz-dashboard-btn-wrap" style="display:none;margin-top:.75rem">
-        <button class="btn-secondary" style="width:100%;font-weight:700;border-color:rgba(249,115,22,.4);color:var(--orange)" onclick="openBizDashboard()">📊 Business Dashboard</button>
+        <button class="btn-secondary" style="width:100%;font-weight:700" onclick="openBizDashboard()">📊 Business Dashboard</button>
       </div>
 
       <!-- Admin panel button — only visible to admins/moderators -->
@@ -1599,7 +1613,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <input class="form-input" id="lobby-name" placeholder="z.B. Nachbarschaftsgruppe Nord" maxlength="60">
       <label class="form-label" style="margin-top:.65rem">Beschreibung (optional)</label>
       <textarea class="ta" id="lobby-desc" placeholder="Worum geht es in dieser Lobby?" rows="2" maxlength="200"></textarea>
-      <div id="lobby-create-err" style="display:none;color:#f87171;font-size:.8rem;margin-top:.4rem"></div>
+      <div id="lobby-create-err" style="display:none;color:var(--red);font-size:.8rem;margin-top:.4rem"></div>
       <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitCreateLobby()">Lobby erstellen</button>
     </div>
   </div>
@@ -1627,7 +1641,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
       <div id="lobby-members-list"></div>
       <!-- Leave -->
-      <button class="btn-secondary" style="width:100%;margin-top:1rem;color:#f87171;border-color:#f87171" onclick="leaveLobby()">Lobby verlassen</button>
+      <button class="btn-secondary" style="width:100%;margin-top:1rem;color:var(--red);border-color:var(--red)" onclick="leaveLobby()">Lobby verlassen</button>
     </div>
   </div>
 </div>
@@ -1701,7 +1715,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
     </div>
     <button class="btn-primary" onclick="submitBusinessReg()">📋 Geschäft einreichen</button>
-    <div id="biz-reg-msg" style="display:none;margin-top:.65rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:.65rem;font-size:.82rem;color:#34d399"></div>
+    <div id="biz-reg-msg" style="display:none;margin-top:.65rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem;font-size:.82rem;color:var(--text)"></div>
   </div>
 </div>
 
@@ -1780,8 +1794,8 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     </div>
 
     <!-- Pro card -->
-    <div class="pricing-card" style="background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(59,130,246,.08));border:1px solid rgba(124,58,237,.35);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#3b82f6)"></div>
+    <div class="pricing-card" style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--border)"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <span style="font-size:1.5rem">⭐</span>
         <div>
@@ -1801,7 +1815,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <li style="font-size:.83rem;color:var(--dim)">🔝 Priorität in Zeitbank & Eventsuche</li>
         <li style="font-size:.83rem;color:var(--dim)">🎯 Unbegrenzte Events erstellen</li>
       </ul>
-      <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:linear-gradient(135deg,#7c3aed,#3b82f6);box-shadow:0 4px 16px rgba(124,58,237,.3)">⭐ Pro werden — 9 CHF/Monat</button>
+      <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">⭐ Pro werden — 9 CHF/Monat</button>
     </div>
 
     <!-- Business card -->
@@ -1825,12 +1839,12 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <li style="font-size:.83rem;color:var(--dim)">📋 Monatlicher Impact-Report (PDF)</li>
         <li style="font-size:.83rem;color:var(--dim)">🤝 Partnerseite + Logo auf Landing Page</li>
       </ul>
-      <button class="btn-primary" onclick="upgradeTier('business')" id="business-btn" style="background:linear-gradient(135deg,#f59e0b,#ef4444);box-shadow:0 4px 16px rgba(245,158,11,.25)">🏢 Business werden — 49 CHF/Monat</button>
+      <button class="btn-primary" onclick="upgradeTier('business')" id="business-btn" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🏢 Business werden — 49 CHF/Monat</button>
     </div>
 
     <!-- NGO card -->
-    <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(6,182,212,.05));border:1px solid rgba(16,185,129,.35);border-radius:20px;padding:1.3rem;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#10b981,#06b6d4)"></div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:1.3rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--border)"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <span style="font-size:1.5rem">🌱</span>
         <div>
@@ -1842,7 +1856,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         </div>
       </div>
       <p style="font-size:.83rem;color:var(--dim);margin-bottom:1rem">Alle Business-Features — gratis für eingetragene NGOs, Vereine & soziale Institutionen (Nachweis erforderlich).</p>
-      <button class="btn-primary" onclick="contactNGO()" style="background:linear-gradient(135deg,#10b981,#06b6d4);box-shadow:0 4px 16px rgba(16,185,129,.25)">🌱 NGO-Partnerschaft anfragen</button>
+      <button class="btn-primary" onclick="contactNGO()" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🌱 NGO-Partnerschaft anfragen</button>
     </div>
 
     <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:1rem">
@@ -1885,16 +1899,16 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
       <button type="button" id="ev-type-btn-quartier" onclick="setEvType('quartier')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🏘️ Quartier</button>
     </div>
-    <div id="ev-hangout-hint" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--purple);margin-bottom:.65rem">
+    <div id="ev-hangout-hint" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
       🎮 Hangout: Öffentliches Event — Leute in der Nähe sehen es auf der Karte und können anfragen mitzumachen. Du entscheidest wer rein darf.
     </div>
-    <div id="ev-quartier-hint" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--orange);margin-bottom:.65rem">
+    <div id="ev-quartier-hint" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
       🏘️ Quartier-Event: Für alle die ins Viertel ziehen oder schon hier wohnen. Zeig wer du bist, was du anbietest oder suchst. Perfekt um Nachbarn kennenzulernen.
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Titel *</div>
       <input class="field" id="ev-title" type="text" placeholder="Was findet statt?" oninput="clearFieldErr('ev-title')">
-      <div id="ev-title-err" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem"></div>
+      <div id="ev-title-err" style="display:none;font-size:.75rem;color:var(--red);margin-top:.25rem"></div>
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
       <div class="field-label">Kategorie</div>
@@ -1922,7 +1936,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div class="field-group">
         <div class="field-label">Startzeit *</div>
         <input class="field" id="ev-start" type="datetime-local" onchange="clearFieldErr('ev-start')">
-        <div id="ev-start-err" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem"></div>
+        <div id="ev-start-err" style="display:none;font-size:.75rem;color:var(--red);margin-top:.25rem"></div>
       </div>
       <div class="field-group">
         <div class="field-label">Max. Teilnehmer</div>
@@ -1953,7 +1967,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div id="ev-city-err" style="display:none;font-size:.75rem;color:#f0a500;margin-top:.25rem"></div>
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
-    <div id="ev-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-top:.65rem"></div>
+    <div id="ev-error" style="display:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-top:.65rem"></div>
   </div>
 </div>
 
@@ -1973,8 +1987,8 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <input class="form-input" id="si-email" type="email" placeholder="du@beispiel.ch">
       <label class="form-label" style="margin-top:.6rem">Nachricht (optional)</label>
       <textarea class="ta" id="si-msg" rows="2" placeholder="Was bietest du an, was interessiert dich?"></textarea>
-      <div id="si-err" style="display:none;color:#f87171;font-size:.78rem;margin-top:.4rem"></div>
-      <div id="si-ok" style="display:none;background:rgba(74,250,140,.1);border:1px solid rgba(74,250,140,.3);border-radius:8px;padding:.65rem;color:var(--accent);font-size:.82rem;margin-top:.65rem;text-align:center"></div>
+      <div id="si-err" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>
+      <div id="si-ok" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem;color:var(--text);font-size:.82rem;margin-top:.65rem;text-align:center"></div>
       <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitShopInterest()">Interesse anmelden</button>
     </div>
   </div>
@@ -2033,7 +2047,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div class="field-label">Beschreibung (optional)</div>
       <textarea class="ta" id="sos-desc" placeholder="Was genau passiert ist…" rows="2"></textarea>
     </div>
-    <button class="btn-primary" style="background:var(--red);box-shadow:0 4px 14px rgba(239,68,68,.4)" onclick="sendSOS()">
+    <button class="btn-primary" style="background:var(--red);box-shadow:var(--shadow-lg)" onclick="sendSOS()">
       🆘 Alarm abschicken
     </button>
     <div style="margin-top:.75rem;text-align:center;font-size:.75rem;color:var(--muted)">
@@ -2158,8 +2172,8 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         </div>
       </div>
     </div>
-    <div id="bubble-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
-    <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:linear-gradient(135deg,var(--purple),var(--accent));box-shadow:0 4px 16px rgba(139,92,246,.3)">🫧 Bubble droppen!</button>
+    <div id="bubble-error" style="display:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
+    <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🫧 Bubble droppen!</button>
   </div>
 </div>
 
@@ -2182,7 +2196,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <button class="klopf-opt" onclick="submitKlopf('😄')"><span>😄</span><div>Cool!</div></button>
       <button class="klopf-opt" onclick="submitKlopf('🤝')"><span>🤝</span><div>Verbinden</div></button>
     </div>
-    <div id="klopf-send-error" style="display:none;color:#f87171;font-size:.8rem;margin-bottom:.5rem"></div>
+    <div id="klopf-send-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:.5rem"></div>
   </div>
 </div>
 
@@ -2203,7 +2217,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     <div style="font-size:.8rem;color:var(--dim);margin-bottom:.85rem">Beschreibe kurz was nicht funktioniert. Wir melden uns wenn es behoben ist.</div>
     <textarea id="bug-desc" placeholder="Was ist passiert? Was hast du erwartet? Gerät / Browser?" rows="5"
       style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.83rem;padding:.65rem .85rem;resize:vertical;font-family:inherit;box-sizing:border-box;outline:none"></textarea>
-    <div id="bug-report-err" style="display:none;color:#f87171;font-size:.78rem;margin-top:.4rem"></div>
+    <div id="bug-report-err" style="display:none;color:var(--red);font-size:.78rem;margin-top:.4rem"></div>
     <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitBugReport()">Absenden</button>
   </div>
 </div>
@@ -2252,7 +2266,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     <div class="modal-title">🙋 Mitmachen anfragen <button class="modal-close" onclick="closeModal('modal-join-request-send')">✕</button></div>
     <div style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Optional: Kurze Nachricht an den Gastgeber</div>
     <textarea class="ta" id="join-req-msg" rows="3" placeholder="Ich würde gerne dabei sein, weil…" style="margin-bottom:.5rem"></textarea>
-    <div id="join-req-err" style="display:none;font-size:.75rem;color:#f87171;margin-bottom:.5rem"></div>
+    <div id="join-req-err" style="display:none;font-size:.75rem;color:var(--red);margin-bottom:.5rem"></div>
     <button class="btn-primary" id="join-req-send-btn" onclick="submitJoinRequest()">Anfrage senden</button>
   </div>
 </div>
@@ -2264,7 +2278,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     <div class="modal-title">🐛 Bug melden <button class="modal-close" onclick="closeModal('modal-bug-report')">✕</button></div>
     <div style="font-size:.78rem;color:var(--dim);margin-bottom:.75rem">Was ist passiert? Was hast du erwartet? Welches Gerät/Browser?</div>
     <textarea class="ta" id="bug-report-desc" rows="4" placeholder="Beschreibe kurz den Fehler…" style="margin-bottom:.75rem"></textarea>
-    <div id="bug-report-err" style="display:none;font-size:.75rem;color:#f87171;margin-bottom:.5rem"></div>
+    <div id="bug-report-err" style="display:none;font-size:.75rem;color:var(--red);margin-bottom:.5rem"></div>
     <button class="btn-primary" id="bug-report-btn" onclick="submitBugReport()">Absenden</button>
   </div>
 </div>
@@ -2316,7 +2330,10 @@ const MAP_TILES = {
 };
 
 // ── Theme ──────────────────────────────────────────────────────────────────
-const savedTheme = localStorage.getItem('konnekt_theme') || 'dark';
+// Auto-theme: respect system preference on first visit
+const _storedTheme = localStorage.getItem('konnekt_theme');
+const savedTheme = _storedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark');
+if (!_storedTheme) localStorage.setItem('konnekt_theme', savedTheme);
 document.documentElement.setAttribute('data-theme', savedTheme);
 updateThemeUI(savedTheme);
 
@@ -2476,6 +2493,7 @@ async function loadApp() {
     appEl.style.flexDirection = 'column';
     _splashDismiss(loading);
     updateUserUI();
+    _updateGreeting();
     // Restore last visited tab, fallback to map
     const lastTab = localStorage.getItem('konnekt_last_tab') || 'map';
     const lastBtn = document.querySelector(`.nav-item[onclick*="${lastTab}"]`);
@@ -2569,7 +2587,7 @@ function updateUserUI() {
     profWrap.innerHTML = `<span>${initial}</span>${editBadge}`;
   }
   const tier = currentUser.subscription_tier || 'free';
-  const tierBadge = tier === 'pro' ? ' <span style="font-size:.65rem;background:linear-gradient(90deg,#7c3aed,#3b82f6);color:white;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">⭐ PRO</span>'
+  const tierBadge = tier === 'pro' ? ' <span style="font-size:.65rem;background:var(--text);color:var(--bg);border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">⭐ PRO</span>'
     : tier === 'business' ? ' <span style="font-size:.65rem;background:var(--orange);color:white;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">🏢 BIZ</span>' : '';
   document.getElementById('prof-name').innerHTML = esc(currentUser.display_name || currentUser.username) + tierBadge;
   document.getElementById('prof-city').textContent = currentUser.city ? '📍 ' + currentUser.city : '';
@@ -2581,7 +2599,7 @@ function updateUserUI() {
   const streak = currentUser.streak_days || 0;
   const hours = currentUser.volunteer_hours || 0;
   let streakHtml = '';
-  if (streak >= 2) streakHtml += `<span class="streak-badge" style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:var(--orange)">🔥 ${streak} Tage aktiv</span> `;
+  if (streak >= 2) streakHtml += `<span class="streak-badge" style="background:var(--card2);border:1px solid var(--border);color:var(--muted)">🔥 ${streak} Tage aktiv</span> `;
   if (hours > 0) {
     const proNote = tier === 'pro' ? ' · 3× Multiplikator aktiv' : '';
     streakHtml += `<span class="streak-badge">⏱️ ${hours}h Ehrenamt${proNote}</span>`;
@@ -2866,7 +2884,7 @@ async function loadFeed() {
   const incomplete = currentUser && (!currentUser.city || !currentUser.bio);
   const nudgeDismissed = localStorage.getItem('profile_nudge_dismissed');
   const nudgeHtml = (incomplete && !nudgeDismissed) ? `
-    <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:.85rem 1rem;margin-bottom:.65rem;display:flex;align-items:center;gap:.75rem">
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.85rem 1rem;margin-bottom:.65rem;display:flex;align-items:center;gap:.75rem">
       <span style="font-size:1.4rem;flex-shrink:0">👤</span>
       <div style="flex:1">
         <div style="font-size:.83rem;font-weight:700">Profil vervollständigen</div>
@@ -2906,13 +2924,13 @@ async function loadFeed() {
         </div>
       </div>`;
     } else if (item.type === 'deed') {
-      const deedTc = TYPE_COLORS[item.category] || {color:'#10b981', emoji:'💚'};
-      return `<div class="feed-item" style="border-left-color:#f59e0b;background:#f59e0b12">
+      const deedTc = TYPE_COLORS[item.category] || {color:'var(--green)', emoji:'💚'};
+      return `<div class="feed-item" style="border-left-color:var(--accent);background:var(--card2)">
         <div style="display:flex;gap:.6rem;align-items:flex-start">
           <div ${authorClick}>${avatar}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.15rem">
-              <span style="font-size:.72rem;font-weight:700;color:#f59e0b">${catEmoji(item.category)} Gute Tat · <span ${authorClick}>${esc(item.author_name||'')}</span></span>
+              <span style="font-size:.72rem;font-weight:700;color:var(--muted)">${catEmoji(item.category)} Gute Tat · <span ${authorClick}>${esc(item.author_name||'')}</span></span>
               <span style="font-size:.65rem;color:var(--muted)">${timeAgo(item.created_at)}</span>
             </div>
             <div class="feed-content">${esc(item.content||'')}</div>
@@ -2923,7 +2941,7 @@ async function loadFeed() {
     } else {
       // bubble
       const bLat = item.lat, bLng = item.lng;
-      const bubbleClick = (bLat && bLng) ? `onclick="flyToMapBubble(${bLat},${bLng})" style="border-left-color:var(--purple);background:rgba(139,92,246,.07);cursor:pointer"` : `style="border-left-color:var(--purple);background:rgba(139,92,246,.07)"`;
+      const bubbleClick = (bLat && bLng) ? `onclick="flyToMapBubble(${bLat},${bLng})" style="border-left-color:var(--accent);background:var(--card2);cursor:pointer"` : `style="border-left-color:var(--accent);background:var(--card2)"`;
       return `<div class="feed-item" ${bubbleClick}>
         <div style="display:flex;gap:.6rem;align-items:flex-start">
           <div ${authorClick}>${avatar}</div>
@@ -2950,7 +2968,7 @@ async function loadUpcomingReminders() {
     if (!upcoming.length) { el.style.display = 'none'; return; }
     el.style.display = '';
     el.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(59,130,246,.05));border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:.8rem 1rem">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.8rem 1rem">
         <div style="font-size:.75rem;font-weight:700;color:var(--green);margin-bottom:.4rem">⏰ Bald: deine Events</div>
         ${upcoming.map(ev => {
           const dt = new Date(ev.starts_at);
@@ -2982,7 +3000,7 @@ async function loadTrending() {
       const diffDays = Math.floor((dt - new Date()) / 86400000);
       const when = diffDays === 0 ? 'Heute' : diffDays === 1 ? 'Morgen' : dt.toLocaleDateString('de-DE',{day:'numeric',month:'short'});
       const heat = ev.recent_regs > 0 ? `🔥 ${ev.recent_regs}` : `👤 ${ev.participants_count||0}`;
-      return `<div onclick="openEventDetail(${ev.id})" style="flex-shrink:0;width:155px;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.25);border-radius:12px;padding:.7rem;cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+      return `<div onclick="openEventDetail(${ev.id})" style="flex-shrink:0;width:155px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.7rem;cursor:pointer;transition:transform .15s" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
           <span style="font-size:.65rem;font-weight:700;color:var(--orange)">${catEmoji(ev.category)} ${catLabel(ev.category)}</span>
           <span style="font-size:.65rem;color:var(--orange);font-weight:700">${heat}</span>
@@ -3122,7 +3140,7 @@ async function loadEvents() {
 
     const pts = (isHangout && !isRegistered && !isCompleted) ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
     const trendingBadge = (ev.participants_count||0) >= 5
-      ? `<span style="font-size:.62rem;font-weight:700;color:#f97316;background:rgba(249,115,22,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">🔥 Beliebt</span>` : '';
+      ? `<span style="font-size:.62rem;font-weight:700;color:var(--text);background:var(--card2);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">🔥 Beliebt</span>` : '';
     const flagBtn = !isOrganizer
       ? `<button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>`
       : '';
@@ -3133,8 +3151,8 @@ async function loadEvents() {
     const diffHours = Math.floor(diffMs / 3600000);
     let countdown = '';
     if (diffMs > 0) {
-      if (diffDays === 0) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--orange);background:rgba(249,115,22,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Heute!</span>`;
-      else if (diffDays === 1) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--accent);background:rgba(59,130,246,.12);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Morgen</span>`;
+      if (diffDays === 0) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--text);background:var(--card2);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Heute!</span>`;
+      else if (diffDays === 1) countdown = `<span style="font-size:.68rem;font-weight:700;color:var(--muted);background:var(--card2);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">Morgen</span>`;
       else if (diffDays <= 7) countdown = `<span style="font-size:.68rem;color:var(--muted);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">in ${diffDays}d</span>`;
     }
 
@@ -3220,7 +3238,7 @@ function _myMarkerIcon() {
     : `<span style="font-size:.7rem;font-weight:800;color:#fff">${initial}</span>`;
   return L.divIcon({
     className: '',
-    html: `<div style="background:var(--accent,#4afa8c);border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(74,250,140,.3),0 2px 8px rgba(0,0,0,.4)">${inner}</div>`,
+    html: `<div style="background:var(--accent);border:2.5px solid var(--bg);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.35)">${inner}</div>`,
     iconSize: [32,32], iconAnchor: [16,16]
   });
 }
@@ -3259,8 +3277,8 @@ function _navigateToBubble(lat, lng, name) {
   if (_myGpsPos) {
     const distM = Math.round(_haversine(_myGpsPos[0], _myGpsPos[1], lat, lng));
     const distLabel = distM < 1000 ? `${distM} m` : `${(distM/1000).toFixed(1)} km`;
-    distLine = `<p style="margin:.4rem 0 .1rem;font-size:1.1rem;font-weight:700;color:#4afa8c">${distLabel}</p>
-    <p style="margin:0 0 1rem;font-size:.8rem;color:#aaa">${funnyComment(distM)}</p>`;
+    distLine = `<p style="margin:.4rem 0 .1rem;font-size:1.1rem;font-weight:700;color:var(--text)">${distLabel}</p>
+    <p style="margin:0 0 1rem;font-size:.8rem;color:var(--muted)">${funnyComment(distM)}</p>`;
   }
 
   const mapsUrl = /iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -3273,21 +3291,21 @@ function _navigateToBubble(lat, lng, name) {
   sheet.id = 'nav-sheet';
   sheet.innerHTML = `
     <div style="text-align:center;padding:.5rem 0 .2rem">
-      <div style="font-size:.8rem;color:#888;margin-bottom:.3rem">📍 ${name}</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.3rem">📍 ${name}</div>
       ${distLine}
       <button onclick="window.open('${mapsUrl}','_blank');document.getElementById('nav-sheet').remove()"
-        style="background:#4afa8c;color:#000;border:none;border-radius:10px;padding:.55rem 1.6rem;font-weight:700;font-size:.95rem;cursor:pointer;width:100%">
+        style="background:var(--text);color:var(--bg);border:none;border-radius:10px;padding:.55rem 1.6rem;font-weight:700;font-size:.95rem;cursor:pointer;width:100%">
         Öffne Maps 🗺️
       </button>
       <button onclick="document.getElementById('nav-sheet').remove()"
-        style="background:transparent;color:#666;border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
+        style="background:transparent;color:var(--muted);border:none;padding:.5rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
         Abbrechen
       </button>
     </div>`;
   Object.assign(sheet.style, {
     position:'fixed', bottom:'0', left:'0', right:'0', zIndex:'99999',
-    background:'#1a1a1a', borderTop:'1px solid #333', borderRadius:'16px 16px 0 0',
-    padding:'1rem 1.4rem calc(1.2rem + var(--safe-bot))', boxShadow:'0 -4px 24px #000a'
+    background:'var(--card)', borderTop:'1px solid var(--border)', borderRadius:'16px 16px 0 0',
+    padding:'1rem 1.4rem calc(1.2rem + var(--safe-bot))', boxShadow:'var(--shadow-lg)'
   });
   document.body.appendChild(sheet);
   // dismiss on backdrop tap
@@ -3316,6 +3334,7 @@ function initMap() {
     }, () => {});
   }
   loadMapEvents();
+  _initMapQuickDrop();
   // On desktop the map column is always visible but flex layout may not have
   // settled yet — do a two-pass invalidate so tiles actually fill the container
   setTimeout(() => { leafletMap && leafletMap.invalidateSize(); }, 200);
@@ -3334,12 +3353,12 @@ async function loadMapEvents() {
       if (!ev.lat || !ev.lng) return;
       const isHangout  = ev.type === 'hangout';
       const isQuartier = ev.type === 'quartier';
-      const bg = isHangout ? '#8b5cf6' : isQuartier ? '#f97316' : '#3b82f6';
+      const bg = isHangout ? '#7A7888' : isQuartier ? '#9A8868' : '#6A7888';
       const CAT_MAP = {volunteer:'🌱',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',social:'👥',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾'};
       const emoji = isQuartier ? '🏘️' : (isHangout ? '🎮' : (CAT_MAP[ev.category] || '🌱'));
       const icon = L.divIcon({
         className: '',
-        html: `<div style="background:${bg};color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 3px 10px rgba(0,0,0,.4);border:2.5px solid white;cursor:pointer">${emoji}</div>`,
+        html: `<div style="background:${bg};color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 3px 10px rgba(0,0,0,.35);border:2.5px solid rgba(255,255,255,.7);cursor:pointer">${emoji}</div>`,
         iconSize: [38,38], iconAnchor: [19,19]
       });
       const marker = L.marker([ev.lat, ev.lng], {icon}).addTo(leafletMap);
@@ -3349,14 +3368,14 @@ async function loadMapEvents() {
       const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       const spots = ev.max_participants > 0 ? `${ev.participants_count||0}/${ev.max_participants}` : `${ev.participants_count||0} dabei`;
       const actionBtn = isHangout
-        ? `<button onclick="joinRequest(${ev.id},this)" style="background:#8b5cf6;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">✋ Beitreten anfragen</button>`
-        : `<button onclick="registerEvent(${ev.id},this)" style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">Mitmachen</button>`;
+        ? `<button onclick="joinRequest(${ev.id},this)" style="background:#605870;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">✋ Beitreten anfragen</button>`
+        : `<button onclick="registerEvent(${ev.id},this)" style="background:#506070;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">Mitmachen</button>`;
       marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:.1rem">
-        ${isHangout ? '<div style="font-size:.65rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">🎮 HANGOUT · OFFEN</div>' : ''}
+        ${isHangout ? '<div style="font-size:.65rem;font-weight:700;color:#7A7888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">🎮 HANGOUT · OFFEN</div>' : ''}
         <div style="font-weight:700;font-size:.95rem;margin-bottom:.25rem;line-height:1.3">${ev.title}</div>
-        <div style="font-size:.75rem;color:#666;margin-bottom:.3rem">📅 ${dateStr} ${timeStr}</div>
-        <div style="font-size:.75rem;color:#666;margin-bottom:.4rem">👤 ${spots}${ev.points_reward ? ` · ⭐ +${ev.points_reward}` : ''}</div>
-        <div style="font-size:.78rem;color:#444;line-height:1.4">${(ev.description||'').slice(0,100)}${ev.description&&ev.description.length>100?'…':''}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">📅 ${dateStr} ${timeStr}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">👤 ${spots}${ev.points_reward ? ` · ⭐ +${ev.points_reward}` : ''}</div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.4">${(ev.description||'').slice(0,100)}${ev.description&&ev.description.length>100?'…':''}</div>
         ${actionBtn}
       </div>`);
     });
@@ -3383,7 +3402,7 @@ function _drawHeatmap(events) {
     const avgLat = cell.lats.reduce((a,b)=>a+b,0)/cell.lats.length;
     const avgLng = cell.lngs.reduce((a,b)=>a+b,0)/cell.lngs.length;
     const n = cell.count;
-    const color = n >= 7 ? '#ef4444' : n >= 4 ? '#f97316' : n >= 2 ? '#f59e0b' : '#10b981';
+    const color = n >= 7 ? '#706050' : n >= 4 ? '#8A8070' : n >= 2 ? '#A09080' : '#B8B0A8';
     const opacity = Math.min(0.18 + n * 0.04, 0.45);
     const circle = L.circle([avgLat, avgLng], {
       radius: 500, color: color, fillColor: color,
@@ -3483,7 +3502,7 @@ async function flagEvent(id, btn) {
   const details = prompt('Kurze Beschreibung (optional):', '') || '';
   try {
     await apiFetch(`/api/events/${id}/flag`, 'POST', {reason, details});
-    if (btn) { btn.textContent = '⚑ Gemeldet'; btn.disabled = true; btn.style.color = '#ef4444'; }
+    if (btn) { btn.textContent = '⚑ Gemeldet'; btn.disabled = true; btn.style.color = 'var(--muted)'; }
     showToast('Meldung an Moderatoren weitergeleitet. Danke!');
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
@@ -4062,7 +4081,7 @@ async function loadCoupons() {
 
   if (!coupons.length) {
     list.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(74,250,140,.07),rgba(189,147,249,.05));border:1px solid rgba(74,250,140,.2);border-radius:16px;padding:1.2rem;margin-bottom:.85rem;text-align:center">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:1.2rem;margin-bottom:.85rem;text-align:center">
         <div style="font-size:2rem;margin-bottom:.5rem">🏗️</div>
         <div style="font-weight:800;font-size:1rem;color:var(--text);margin-bottom:.4rem">Shops werden gerade onboarded</div>
         <div style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:.75rem">
@@ -4086,9 +4105,9 @@ async function loadCoupons() {
   function expiryBadge(valid_until) {
     if (!valid_until) return '';
     const diff = new Date(valid_until) - new Date();
-    if (diff <= 0) return '<span style="font-size:.68rem;color:#ef4444">Abgelaufen</span>';
+    if (diff <= 0) return '<span style="font-size:.68rem;color:var(--dim)">Abgelaufen</span>';
     const days = Math.floor(diff / 86400000);
-    if (days <= 3) return `<span style="font-size:.68rem;color:#f97316">⏳ Noch ${days} Tag${days!==1?'e':''}</span>`;
+    if (days <= 3) return `<span style="font-size:.68rem;color:var(--muted)">⏳ Noch ${days} Tag${days!==1?'e':''}</span>`;
     if (days <= 14) return `<span style="font-size:.68rem;color:var(--dim)">Gültig: ${days} Tage</span>`;
     return '';
   }
@@ -4163,7 +4182,7 @@ async function toggleLonelyMap(checked) {
   const handle = slider?.querySelector('span');
   try {
     await apiFetch('/api/profile/lonely-map-toggle', 'POST', {show: checked});
-    if (slider) slider.style.background = checked ? 'var(--orange,#f97316)' : 'var(--border)';
+    if (slider) slider.style.background = checked ? 'var(--text)' : 'var(--border)';
     if (handle) handle.style.transform = checked ? 'translateX(20px)' : 'translateX(0)';
     currentUser = await apiFetch('/api/auth/me');
     showToast(checked ? '🤝 Du bist jetzt auf der Nahbar-Karte sichtbar' : 'Vom Nahbar-Map entfernt');
@@ -4176,7 +4195,7 @@ function syncLonelyMapToggle() {
   const handle = slider?.querySelector('span');
   const on = !!currentUser?.show_on_lonely_map;
   if (cb) cb.checked = on;
-  if (slider) slider.style.background = on ? 'var(--orange,#f97316)' : 'var(--border)';
+  if (slider) slider.style.background = on ? 'var(--text)' : 'var(--border)';
   if (handle) handle.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
 }
 
@@ -4190,7 +4209,7 @@ async function loadLonelyMapLayer() {
     users.forEach(u => {
       if (!u.lat || !u.lng) return;
       const conns = u.connection_count || 0;
-      const warmth = conns === 0 ? '#ef4444' : conns <= 1 ? '#f97316' : '#84cc16';
+      const warmth = conns === 0 ? '#908880' : conns <= 1 ? '#A09888' : '#8A9080';
       const size = 32;
       const icon = L.divIcon({
         className: '',
@@ -4628,7 +4647,7 @@ function _showWalkOverlay() {
     <div id="walk-panel">
       <div style="text-align:center;margin-bottom:1rem">
         <div style="font-size:1rem;font-weight:700;margin-bottom:.2rem">🚶 Spaziergang läuft</div>
-        <div style="font-size:.75rem;color:#666">Geh raus — Punkte warten auf dich</div>
+        <div style="font-size:.75rem;color:var(--muted)">Geh raus — Punkte warten auf dich</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;margin-bottom:1.2rem">
         <div class="walk-stat">
@@ -4645,11 +4664,11 @@ function _showWalkOverlay() {
         </div>
       </div>
       <button id="walk-stop-btn" onclick="stopWalk()"
-        style="width:100%;background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;opacity:.4">
+        style="width:100%;background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;opacity:.4">
         🏁 Noch ${Math.ceil((600-elapsed)/60)} Min...
       </button>
       <button onclick="document.getElementById('walk-overlay').remove()"
-        style="width:100%;background:transparent;color:#555;border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
+        style="width:100%;background:transparent;color:var(--muted);border:none;padding:.6rem;font-size:.8rem;cursor:pointer;margin-top:.3rem">
         Minimieren (läuft weiter)
       </button>
     </div>`;
@@ -4671,7 +4690,7 @@ async function stopWalk() {
 
   const overlay = document.getElementById('walk-overlay');
   if (overlay) overlay.querySelector('#walk-panel').innerHTML =
-    '<div style="text-align:center;padding:2rem 0;color:#4afa8c;font-size:1.1rem">Speichere…</div>';
+    '<div style="text-align:center;padding:2rem 0;color:var(--muted);font-size:1.1rem">Speichere…</div>';
 
   try {
     const res = await apiFetch('/api/walk/complete', 'POST', {
@@ -4686,20 +4705,21 @@ async function stopWalk() {
     const distLabel = session.distanceM < 1000
       ? `${Math.round(session.distanceM)} m` : `${(session.distanceM/1000).toFixed(2)} km`;
 
+    _walkConfetti();
     if (overlay) overlay.querySelector('#walk-panel').innerHTML = `
       <div style="text-align:center;padding:.5rem 0">
         <div style="font-size:3rem;margin-bottom:.4rem">🎉</div>
-        <div style="font-size:1.2rem;font-weight:900;color:#4afa8c;margin-bottom:.2rem">+${pts} Punkte!</div>
-        <div style="font-size:.8rem;color:#888;margin-bottom:1rem">${session.steps} Schritte · ${distLabel} · ${mm}:${ss} min</div>
+        <div style="font-size:1.2rem;font-weight:900;color:var(--text);margin-bottom:.2rem">+${pts} Punkte!</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">${session.steps} Schritte · ${distLabel} · ${mm}:${ss} min</div>
         <button onclick="document.getElementById('walk-overlay').remove();loadProfile()"
-          style="background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.7rem 2rem;font-size:.95rem;font-weight:800;cursor:pointer">
+          style="background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:.7rem 2rem;font-size:.95rem;font-weight:800;cursor:pointer">
           Super! 💪
         </button>
       </div>`;
     // draw route on map if we have coords
     if (session.route.length > 1 && leafletMap) {
       if (_routeLayer) leafletMap.removeLayer(_routeLayer);
-      _routeLayer = L.polyline(session.route, {color:'#4afa8c',weight:4,opacity:.85}).addTo(leafletMap);
+      _routeLayer = L.polyline(session.route, {color:'#9A8878',weight:4,opacity:.85}).addTo(leafletMap);
       leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
     }
   } catch(e) {
@@ -4742,7 +4762,7 @@ async function loadMyBubbles() {
           <div style="flex:1;min-width:0">
             <div style="font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:.4rem">
               ${esc(b.title)}
-              ${!alive?`<span style="font-size:.58rem;background:rgba(239,68,68,.15);color:var(--red);border-radius:4px;padding:.05rem .3rem;font-weight:700">ARCHIV</span>`:''}
+              ${!alive?`<span style="font-size:.58rem;background:var(--card2);color:var(--dim);border-radius:4px;padding:.05rem .3rem;font-weight:700">ARCHIV</span>`:''}
             </div>
             <div style="font-size:.68rem;color:var(--muted)">${b.is_hangout?'🎪 · ':''}${alive?`⏱ ${tl}`:exp.toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'})} ${b.is_hangout&&b.max_attendees?` · ${b.approved_count||0}/${b.max_attendees} zugelassen`:''} ${b.approach_count?`· 👀 ${b.approach_count} genähert`:''}</div>
             ${pendingBtn}
@@ -4778,8 +4798,8 @@ async function toggleBubbleRequests(bid, btn) {
     panel.innerHTML = pending.map(r => `
       <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-top:1px solid var(--border)">
         <div style="font-size:.85rem;flex:1">${esc(r.display_name)} <span style="color:var(--muted);font-size:.68rem">${r.city||''}</span></div>
-        <button onclick="approveBubbleReq(${bid},${r.user_id},this)" style="background:#4afa8c;color:#000;border:none;border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✓</button>
-        <button onclick="denyBubbleReq(${bid},${r.user_id},this)" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✕</button>
+        <button onclick="approveBubbleReq(${bid},${r.user_id},this)" style="background:var(--text);color:var(--bg);border:none;border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✓</button>
+        <button onclick="denyBubbleReq(${bid},${r.user_id},this)" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;cursor:pointer">✕</button>
       </div>`).join('');
   } catch { panel.innerHTML = '<div style="font-size:.75rem;color:var(--muted)">–</div>'; }
 }
@@ -4936,7 +4956,7 @@ async function openLobbyDetail(lid) {
           <div style="font-size:.85rem;font-weight:600;color:var(--text)">${esc(m.display_name||'Unbekannt')}</div>
           <div style="font-size:.7rem;color:var(--muted)">${m.role==='owner'?'👑 Besitzer':'Mitglied'} · ${m.city||''}</div>
         </div>
-        ${canKick?`<button onclick="kickLobbyMember(${m.id})" style="border:none;background:none;color:#f87171;font-size:.75rem;cursor:pointer;padding:.2rem .4rem">Entfernen</button>`:''}
+        ${canKick?`<button onclick="kickLobbyMember(${m.id})" style="border:none;background:none;color:var(--red);font-size:.75rem;cursor:pointer;padding:.2rem .4rem">Entfernen</button>`:''}
       </div>`;
     }).join('');
     openModal('modal-lobby-detail');
@@ -5048,7 +5068,7 @@ function openEditProfile() {
   picker.innerHTML = PROFILE_EMOJIS.map(e => {
     const isSelected = currentAvatar === `emoji:${e}`;
     if (isSelected) selectedEmoji = e;
-    return `<button onclick="selectEmoji('${e}',this)" style="width:42px;height:42px;font-size:1.5rem;border-radius:10px;border:2px solid ${isSelected?'var(--accent)':'var(--border)'};background:${isSelected?'rgba(59,130,246,.15)':'var(--card2)'};cursor:pointer;transition:all .15s">${e}</button>`;
+    return `<button onclick="selectEmoji('${e}',this)" style="width:42px;height:42px;font-size:1.5rem;border-radius:10px;border:2px solid ${isSelected?'var(--text)':'var(--border)'};background:${isSelected?'var(--card2)':'var(--card2)'};cursor:pointer;transition:all .15s">${e}</button>`;
   }).join('');
   // Fill fields
   document.getElementById('edit-name').value = currentUser?.display_name || '';
@@ -5064,7 +5084,7 @@ function selectEmoji(e, btn) {
     b.style.background = 'var(--card2)';
   });
   btn.style.borderColor = 'var(--accent)';
-  btn.style.background = 'rgba(59,130,246,.15)';
+  btn.style.background = 'var(--card2)';
 }
 
 async function saveProfile() {
@@ -5102,9 +5122,9 @@ async function loadMyEvents() {
     const now = new Date();
     list.innerHTML = rows.map(e => {
       const isFuture = new Date(e.starts_at) > now;
-      const statusColor = e.status==='active' ? 'var(--green)' : e.status==='cancelled' ? 'var(--red,#ef4444)' : 'var(--muted)';
-      const statusBg = e.status==='active' ? 'rgba(16,185,129,.15)' : e.status==='cancelled' ? 'rgba(239,68,68,.12)' : 'var(--card)';
-      const statusBdr = e.status==='active' ? 'rgba(16,185,129,.3)' : e.status==='cancelled' ? 'rgba(239,68,68,.3)' : 'var(--border)';
+      const statusColor = e.status==='active' ? 'var(--text)' : e.status==='cancelled' ? 'var(--dim)' : 'var(--muted)';
+      const statusBg = 'var(--card2)';
+      const statusBdr = 'var(--border)';
       const statusLabel = e.status==='active' ? (isFuture ? 'Aktiv' : 'Beendet') : e.status==='cancelled' ? 'Abgesagt' : (e.status||'?');
       return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;cursor:pointer" onclick="openEventDetail(${e.id})">
         <div style="font-size:1.4rem">${CAT[e.category]||'🎉'}</div>
@@ -5138,12 +5158,12 @@ async function loadMyRegistrations() {
       const isCompleted = r.status === 'completed';
       let badge, actionEl = '';
       if (isCompleted) {
-        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)">✓ Abgeschlossen</span>`;
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:var(--card2);color:var(--text);border:1px solid var(--border)">✓ Abgeschlossen</span>`;
       } else if (isPast) {
-        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(245,158,11,.1);color:var(--orange);border:1px solid rgba(245,158,11,.3)">War dabei?</span>`;
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:var(--card2);color:var(--muted);border:1px solid var(--border)">War dabei?</span>`;
         actionEl = `<button class="btn-primary" style="margin-top:.45rem;padding:.4rem .85rem;font-size:.78rem;background:var(--green)" onclick="completeEvent(${r.event_id},${r.points_reward},this)">✓ Ich war dabei (+${r.points_reward})</button>`;
       } else {
-        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.3)">Angemeldet</span>`;
+        badge = `<span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;background:var(--card2);color:var(--muted);border:1px solid var(--border)">Angemeldet</span>`;
       }
       return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.75rem;margin-bottom:.5rem">
         <div style="display:flex;align-items:center;gap:.65rem">
@@ -5324,7 +5344,7 @@ function showMilestoneCelebration(pts) {
   // Create overlay
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease';
-  el.innerHTML = `<div style="background:var(--card);border:2px solid var(--orange);border-radius:24px;padding:2rem 1.5rem;text-align:center;max-width:300px;width:90%;box-shadow:0 0 40px rgba(249,115,22,.3)">
+  el.innerHTML = `<div style="background:var(--card);border:2px solid var(--border);border-radius:24px;padding:2rem 1.5rem;text-align:center;max-width:300px;width:90%;box-shadow:var(--shadow-lg)">
     <div style="font-size:4rem;line-height:1;margin-bottom:.75rem">${emoji}</div>
     <div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Meilenstein erreicht!</div>
     <div style="font-size:.9rem;color:var(--orange);font-weight:700;margin-bottom:.5rem">${label}</div>
@@ -5353,24 +5373,24 @@ function catLabel(c) {
 }
 
 const TYPE_COLORS = {
-  volunteer: {color:'#10b981', emoji:'🌱'},
-  social:    {color:'#3b82f6', emoji:'🤝'},
-  outdoor:   {color:'#14b8a6', emoji:'🌿'},
-  senior:    {color:'#f59e0b', emoji:'🧓'},
-  environment:{color:'#84cc16',emoji:'♻️'},
-  health:    {color:'#ef4444', emoji:'❤️'},
-  education: {color:'#6366f1', emoji:'📚'},
-  sport:     {color:'#f97316', emoji:'🏃'},
-  children:  {color:'#ec4899', emoji:'🧒'},
-  seasonal:  {color:'#a855f7', emoji:'🎄'},
-  hangout:   {color:'#06b6d4', emoji:'🎮'},
-  quartier:  {color:'#eab308', emoji:'🏘️'},
-  astronomy: {color:'#818cf8', emoji:'🔭'},
-  gaming:    {color:'#7c3aed', emoji:'🎮'},
-  cooking:   {color:'#f43f5e', emoji:'👨‍🍳'},
-  photography:{color:'#0ea5e9',emoji:'📷'},
-  hiking:    {color:'#22c55e', emoji:'🥾'},
-  other:     {color:'#6b7280', emoji:'📅'}
+  volunteer: {color:'var(--green)',  emoji:'🌱'},
+  social:    {color:'var(--purple)', emoji:'🤝'},
+  outdoor:   {color:'var(--green)',  emoji:'🌿'},
+  senior:    {color:'var(--orange)', emoji:'🧓'},
+  environment:{color:'var(--green)', emoji:'♻️'},
+  health:    {color:'var(--red)',    emoji:'❤️'},
+  education: {color:'var(--purple)', emoji:'📚'},
+  sport:     {color:'var(--orange)', emoji:'🏃'},
+  children:  {color:'var(--pink)',   emoji:'🧒'},
+  seasonal:  {color:'var(--purple)', emoji:'🎄'},
+  hangout:   {color:'var(--purple)', emoji:'🎮'},
+  quartier:  {color:'var(--orange)', emoji:'🏘️'},
+  astronomy: {color:'var(--purple)', emoji:'🔭'},
+  gaming:    {color:'var(--purple)', emoji:'🎮'},
+  cooking:   {color:'var(--pink)',   emoji:'👨‍🍳'},
+  photography:{color:'var(--accent)',emoji:'📷'},
+  hiking:    {color:'var(--green)',  emoji:'🥾'},
+  other:     {color:'var(--muted)',  emoji:'📅'}
 };
 
 function cardRibbon(category, isHangout) {
@@ -5531,7 +5551,7 @@ function _tourQRHTML() {
     <div style="font-size:3.5rem;line-height:1;letter-spacing:-.05em">▛▀▜<br>▌ ▐<br>▙▄▟</div>
     <div class="tour-qr-url">${url}</div>
   </div>
-  <div style="font-size:.7rem;color:#888;text-align:center">Halte die Adresse im Browser gedrückt → "Zum Startbildschirm"</div>`;
+  <div style="font-size:.7rem;color:var(--muted);text-align:center">Halte die Adresse im Browser gedrückt → "Zum Startbildschirm"</div>`;
 }
 
 function _renderTourStep(i) {
@@ -5549,14 +5569,14 @@ function _renderTourStep(i) {
     <div class="tour-step-dots">${dots}</div>
     <div style="text-align:center;font-size:2.8rem;line-height:1;margin-bottom:.6rem">${step.emoji}</div>
     <div style="font-weight:800;font-size:1.05rem;margin-bottom:.4rem;text-align:center">${step.title}</div>
-    <div style="font-size:.82rem;color:#aaa;line-height:1.55;text-align:center;margin-bottom:.8rem">${step.body}</div>
+    <div style="font-size:.82rem;color:var(--muted);line-height:1.55;text-align:center;margin-bottom:.8rem">${step.body}</div>
     ${qrBlock}
     <button onclick="_tourNext()"
-      style="width:100%;background:#4afa8c;color:#000;border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;margin-top:.4rem">
+      style="width:100%;background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;margin-top:.4rem">
       ${btnLabel}
     </button>
     <button onclick="_tourSkip()"
-      style="width:100%;background:transparent;color:#555;border:none;padding:.5rem;font-size:.78rem;cursor:pointer;margin-top:.1rem">
+      style="width:100%;background:transparent;color:var(--muted);border:none;padding:.5rem;font-size:.78rem;cursor:pointer;margin-top:.1rem">
       Überspringen
     </button>`;
 }
@@ -5709,7 +5729,7 @@ async function openEventDetail(eid) {
     if (isOrg) {
       actionBtn = `<div style="display:flex;gap:.4rem;align-items:center">
         <span style="display:inline-block;padding:.55rem 1rem;border-radius:99px;border:1px solid var(--border);font-size:.8rem;color:var(--dim)">👤 Du organisierst</span>
-        ${!isPast ? `<button onclick="deleteEvent(${ev.id})" title="Event absagen" style="background:none;border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">🗑️</button>` : ''}
+        ${!isPast ? `<button onclick="deleteEvent(${ev.id})" title="Event absagen" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">🗑️</button>` : ''}
       </div>`;
     } else if (isDone) {
       actionBtn = `<button class="btn-primary" disabled style="opacity:.7">✓ Abgeschlossen</button>`;
@@ -5718,7 +5738,7 @@ async function openEventDetail(eid) {
     } else if (isReg) {
       actionBtn = `<div style="display:flex;gap:.4rem;align-items:center">
         <button class="btn-primary" disabled style="background:var(--green);opacity:.9">✓ Angemeldet</button>
-        <button onclick="cancelRegistration(${ev.id},this)" title="Abmelden" style="background:none;border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">✕</button>
+        <button onclick="cancelRegistration(${ev.id},this)" title="Abmelden" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:.55rem .7rem;font-size:.78rem;cursor:pointer">✕</button>
       </div>`;
     } else if (isHangout) {
       actionBtn = `<button class="btn-primary" style="background:var(--purple)" onclick="joinRequest(${ev.id},this);closeModal('modal-event-detail')">✋ Mitmachen anfragen</button>`;
@@ -5749,7 +5769,7 @@ async function openEventDetail(eid) {
         <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;font-weight:700;background:var(--card2);border:1px solid var(--border)">${catLabel(ev.category)}</span>
         <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:var(--card2);border:1px solid var(--border)">📅 ${dateStr} ${timeStr}</span>
         ${ev.city ? `<span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:var(--card2);border:1px solid var(--border)">📍 ${esc(ev.city)}</span>` : ''}
-        <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--orange)">⭐ +${ev.points_reward}</span>
+        <span style="padding:.25rem .65rem;border-radius:99px;font-size:.72rem;background:var(--card2);border:1px solid var(--border);color:var(--muted)">⭐ +${ev.points_reward}</span>
       </div>
       ${ev.description ? `<div style="font-size:.85rem;color:var(--dim);line-height:1.6;margin-bottom:.85rem">${esc(ev.description)}</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">
@@ -5882,7 +5902,7 @@ async function loadAchievements() {
     el.innerHTML = `
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">${earned.length} von ${d.total} freigeschaltet</div>
       <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem">
-        ${earned.map(a => `<div title="${esc(a.desc)}" style="background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border:1px solid rgba(249,115,22,.35);border-radius:10px;padding:.4rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem"><span>${a.icon}</span><span style="font-weight:700;color:var(--orange)">${esc(a.title)}</span></div>`).join('')}
+        ${earned.map(a => `<div title="${esc(a.desc)}" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.4rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem"><span>${a.icon}</span><span style="font-weight:700;color:var(--text)">${esc(a.title)}</span></div>`).join('')}
       </div>
       ${locked.length ? `
         <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Noch zu verdienen:</div>
@@ -5923,7 +5943,7 @@ async function openBizDashboard() {
     const biz = d.businesses?.[0] || {};
     const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
     content.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(249,115,22,.03));border:1px solid rgba(249,115,22,.3);border-radius:14px;padding:1rem;margin-bottom:1rem">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1rem">
         <div style="font-size:1rem;font-weight:800">${esc(biz.name||'Mein Geschäft')}</div>
         <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem">${esc(biz.address||'')} ${esc(biz.city||'')} · ${biz.verified?'✓ Verifiziert':'⏳ Verifizierung ausstehend'}</div>
       </div>
@@ -6016,7 +6036,7 @@ async function loadSurpriseRewards() {
             <div style="font-weight:700;font-size:.88rem">${esc(u.display_name)}</div>
             <div style="font-size:.72rem;color:var(--muted)">${esc(u.city||'–')} · Dabei seit ${u.created_at?.slice(0,7)||'?'}</div>
             <div style="display:flex;gap:.65rem;margin-top:.3rem;flex-wrap:wrap">
-              <span style="font-size:.7rem;background:rgba(74,250,140,.1);color:var(--accent);border:1px solid rgba(74,250,140,.2);border-radius:99px;padding:.15rem .5rem">⭐ Ø ${u.avg_score} (${u.rating_count} Bew.)</span>
+              <span style="font-size:.7rem;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.15rem .5rem">⭐ Ø ${u.avg_score} (${u.rating_count} Bew.)</span>
               <span style="font-size:.7rem;background:var(--card2);border:1px solid var(--border);border-radius:99px;padding:.15rem .5rem">🌱 ${u.action_count} Aktionen</span>
             </div>
           </div>
@@ -6050,10 +6070,10 @@ async function loadAdminBiz() {
     const rows = await apiFetch('/api/admin/businesses');
     if (!rows.length) { el.innerHTML = '<div class="empty">Keine Geschäfte vorhanden.</div>'; return; }
     el.innerHTML = rows.map(b => `
-      <div style="background:var(--card2);border:1px solid ${b.verified ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)'};border-left:3px solid ${b.verified ? 'var(--green)' : 'var(--orange)'};border-radius:12px;padding:.8rem;margin-bottom:.65rem">
+      <div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:12px;padding:.8rem;margin-bottom:.65rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem">
           <div style="font-size:.88rem;font-weight:700">${esc(b.name)}</div>
-          <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:${b.verified ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${b.verified ? 'var(--green)' : 'var(--orange)'};">${b.verified ? '✓ Verifiziert' : '⏳ Ausstehend'}</span>
+          <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:var(--card2);color:${b.verified ? 'var(--text)' : 'var(--dim)'};">${b.verified ? '✓ Verifiziert' : '⏳ Ausstehend'}</span>
         </div>
         <div style="font-size:.75rem;color:var(--muted)">${esc(b.city||'')} · ${esc(b.category||'')} · Inhaber: ${esc(b.owner_name||'–')} (${esc(b.owner_email||'')})</div>
         ${!b.verified ? `
@@ -6083,14 +6103,14 @@ async function loadAdminQueue() {
     el.innerHTML = d.map(r => `
       <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.8rem;margin-bottom:.65rem">
         <div style="display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.4rem">
-          <span style="font-size:.7rem;padding:.2rem .5rem;border-radius:99px;background:rgba(239,68,68,.15);color:var(--red);font-weight:700">${esc(r.reason||'–')}</span>
+          <span style="font-size:.7rem;padding:.2rem .5rem;border-radius:99px;background:var(--card2);color:var(--muted);font-weight:700">${esc(r.reason||'–')}</span>
           <span style="font-size:.7rem;color:var(--muted);margin-left:auto">${esc(r.created_at?.slice(0,10)||'')}</span>
         </div>
         <div style="font-size:.8rem;font-weight:600;margin-bottom:.2rem">Target: ${esc(r.target_type)} #${r.target_id}</div>
         ${r.details ? `<div style="font-size:.75rem;color:var(--dim);margin-bottom:.5rem">${esc(r.details)}</div>` : ''}
         <div style="font-size:.72rem;color:var(--muted)">Gemeldet von: ${esc(r.reporter_name||'Anonym')}</div>
         <div style="display:flex;gap:.5rem;margin-top:.6rem">
-          <button style="flex:1;padding:.4rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.75rem;font-weight:700;cursor:pointer" onclick="adminResolve(${r.id},'resolved')">✓ Lösen</button>
+          <button style="flex:1;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:.75rem;font-weight:700;cursor:pointer" onclick="adminResolve(${r.id},'resolved')">✓ Lösen</button>
           <button style="flex:1;padding:.4rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.75rem;cursor:pointer" onclick="adminResolve(${r.id},'dismissed')">✕ Ablehnen</button>
         </div>
       </div>`).join('');
@@ -6126,7 +6146,7 @@ async function loadAdminEvents() {
           </div>
           <div style="font-size:.82rem;font-weight:700;margin-bottom:.3rem">${esc(ev.title)}</div>
           <div style="font-size:.72rem;color:var(--dim)">${ev.flags.map(f=>`⚠ ${esc(f)}`).join(' · ')}</div>
-          <button style="margin-top:.5rem;padding:.35rem .75rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.72rem;font-weight:700;cursor:pointer" onclick="adminRemoveEvent(${ev.id})">Event entfernen</button>
+          <button style="margin-top:.5rem;padding:.35rem .75rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:.72rem;font-weight:700;cursor:pointer" onclick="adminRemoveEvent(${ev.id})">Event entfernen</button>
         </div>`;
       }).join('') || '<div class="empty" style="margin-top:1rem">Keine auffälligen Events. ✓</div>'}`;
   } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -6155,12 +6175,12 @@ async function loadAdminFraud() {
         sus.map(u => `
           <div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:12px;padding:.8rem;margin-bottom:.6rem">
             <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
-              <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:rgba(249,115,22,.15);color:var(--orange);font-weight:700">${esc(u.type)}</span>
+              <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:99px;background:var(--card2);color:var(--muted);font-weight:700">${esc(u.type)}</span>
               <span style="font-size:.72rem;font-weight:700">User #${u.user_id}${u.display_name ? ' · ' + esc(u.display_name) : ''}</span>
             </div>
             <div style="font-size:.76rem;color:var(--dim)">${esc(u.reason)}</div>
             <div style="display:flex;gap:.5rem;margin-top:.5rem">
-              <button style="padding:.35rem .75rem;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:.72rem;cursor:pointer" onclick="adminWarnUser(${u.user_id})">⚠ Warnen</button>
+              <button style="padding:.35rem .75rem;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:.72rem;cursor:pointer" onclick="adminWarnUser(${u.user_id})">⚠ Warnen</button>
             </div>
           </div>`).join('')}`;
   } catch(e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -6191,7 +6211,7 @@ async function loadAdminStats() {
           ['👤 Nutzer', stats.users||0, 'var(--accent)'],
           ['🌱 Taten', stats.good_deeds||0, 'var(--green)'],
           ['📅 Events', stats.active_events||0, 'var(--purple)'],
-          ['💛 Besuche', stats.senior_visits_completed||0, '#f97316'],
+          ['💛 Besuche', stats.senior_visits_completed||0, 'var(--text)'],
           ['⭐ Punkte vergeben', (stats.total_points_earned||0).toLocaleString(), 'var(--orange)'],
           ['🏪 Shops', stats.businesses||0, 'var(--neon)'],
         ].map(([label, val, col]) => `
@@ -6255,14 +6275,14 @@ function loadTierBanner() {
   if (!banner) return;
   if (tier === 'free') {
     const balance = currentUser?.points_balance || 0;
-    banner.innerHTML = `<div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(59,130,246,.07));border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:.9rem">
+    banner.innerHTML = `<div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
         <span style="font-size:1.4rem">🚀</span>
         <div style="flex:1">
           <div style="font-size:.88rem;font-weight:800">Pro = <span style="color:#a78bfa">3× mehr Punkte</span> auf alles</div>
           <div style="font-size:.73rem;color:var(--muted)">Du hättest ${balance*3} statt ${balance} Pts — mehr Coupons, mehr Stammgast</div>
         </div>
-        <button class="btn-primary" style="padding:.5rem .9rem;font-size:.78rem;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#3b82f6)" onclick="openPricing()">9 CHF/M</button>
+        <button class="btn-primary" style="padding:.5rem .9rem;font-size:.78rem;white-space:nowrap;background:var(--text);color:var(--bg)" onclick="openPricing()">9 CHF/M</button>
       </div>
       <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:.5rem .75rem;font-size:.73rem;color:var(--dim)">
         💡 <strong style="color:var(--text)">Woher kommen die Coupons?</strong> Unternehmen zahlen ein Werbebudget an Konnekt (ab 49 CHF/M). Deine Punkte lösen direkt gegen dieses Budget ein — kein Umweg, kein Trick.
@@ -6310,7 +6330,7 @@ async function loadImpactAnalytics() {
           ${statTile(d.deeds, 'Gute Taten', 'var(--accent)')}
           ${statTile(d.events_completed, 'Events beendet', 'var(--purple)')}
         </div>
-        <div style="background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(0,255,136,.04));border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:.65rem .85rem;display:flex;align-items:center;gap:.65rem">
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.65rem .85rem;display:flex;align-items:center;gap:.65rem">
           <span style="font-size:1.3rem">⭐</span>
           <div style="flex:1">
             <div style="font-size:.82rem;font-weight:700">Pro für Charts & Teilen</div>
@@ -6416,8 +6436,8 @@ function renderActivityBars(deeds, regs) {
     const deedH = Math.max(Math.round((d.count / maxVal) * 56), d.count > 0 ? 4 : 0);
     const regH  = Math.max(Math.round(((regs[i]?.count||0) / maxVal) * 56), (regs[i]?.count||0) > 0 ? 4 : 0);
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;height:60px;justify-content:flex-end">
-      <div style="width:100%;flex:none;height:${deedH}px;border-radius:3px 3px 0 0;background:linear-gradient(0deg,var(--green),rgba(16,185,129,.5))"></div>
-      <div style="width:100%;flex:none;height:${regH}px;border-radius:3px 3px 0 0;background:linear-gradient(0deg,var(--accent),rgba(59,130,246,.5))"></div>
+      <div style="width:100%;flex:none;height:${deedH}px;border-radius:3px 3px 0 0;background:var(--green)"></div>
+      <div style="width:100%;flex:none;height:${regH}px;border-radius:3px 3px 0 0;background:var(--accent)"></div>
     </div>`;
   }).join('');
 
@@ -6432,9 +6452,9 @@ function renderDonut(categories) {
   if (!canvas) return;
 
   const CAT_COLORS = {
-    volunteer: '#10b981', social: '#06b6d4', environment: '#22c55e',
-    senior: '#ec4899', health: '#ef4444', education: '#8b5cf6',
-    sport: '#f59e0b', other: '#475569'
+    volunteer: '#8A9080', social: '#8A8898', environment: '#909880',
+    senior: '#A09080', health: '#908888', education: '#8888A0',
+    sport: '#9A9080', other: '#7A7870'
   };
   const labels = categories.slice(0,6).map(c => catLabel(c.name));
   const data   = categories.slice(0,6).map(c => c.count);
@@ -6557,7 +6577,7 @@ async function submitDropBubble() {
 
 function _bubbleTimeLeft(isoStr) {
   const secs = Math.max(0, Math.floor((new Date(isoStr.includes('Z') ? isoStr : isoStr + 'Z') - Date.now()) / 1000));
-  if (secs <= 0)   return { label: 'Abgelaufen', color: '#ef4444' };
+  if (secs <= 0)   return { label: 'Abgelaufen', color: 'var(--dim)' };
   if (secs < 60)   return { label: `${secs}s`,              color: 'var(--orange)' };
   if (secs < 3600) return { label: `${Math.floor(secs/60)}min ${secs%60}s`, color: 'var(--orange)' };
   const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = secs%60;
@@ -6568,18 +6588,25 @@ function renderBubbleCard(b) {
   const { label, color } = _bubbleTimeLeft(b.expires_at);
   const hasCoords = b.lat && b.lng;
   const clickHandler = hasCoords ? `onclick="flyToMapBubble(${b.lat},${b.lng})" style="cursor:pointer"` : '';
+  // "NEU" badge for bubbles dropped in the last 15 minutes
+  let neuBadge = '';
+  if (b.created_at) {
+    const ca = b.created_at.includes('Z') ? b.created_at : b.created_at + 'Z';
+    const ageMins = (Date.now() - new Date(ca).getTime()) / 60000;
+    if (ageMins < 15) neuBadge = `<span style="font-size:.58rem;font-weight:800;letter-spacing:.04em;background:var(--text);color:var(--bg);border-radius:99px;padding:.1rem .4rem;margin-left:.3rem;vertical-align:middle;animation:greetIn .3s ease">NEU</span>`;
+  }
   return `<div class="bubble-card" style="padding:0;overflow:hidden" data-bid="${b.id}" ${clickHandler}>
     <div style="padding:.65rem .75rem">
       <div style="display:flex;gap:.5rem;align-items:flex-start">
         <div class="bubble-emoji" style="flex-shrink:0">${esc(b.emoji||'✨')}</div>
         <div class="bubble-body" style="min-width:0">
-          <div class="bubble-title">${esc(b.title)}</div>
+          <div class="bubble-title">${esc(b.title)}${neuBadge}</div>
           ${b.description ? `<div class="bubble-desc">${esc(b.description)}</div>` : ''}
           <div class="bubble-meta">
             <span>👤 ${esc(b.display_name||'')}</span>
             ${b.address ? `<span>📍 ${esc(b.address)}</span>` : ''}
             <span class="bubble-expires" data-expires="${b.expires_at}" style="color:${color};font-weight:700">⏱ ${label}</span>
-            ${hasCoords ? `<span style="color:var(--purple);font-size:.68rem;font-weight:700">🗺 →</span>` : ''}
+            ${hasCoords ? `<span style="color:var(--muted);font-size:.68rem;font-weight:700">🗺 →</span>` : ''}
           </div>
         </div>
       </div>
@@ -6675,10 +6702,10 @@ function setMapMode(mode) {
   const loBtn = document.getElementById('map-show-lonely-btn');
 
   // Reset all buttons to inactive style
-  evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--accent)'; evBtn.style.border = '1px solid rgba(59,130,246,.4)';
-  buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--purple)'; buBtn.style.border = '1px solid rgba(139,92,246,.4)';
-  shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--orange)'; shBtn.style.border = '1px solid rgba(249,115,22,.4)';
-  if (loBtn) { loBtn.style.background = 'var(--card)'; loBtn.style.color = '#f97316'; loBtn.style.border = '1px solid rgba(249,115,22,.4)'; }
+  evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--muted)'; evBtn.style.border = '1px solid var(--border)';
+  buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--muted)'; buBtn.style.border = '1px solid var(--border)';
+  shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--muted)'; shBtn.style.border = '1px solid var(--border)';
+  if (loBtn) { loBtn.style.background = 'var(--card)'; loBtn.style.color = 'var(--muted)'; loBtn.style.border = '1px solid var(--border)'; }
 
   // Clear all markers + reset counter
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
@@ -6690,16 +6717,16 @@ function setMapMode(mode) {
   _lonelyMarkers.forEach(m => m.remove()); _lonelyMarkers = [];
 
   if (mode === 'events') {
-    evBtn.style.background = 'var(--accent)'; evBtn.style.color = '#000'; evBtn.style.border = 'none';
+    evBtn.style.background = 'var(--text)'; evBtn.style.color = 'var(--bg)'; evBtn.style.border = 'none';
     loadMapEvents();
   } else if (mode === 'bubbles') {
-    buBtn.style.background = 'var(--purple)'; buBtn.style.color = 'white'; buBtn.style.border = 'none';
+    buBtn.style.background = 'var(--text)'; buBtn.style.color = 'var(--bg)'; buBtn.style.border = 'none';
     loadMapBubbles();
   } else if (mode === 'shops') {
-    shBtn.style.background = 'var(--orange)'; shBtn.style.color = 'white'; shBtn.style.border = 'none';
+    shBtn.style.background = 'var(--text)'; shBtn.style.color = 'var(--bg)'; shBtn.style.border = 'none';
     loadMapShops();
   } else if (mode === 'lonely') {
-    if (loBtn) { loBtn.style.background = '#f97316'; loBtn.style.color = 'white'; loBtn.style.border = 'none'; }
+    if (loBtn) { loBtn.style.background = 'var(--text)'; loBtn.style.color = 'var(--bg)'; loBtn.style.border = 'none'; }
     loadLonelyMapLayer();
   }
 }
@@ -6715,12 +6742,12 @@ async function loadMapShops() {
       const emoji = BIZ_EMOJI[s.category] || '🏪';
       const icon = L.divIcon({
         className: '',
-        html: `<div style="background:var(--orange, #f97316);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(0,0,0,.4);border:2.5px solid white;cursor:pointer">${emoji}</div>`,
+        html: `<div style="background:var(--accent,#9A8878);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(0,0,0,.35);border:2.5px solid rgba(255,255,255,.7);cursor:pointer">${emoji}</div>`,
         iconSize: [38,38], iconAnchor: [19,19]
       });
       const marker = L.marker([s.lat, s.lng], {icon}).addTo(leafletMap);
       shopMapMarkers.push(marker);
-      marker.bindPopup(`<div style="min-width:160px"><b>${s.name}</b><br><span style="font-size:.78rem;color:#666">${s.category}</span>${s.description ? '<br><span style="font-size:.78rem">'+s.description+'</span>' : ''}</div>`);
+      marker.bindPopup(`<div style="min-width:160px"><b>${s.name}</b><br><span style="font-size:.78rem;color:var(--muted)">${s.category}</span>${s.description ? '<br><span style="font-size:.78rem">'+s.description+'</span>' : ''}</div>`);
     });
     _updateMapCounter(null, null, shopMapMarkers.length);
   } catch(e) { console.warn('loadMapShops error', e); }
@@ -6788,16 +6815,16 @@ async function loadMapBubbles() {
         : '';
       const joinBtn = (isHangout && !isOwn && !b.my_request)
         ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:#9A8878;color:#F8F7F5;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:500;cursor:pointer">Anfragen</button>`
-        : (b.my_request ? `<div style="margin-top:.4rem;font-size:.72rem;color:#888;text-align:center">${{pending:'⏳ Anfrage ausstehend',approved:'✅ Zugelassen',denied:'❌ Abgelehnt'}[b.my_request]||''}</div>` : '');
+        : (b.my_request ? `<div style="margin-top:.4rem;font-size:.72rem;color:var(--muted);text-align:center">${{pending:'⏳ Anfrage ausstehend',approved:'✅ Zugelassen',denied:'❌ Abgelehnt'}[b.my_request]||''}</div>` : '');
       const capacityLine = isHangout && b.max_attendees
-        ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">👥 ${b.join_count||0}/${b.max_attendees} Plätze</div>` : '';
+        ? `<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">👥 ${b.join_count||0}/${b.max_attendees} Plätze</div>` : '';
       marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:.1rem">
         <div style="display:flex;gap:.3rem;margin-bottom:.35rem;flex-wrap:wrap">${hangoutBadge}${blurBadge}</div>
         <div style="font-size:1.4rem;text-align:center;margin-bottom:.3rem">${b.emoji||'✨'}</div>
         <div style="font-weight:700;font-size:.95rem;margin-bottom:.2rem;line-height:1.3">${b.title}</div>
-        ${b.description ? `<div style="font-size:.75rem;color:#666;margin-bottom:.3rem">${b.description}</div>` : ''}
-        <div style="font-size:.72rem;color:#888">👤 ${b.display_name||''} · ⏱ ${timeLabel}</div>
-        ${b.address ? `<div style="font-size:.72rem;color:#888;margin-top:.2rem">📍 ${b.address}</div>` : ''}
+        ${b.description ? `<div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">${b.description}</div>` : ''}
+        <div style="font-size:.72rem;color:var(--muted)">👤 ${b.display_name||''} · ⏱ ${timeLabel}</div>
+        ${b.address ? `<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">📍 ${b.address}</div>` : ''}
         ${capacityLine}
         ${navBtn}${joinBtn}
       </div>`);
@@ -6996,6 +7023,74 @@ async function submitBugReport() {
   } catch(e) {
     if (errEl) { errEl.textContent = e.message || 'Fehler beim Senden'; errEl.style.display = ''; }
   }
+}
+
+// ── Time-of-day greeting ─────────────────────────────────────────────────────
+function _updateGreeting() {
+  const el = document.getElementById('topbar-greeting');
+  if (!el) return;
+  const h = new Date().getHours();
+  const g = h < 5 ? 'Gute Nacht' : h < 12 ? 'Guten Morgen' : h < 17 ? 'Guten Tag' : h < 22 ? 'Guten Abend' : 'Gute Nacht';
+  const name = currentUser?.display_name?.split(' ')[0] || '';
+  el.textContent = name ? `${g}, ${name}` : g;
+  el.style.display = '';
+  el.style.animation = 'greetIn .5s ease';
+}
+
+// ── Walk completion confetti ─────────────────────────────────────────────────
+function _walkConfetti() {
+  const GLYPHS = ['·', '∘', '○', '◦', '⋅', '∙', '—', '‒'];
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('span');
+    p.textContent = GLYPHS[i % GLYPHS.length];
+    const x = 20 + Math.random() * 60;
+    const delay = Math.random() * 0.6;
+    const dur = 1.4 + Math.random() * 1.2;
+    const size = 0.7 + Math.random() * 1.1;
+    Object.assign(p.style, {
+      position: 'fixed',
+      left: `${x}vw`,
+      top: '30vh',
+      fontSize: `${size}rem`,
+      color: 'var(--accent)',
+      pointerEvents: 'none',
+      zIndex: '99999',
+      animation: `confettiFall ${dur}s ease-in ${delay}s forwards`,
+      opacity: '0'
+    });
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), (dur + delay + 0.2) * 1000);
+  }
+}
+
+// ── Quick-drop: long-press on map → pre-fill bubble with current location ────
+let _mapLongPressTimer = null;
+function _initMapQuickDrop() {
+  if (!leafletMap) return;
+  const container = leafletMap.getContainer();
+  const _startPress = (e) => {
+    const latlng = e.latlng || (e.touches && leafletMap.containerPointToLatLng(
+      L.point(e.touches[0].clientX - container.getBoundingClientRect().left,
+              e.touches[0].clientY - container.getBoundingClientRect().top)));
+    if (!latlng) return;
+    _mapLongPressTimer = setTimeout(() => {
+      _mapLongPressTimer = null;
+      // Pre-fill the bubble drop modal with map coords
+      const latEl = document.getElementById('bubble-lat');
+      const lngEl = document.getElementById('bubble-lng');
+      if (latEl) latEl.value = latlng.lat.toFixed(5);
+      if (lngEl) lngEl.value = latlng.lng.toFixed(5);
+      openModal('modal-drop-bubble');
+      showToast('📍 Ort vorausgewählt');
+    }, 600);
+  };
+  const _cancelPress = () => { if (_mapLongPressTimer) { clearTimeout(_mapLongPressTimer); _mapLongPressTimer = null; } };
+  container.addEventListener('touchstart', _startPress, {passive:true});
+  container.addEventListener('touchend', _cancelPress);
+  container.addEventListener('touchmove', _cancelPress);
+  container.addEventListener('mousedown', _startPress);
+  container.addEventListener('mouseup', _cancelPress);
+  container.addEventListener('mousemove', _cancelPress);
 }
 </script>
 
