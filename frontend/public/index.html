@@ -3059,6 +3059,10 @@ function initMap() {
     }, () => {});
   }
   loadMapEvents();
+  // On desktop the map column is always visible but flex layout may not have
+  // settled yet — do a two-pass invalidate so tiles actually fill the container
+  setTimeout(() => { leafletMap && leafletMap.invalidateSize(); }, 200);
+  setTimeout(() => { leafletMap && leafletMap.invalidateSize(); }, 600);
 }
 
 async function loadMapEvents() {
