@@ -326,6 +326,10 @@ input.field:focus, select.field:focus {
   .fab { bottom: 1.5rem; right: 1.5rem; }
 }
 
+/* ── Route tooltip ── */
+.route-tooltip { background:#000 !important; border:1px solid #4afa8c !important; color:#4afa8c !important; font-weight:700; font-size:.75rem; border-radius:8px; padding:.3rem .6rem; }
+.route-tooltip::before { display:none; }
+
 /* ── Gathering ring pulse ── */
 @keyframes ring-pulse {
   0%   { stroke-opacity: .7; r: 28; }
@@ -3131,16 +3135,44 @@ function locateMeOnMap() {
   );
 }
 
-function _navigateToBubble(lat, lng, name) {
-  // Draw route line
-  if (_routeLayer) leafletMap.removeLayer(_routeLayer);
-  if (_myGpsPos) {
-    _routeLayer = L.polyline([_myGpsPos, [lat, lng]], {
-      color: '#4afa8c', weight: 3, dashArray: '8 6', opacity: .85
-    }).addTo(leafletMap);
-    leafletMap.fitBounds(_routeLayer.getBounds(), {padding: [40,40]});
+async function _navigateToBubble(lat, lng, name) {
+  if (_routeLayer) { leafletMap.removeLayer(_routeLayer); _routeLayer = null; }
+
+  // Get current position if we don't have it yet
+  if (!_myGpsPos) {
+    await new Promise(res => navigator.geolocation.getCurrentPosition(p => {
+      _myGpsPos = [p.coords.latitude, p.coords.longitude]; res();
+    }, res, {timeout: 5000}));
   }
-  // Open native nav
+
+  if (_myGpsPos) {
+    const [fromLat, fromLng] = _myGpsPos;
+    const distM = Math.round(_haversine(fromLat, fromLng, lat, lng));
+    const distLabel = distM < 1000 ? `${distM} m` : `${(distM/1000).toFixed(1)} km`;
+    const walkMin = Math.round(distM / 83); // ~5 km/h walking
+
+    try {
+      // OSRM public routing — real roads/paths, no key needed
+      const r = await fetch(`https://router.project-osrm.org/route/v1/walking/${fromLng},${fromLat};${lng},${lat}?geometries=geojson&overview=full`);
+      const d = await r.json();
+      const coords = d.routes[0].geometry.coordinates.map(([a,b]) => [b,a]);
+      const routeDistM = Math.round(d.routes[0].distance);
+      const routeMin = Math.round(d.routes[0].duration / 60);
+      const routeLabel = routeDistM < 1000 ? `${routeDistM} m` : `${(routeDistM/1000).toFixed(1)} km`;
+      _routeLayer = L.polyline(coords, {color:'#4afa8c', weight:4, opacity:.9}).addTo(leafletMap);
+      _routeLayer.bindTooltip(`🚶 ${routeLabel} · ~${routeMin} min`, {permanent:true, className:'route-tooltip', direction:'center'}).openTooltip();
+      leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
+    } catch {
+      // Fallback: straight line with air distance
+      _routeLayer = L.polyline([_myGpsPos, [lat, lng]], {
+        color:'#4afa8c', weight:3, dashArray:'8 5', opacity:.8
+      }).addTo(leafletMap);
+      _routeLayer.bindTooltip(`✈️ Luftlinie ${distLabel} · ~${walkMin} min`, {permanent:true, className:'route-tooltip', direction:'center'}).openTooltip();
+      leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
+    }
+  }
+
+  // Open native nav app
   const url = /iPhone|iPad|iPod/i.test(navigator.userAgent)
     ? `maps://maps.apple.com/?daddr=${lat},${lng}`
     : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
