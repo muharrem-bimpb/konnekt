@@ -74,7 +74,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg); color: var(--text);
   height: 100dvh; display: flex; flex-direction: column;
-  padding-top: calc(50px + var(--safe-top));
+  padding-top: calc(62px + var(--safe-top));
   padding-bottom: calc(58px + var(--safe-bot));
   overflow: hidden;
   transition: background .25s, color .25s;
@@ -105,7 +105,7 @@ button { font-family: inherit; cursor: pointer; }
   0%   { clip-path: inset(0 100% 0 0); }
   100% { clip-path: inset(0 0 0 0); }
 }
-.screen { display: none; flex-direction: column; min-height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); }
+.screen { display: none; flex-direction: column; min-height: calc(100dvh - 62px - 58px - var(--safe-top) - var(--safe-bot)); }
 .screen.active { display: flex; animation: screenIn .2s cubic-bezier(.25,.8,.4,1); }
 .screen.slide-right { animation: slideFromRight .28s cubic-bezier(.25,.8,.4,1) !important; }
 .screen.slide-left  { animation: slideFromLeft  .28s cubic-bezier(.25,.8,.4,1) !important; }
@@ -117,7 +117,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* Swipe edge hints */
 .swipe-edge {
-  position: fixed; top: calc(50px + var(--safe-top)); bottom: calc(58px + var(--safe-bot));
+  position: fixed; top: calc(62px + var(--safe-top)); bottom: calc(58px + var(--safe-bot));
   width: 28px; z-index: 150; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity .15s;
@@ -125,8 +125,8 @@ button { font-family: inherit; cursor: pointer; }
 .swipe-edge-left  { left: 0;  background: linear-gradient(to right, rgba(139,92,246,.18), transparent); }
 .swipe-edge-right { right: 0; background: linear-gradient(to left,  rgba(74,250,140,.18),  transparent); }
 .swipe-edge.visible { opacity: 1; }
-#screen-volunteer { height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
-#screen-map       { height: calc(100dvh - 50px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
+#screen-volunteer { height: calc(100dvh - 62px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
+#screen-map       { height: calc(100dvh - 62px - 58px - var(--safe-top) - var(--safe-bot)); overflow: hidden; }
 .scroll-body { flex: 1; overflow-y: auto; padding: .85rem 1rem; max-width: 600px; margin: 0 auto; width: 100%; }
 /* Scroll momentum on iOS */
 .scroll-body, #events-scroll, .modal-body { -webkit-overflow-scrolling: touch; }
@@ -184,13 +184,13 @@ input.field:focus, select.field:focus {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  height: calc(50px + var(--safe-top));
+  height: calc(62px + var(--safe-top));
   padding: 0 1rem;
   padding-top: var(--safe-top);
   transition: border-color .25s;
 }
 .topbar-brand {
-  font-weight: 800; font-size: 1rem; letter-spacing: -.03em; color: var(--text);
+  font-weight: 800; font-size: 1.2rem; letter-spacing: -.03em; color: var(--text);
   display: flex; align-items: center; gap: .35rem;
 }
 .topbar-brand .brand-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); display: inline-block; flex-shrink: 0; }
@@ -244,6 +244,68 @@ input.field:focus, select.field:focus {
 .nav-item .nav-icon { font-size: 1.2rem; line-height: 1; }
 .nav-item .nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .03em; }
 
+/* ── Mobile: hide flat nav, use dial ── */
+@media (max-width: 767px) {
+  .bottom-nav { display: none; }
+  body { padding-bottom: calc(64px + var(--safe-bot)); }
+}
+
+/* ── Dial Nav ── */
+#dial-backdrop {
+  position: fixed; inset: 0; z-index: 199;
+  background: rgba(0,0,0,0); display: none;
+  transition: background .25s;
+}
+#dial-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  pointer-events: none; align-items: flex-end; justify-content: center;
+}
+@media (max-width: 767px) { #dial-nav { display: flex; } }
+
+#dial-arc {
+  position: absolute;
+  bottom: calc(44px + var(--safe-bot));
+  left: 50%; width: 0; height: 0;
+}
+.dial-item {
+  --dx: 0px; --dy: 0px; --i: 0;
+  position: absolute;
+  width: 54px; height: 54px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--card);
+  color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  cursor: pointer; pointer-events: none;
+  transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0);
+  opacity: 0;
+  transition:
+    transform .32s cubic-bezier(.34,1.56,.64,1) calc(var(--i) * .045s),
+    opacity .18s ease calc(var(--i) * .045s),
+    color .15s, border-color .15s, box-shadow .15s;
+}
+.dial-item .dial-icon { font-size: 1.25rem; line-height: 1; }
+.dial-item .dial-label { font-size: .46rem; font-weight: 700; letter-spacing: .03em; }
+.dial-item.active { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(74,250,140,.3); }
+#dial-arc.open .dial-item { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1); opacity: 1; pointer-events: all; }
+
+#dial-handle {
+  position: absolute; bottom: 0;
+  left: 50%; transform: translateX(-50%);
+  margin-bottom: var(--safe-bot);
+  width: 130px; height: 44px;
+  background: var(--card); border: 1px solid var(--border); border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; pointer-events: all;
+  transition: border-color .2s, background .2s;
+}
+#dial-handle.open { border-color: var(--accent); background: var(--bg); }
+.dial-grip {
+  width: 34px; height: 3px; background: var(--border); border-radius: 2px;
+  transition: background .2s, width .15s;
+}
+#dial-handle.open .dial-grip { background: var(--accent); width: 18px; box-shadow: 0 0 6px rgba(74,250,140,.45); }
+
 /* ── Desktop sidebar nav ── */
 @media (min-width: 768px) {
   body { padding-bottom: 0; padding-left: 64px; }
@@ -257,9 +319,9 @@ input.field:focus, select.field:focus {
   }
   .nav-item { width: 100%; padding: .75rem .4rem; flex: 0 0 auto; }
   .nav-item.active::after { bottom: auto; top: 50%; transform: translateY(-50%); left: 0; width: 2px; height: 18px; border-radius: 0 2px 2px 0; }
-  .screen { min-height: calc(100dvh - 50px - var(--safe-top)); }
-  #screen-volunteer { height: calc(100dvh - 50px - var(--safe-top)); }
-  #screen-map       { height: calc(100dvh - 50px - var(--safe-top)); }
+  .screen { min-height: calc(100dvh - 62px - var(--safe-top)); }
+  #screen-volunteer { height: calc(100dvh - 62px - var(--safe-top)); }
+  #screen-map       { height: calc(100dvh - 62px - var(--safe-top)); }
   .topbar { padding-left: calc(64px + 1rem); left: 64px; }
   .fab { bottom: 1.5rem; right: 1.5rem; }
 }
@@ -268,12 +330,7 @@ input.field:focus, select.field:focus {
 [data-theme="dark"] .leaflet-tile-pane {
   filter: brightness(1.7) contrast(0.82) saturate(1.2);
 }
-.leaflet-control-attribution {
-  background: rgba(0,0,0,.55) !important;
-  color: var(--dim) !important;
-  backdrop-filter: blur(4px);
-}
-.leaflet-control-attribution a { color: var(--muted) !important; }
+.leaflet-control-attribution { display: none !important; }
 
 /* ── Neon glow on accent elements ── */
 [data-theme="dark"] .nav-item.active {
@@ -318,11 +375,11 @@ input.field:focus, select.field:focus {
     overflow: hidden;
     animation: none !important;
     min-height: 0;
-    height: calc(100dvh - 50px - var(--safe-top));
+    height: calc(100dvh - 62px - var(--safe-top));
   }
   /* Reorder DOM (feed, map, nahbar) → display (nahbar, map, feed) */
   #screen-nahbar { order: 1; border-right: 1px solid var(--border); }
-  #screen-map    { order: 2; border-right: 1px solid var(--border); height: calc(100dvh - 50px - var(--safe-top)) !important; }
+  #screen-map    { order: 2; border-right: 1px solid var(--border); height: calc(100dvh - 62px - var(--safe-top)) !important; }
   #screen-feed   { order: 3; }
   /* Active world gets accent top border */
   #screen-nahbar.active,
@@ -337,7 +394,7 @@ input.field:focus, select.field:focus {
   #screen-profile.active {
     display: flex !important;
     flex: 1;
-    height: calc(100dvh - 50px - var(--safe-top));
+    height: calc(100dvh - 62px - var(--safe-top));
     overflow-y: auto;
     order: 0;
   }
@@ -1073,7 +1130,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       </div>
       <!-- Bubble drop button — bottom right, separate from filters -->
       <button id="map-create-btn" onclick="openCreateEventOrBubble()"
-        style="position:absolute;bottom:1.1rem;left:50%;transform:translateX(-50%);z-index:500;
+        style="position:absolute;bottom:2.4rem;left:50%;transform:translateX(-50%);z-index:500;
                background:linear-gradient(135deg,var(--purple),var(--accent));
                color:#000;border:none;border-radius:14px;
                padding:.6rem 1.4rem;font-size:.82rem;font-weight:800;
@@ -1386,7 +1443,7 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
     </div>
   </div>
 
-  <!-- Bottom nav -->
+  <!-- Bottom nav (desktop sidebar) -->
   </div><!-- /worlds-row -->
   <nav class="bottom-nav">
     <button class="nav-item" onclick="switchScreen('feed',this)">
@@ -1405,6 +1462,33 @@ textarea.ta:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16,18
       <span class="nav-icon">💛</span><span class="nav-label">Nahbar</span>
     </button>
   </nav>
+
+  <!-- Backdrop for dial (mobile) -->
+  <div id="dial-backdrop" onclick="toggleDial()"></div>
+
+  <!-- Dial nav (mobile half-moon) -->
+  <div id="dial-nav">
+    <div id="dial-arc">
+      <button class="dial-item" data-screen="feed" style="--dx:-108px;--dy:-39px;--i:2" onclick="dialNav('feed')">
+        <span class="dial-icon">⚡</span><span class="dial-label">Feed</span>
+      </button>
+      <button class="dial-item" data-screen="volunteer" style="--dx:-66px;--dy:-94px;--i:1" onclick="dialNav('volunteer')">
+        <span class="dial-icon">🌱</span><span class="dial-label">Aktionen</span>
+      </button>
+      <button class="dial-item active" data-screen="map" style="--dx:0px;--dy:-115px;--i:0" onclick="dialNav('map')">
+        <span class="dial-icon">🗺️</span><span class="dial-label">Karte</span>
+      </button>
+      <button class="dial-item" data-screen="coupons" style="--dx:66px;--dy:-94px;--i:1" onclick="dialNav('coupons')">
+        <span class="dial-icon">🎟️</span><span class="dial-label">Vorteile</span>
+      </button>
+      <button class="dial-item" data-screen="nahbar" style="--dx:108px;--dy:-39px;--i:2" onclick="dialNav('nahbar')">
+        <span class="dial-icon">💛</span><span class="dial-label">Nahbar</span>
+      </button>
+    </div>
+    <button id="dial-handle" onclick="toggleDial()" aria-label="Navigation öffnen">
+      <span class="dial-grip"></span>
+    </button>
+  </div>
 </div>
 
 <!-- ══ EVENT DETAIL MODAL ══ -->
@@ -2334,6 +2418,9 @@ function switchScreen(name, btn, swipeDir) {
   }
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  // Sync dial items (mobile)
+  document.querySelectorAll('.dial-item').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.dial-item[data-screen="${name}"]`)?.classList.add('active');
 
   const stale = _screenStale(name);
   if (stale) _markLoaded(name);
@@ -2371,6 +2458,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const bar = document.getElementById('splash-bar');
   if (bar) setTimeout(() => { bar.style.width = '80%'; }, 80);
 });
+
+// ── Dial nav ──────────────────────────────────────────────────────────────
+let _dialOpen = false;
+
+function toggleDial() {
+  _dialOpen = !_dialOpen;
+  document.getElementById('dial-arc')?.classList.toggle('open', _dialOpen);
+  document.getElementById('dial-handle')?.classList.toggle('open', _dialOpen);
+  const bd = document.getElementById('dial-backdrop');
+  if (bd) {
+    if (_dialOpen) {
+      bd.style.display = 'block';
+      requestAnimationFrame(() => { bd.style.background = 'rgba(0,0,0,.5)'; });
+    } else {
+      bd.style.background = 'rgba(0,0,0,0)';
+      setTimeout(() => { bd.style.display = 'none'; }, 260);
+    }
+  }
+}
+
+function dialNav(screen) {
+  if (_dialOpen) toggleDial();
+  const btn = document.querySelector(`.nav-item[onclick*="'${screen}'"]`);
+  switchScreen(screen, btn);
+}
 
 // ── Swipe navigation ─────────────────────────────────────────────────────
 let _swipeX = 0, _swipeY = 0, _swipeActive = false;

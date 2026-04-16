@@ -480,6 +480,8 @@ def _purge_test_accounts(c):
     """Kill sessions and lock backdoor accounts without touching FK'd child rows."""
     c.execute("DELETE FROM sessions WHERE token IN ('demo-token-konnekt-2026','test-anna-2026','test-luca-2026','test-fatima-2026')")
     c.execute("UPDATE users SET password_hash='LOCKED',email=email||'.locked' WHERE password_hash IN ('TEST_NO_LOGIN','DEMO_NO_LOGIN')")
+    # Lock senior demo accounts (Nahbar placeholder users — not real people)
+    c.execute("UPDATE users SET password_hash='LOCKED',email=email||'.locked' WHERE password_hash='SENIOR_NO_LOGIN' AND email NOT LIKE '%.locked'")
 
 def _ensure_seniors(c):
     """Create demo senior users if none exist — needed for Nahbar visit flow."""
