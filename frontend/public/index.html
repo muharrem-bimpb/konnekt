@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F8F7F5" id="theme-color-meta">
+<meta name="theme-color" content="#F8FAFC" id="theme-color-meta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Konnekt">
@@ -15,56 +15,60 @@
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <title>Konnekt</title>
-<style>/* Prevent flash */html,body{background:#F8F7F5;color:#282420}</style>
+<style>/* Prevent flash */html,body{background:#F8FAFC;color:#0F172A}</style>
 <style>
-/* ── Pencil Sketch — Soft Organic ── */
+/* ── Konnekt Design System — Timeless ── */
 :root[data-theme="dark"] {
-  /* SKETCH mode (default — warm paper) */
-  --bg:        #F8F7F5;
+  /* LIGHT mode (default — clean slate-white) */
+  --bg:        #F8FAFC;
   --card:      #FFFFFF;
-  --card2:     #F0EDE8;
-  --border:    #CEC8C0;
-  --accent:    #9A8878;
-  --accent2:   #B0A090;
-  --green:     #7A8070;
-  --neon:      #9A9080;
-  --purple:    #8A8898;
-  --orange:    #9A8878;
-  --pink:      #988890;
-  --red:       #988888;
-  --text:      #282420;
-  --muted:     #807870;
-  --dim:       #ACA49C;
-  --shadow-sm: 0 1px 3px rgba(60,50,40,.07);
-  --shadow:    0 2px 10px rgba(60,50,40,.09);
-  --shadow-lg: 0 5px 20px rgba(60,50,40,.13);
-  --radius:    10px;
-  --radius-lg: 18px;
+  --card2:     #F1F5F9;
+  --border:    #E2E8F0;
+  --accent:    #10B981;
+  --accent2:   #34D399;
+  --green:     #10B981;
+  --neon:      #34D399;
+  --purple:    #8B5CF6;
+  --orange:    #F97316;
+  --pink:      #EC4899;
+  --red:       #EF4444;
+  --blue:      #3B82F6;
+  --yellow:    #F59E0B;
+  --text:      #0F172A;
+  --muted:     #64748B;
+  --dim:       #94A3B8;
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.05),0 1px 3px rgba(15,23,42,.07);
+  --shadow:    0 4px 6px rgba(15,23,42,.05),0 2px 4px rgba(15,23,42,.04);
+  --shadow-lg: 0 20px 40px rgba(15,23,42,.08),0 8px 16px rgba(15,23,42,.05);
+  --radius:    12px;
+  --radius-lg: 20px;
   --safe-top:  env(safe-area-inset-top, 0px);
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
 :root[data-theme="light"] {
-  /* INK mode (dark toggle) */
-  --bg:        #1C1A17;
-  --card:      #242119;
-  --card2:     #2D2A22;
-  --border:    #464038;
-  --accent:    #A89880;
-  --accent2:   #C0B098;
-  --green:     #8A9085;
-  --neon:      #A89880;
-  --purple:    #9898A8;
-  --orange:    #A89880;
-  --pink:      #A89898;
-  --red:       #A88888;
-  --text:      #ECE8E2;
-  --muted:     #8A8278;
-  --dim:       #5C5850;
-  --shadow-sm: 0 1px 4px rgba(0,0,0,.25);
-  --shadow:    0 3px 12px rgba(0,0,0,.3);
-  --shadow-lg: 0 8px 28px rgba(0,0,0,.35);
-  --radius:    10px;
-  --radius-lg: 18px;
+  /* DARK mode — deep slate */
+  --bg:        #0F172A;
+  --card:      #1E293B;
+  --card2:     #334155;
+  --border:    #475569;
+  --accent:    #10B981;
+  --accent2:   #34D399;
+  --green:     #34D399;
+  --neon:      #6EE7B7;
+  --purple:    #A78BFA;
+  --orange:    #FB923C;
+  --pink:      #F472B6;
+  --red:       #F87171;
+  --blue:      #60A5FA;
+  --yellow:    #FCD34D;
+  --text:      #F8FAFC;
+  --muted:     #94A3B8;
+  --dim:       #64748B;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.25);
+  --shadow:    0 4px 12px rgba(0,0,0,.3);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,.5),0 8px 20px rgba(0,0,0,.3);
+  --radius:    12px;
+  --radius-lg: 20px;
   --safe-top:  env(safe-area-inset-top, 0px);
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
@@ -104,7 +108,7 @@ body::before {
   position: fixed;
   top: 50%; left: 50%;
   width: min(72vmin, 500px); height: min(72vmin, 500px);
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><g transform='translate(200 200)' fill='none' stroke='%23706050' stroke-width='0.65'><circle r='188' stroke-width='0.35'/><circle r='168'/><circle r='148' stroke-width='0.4'/><circle r='128'/><circle r='108'/><circle r='88' stroke-width='0.5'/><circle r='70'/><circle r='52' stroke-width='0.4'/><circle r='36'/><circle r='22' stroke-width='0.5'/><circle r='10'/><line x1='0' y1='-188' x2='0' y2='188' stroke-width='0.35'/><line x1='-188' y1='0' x2='188' y2='0' stroke-width='0.35'/><line x1='-133' y1='-133' x2='133' y2='133' stroke-width='0.35'/><line x1='133' y1='-133' x2='-133' y2='133' stroke-width='0.35'/><line x1='-71' y1='-175' x2='71' y2='175' stroke-width='0.28'/><line x1='71' y1='-175' x2='-71' y2='175' stroke-width='0.28'/><line x1='-175' y1='-71' x2='175' y2='71' stroke-width='0.28'/><line x1='175' y1='-71' x2='-175' y2='71' stroke-width='0.28'/><ellipse rx='15' ry='36' transform='rotate(0)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(45)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(90)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(135)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(180)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(225)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(270)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(315)translate(0 -128)'/><ellipse rx='9' ry='22' transform='rotate(22.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(67.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(112.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(157.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(202.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(247.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(292.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(337.5)translate(0 -70)'/><circle cx='0' cy='-88' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='-62' r='2.5' fill='%23706050' stroke='none'/><circle cx='88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='0' cy='88' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='62' r='2.5' fill='%23706050' stroke='none'/><circle cx='-88' cy='0' r='2.5' fill='%23706050' stroke='none'/><circle cx='-62' cy='-62' r='2.5' fill='%23706050' stroke='none'/></g></svg>");
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><g transform='translate(200 200)' fill='none' stroke='%2310B981' stroke-width='0.65'><circle r='188' stroke-width='0.35'/><circle r='168'/><circle r='148' stroke-width='0.4'/><circle r='128'/><circle r='108'/><circle r='88' stroke-width='0.5'/><circle r='70'/><circle r='52' stroke-width='0.4'/><circle r='36'/><circle r='22' stroke-width='0.5'/><circle r='10'/><line x1='0' y1='-188' x2='0' y2='188' stroke-width='0.35'/><line x1='-188' y1='0' x2='188' y2='0' stroke-width='0.35'/><line x1='-133' y1='-133' x2='133' y2='133' stroke-width='0.35'/><line x1='133' y1='-133' x2='-133' y2='133' stroke-width='0.35'/><line x1='-71' y1='-175' x2='71' y2='175' stroke-width='0.28'/><line x1='71' y1='-175' x2='-71' y2='175' stroke-width='0.28'/><line x1='-175' y1='-71' x2='175' y2='71' stroke-width='0.28'/><line x1='175' y1='-71' x2='-175' y2='71' stroke-width='0.28'/><ellipse rx='15' ry='36' transform='rotate(0)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(45)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(90)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(135)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(180)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(225)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(270)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(315)translate(0 -128)'/><ellipse rx='9' ry='22' transform='rotate(22.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(67.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(112.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(157.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(202.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(247.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(292.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(337.5)translate(0 -70)'/><circle cx='0' cy='-88' r='2.5' fill='%2310B981' stroke='none'/><circle cx='62' cy='-62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='88' cy='0' r='2.5' fill='%2310B981' stroke='none'/><circle cx='62' cy='62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='0' cy='88' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-62' cy='62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-88' cy='0' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-62' cy='-62' r='2.5' fill='%2310B981' stroke='none'/></g></svg>");
   background-size: contain; background-repeat: no-repeat; background-position: center;
   pointer-events: none; z-index: -1; opacity: 0.05;
   animation: mandalaSpin 120s linear infinite;
@@ -114,7 +118,7 @@ body::before {
 body::after {
   content: '';
   position: fixed; inset: 0; z-index: 9998; pointer-events: none;
-  background-image: radial-gradient(circle, #8A8070 0.3px, transparent 0.3px);
+  background-image: radial-gradient(circle, #64748B 0.3px, transparent 0.3px);
   background-size: 28px 28px;
   opacity: 0.013;
 }
@@ -208,10 +212,10 @@ input.field:focus, select.field:focus {
   outline: none;
 }
 .btn-primary {
-  background: var(--text); color: var(--bg); border: 1px solid transparent;
+  background: linear-gradient(135deg,var(--accent),var(--blue)); color: #fff; border: 1px solid transparent;
   border-radius: var(--radius); padding: .9rem 1rem; font-size: .92rem;
-  font-weight: 500; letter-spacing: .01em;
-  transition: all .15s; box-shadow: var(--shadow-sm);
+  font-weight: 700; letter-spacing: .01em;
+  transition: all .15s; box-shadow: 0 4px 14px rgba(16,185,129,.3);
 }
 .btn-primary:hover  { transform: translateY(-1px); box-shadow: var(--shadow); }
 .btn-primary:active { transform: translateY(1px); box-shadow: none; }
@@ -403,25 +407,25 @@ input.field:focus, select.field:focus {
 }
 .aura-ring {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  border-radius: 50%; border: 1.5px solid #8A9A88;
+  border-radius: 50%; border: 1.5px solid rgba(16,185,129,.5);
   animation: aura-expand 2.4s ease-out infinite;
   opacity: 0;
 }
 .aura-ring:nth-child(2) { animation-delay: .8s; }
 .aura-ring:nth-child(3) { animation-delay: 1.6s; }
 .aura-sm  .aura-ring { width: 52px; height: 52px; }
-.aura-md  .aura-ring { width: 70px; height: 70px; border-color: #9A9870; }
-.aura-lg  .aura-ring { width: 92px; height: 92px; border-color: #A08878; }
-.aura-xl  .aura-ring { width: 120px; height: 120px; border-color: #9A7878; animation-duration: 1.6s; }
+.aura-md  .aura-ring { width: 70px; height: 70px; border-color: rgba(59,130,246,.5); }
+.aura-lg  .aura-ring { width: 92px; height: 92px; border-color: rgba(139,92,246,.5); }
+.aura-xl  .aura-ring { width: 120px; height: 120px; border-color: rgba(236,72,153,.5); animation-duration: 1.6s; }
 .aura-count {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: .62rem; font-weight: 600; color: #6A7A68;
-  background: rgba(248,247,245,.9); border-radius: 99px; padding: .05rem .35rem;
-  white-space: nowrap; pointer-events: none;
+  font-size: .62rem; font-weight: 700; color: var(--accent);
+  background: var(--card); border-radius: 99px; padding: .05rem .35rem;
+  white-space: nowrap; pointer-events: none; border: 1px solid rgba(16,185,129,.2);
 }
-.aura-md  .aura-count { color: #7A7860; }
-.aura-lg  .aura-count { color: #806860; }
-.aura-xl  .aura-count { color: #806060; }
+.aura-md  .aura-count { color: var(--blue); }
+.aura-lg  .aura-count { color: var(--purple); }
+.aura-xl  .aura-count { color: var(--pink); }
 @keyframes aura-expand {
   0%   { transform: translate(-50%,-50%) scale(.5); opacity: .8; }
   100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
@@ -669,7 +673,9 @@ input.field:focus, select.field:focus {
 .person-bio { font-size: .72rem; color: var(--dim); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .person-badges { display: flex; gap: .35rem; margin-top: .35rem; flex-wrap: wrap; }
 .badge { font-size: .62rem; padding: .15rem .45rem; border-radius: 99px; font-weight: 600; }
-.badge-senior, .badge-vol, .badge-ngo { background: var(--card2); color: var(--muted); }
+.badge-senior { background: rgba(249,115,22,.12); color: var(--orange); border: 1px solid rgba(249,115,22,.25); }
+.badge-vol { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.badge-ngo { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
 .btn-connect {
   background: var(--card2); border: 1px solid var(--border);
   color: var(--muted); border-radius: 8px; padding: .45rem .85rem;
@@ -1063,17 +1069,17 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 </div>
 
 <!-- ══ LOADING OVERLAY ══ -->
-<div id="screen-loading" style="display:flex;position:fixed;inset:0;z-index:9999;background:#F8F7F5;align-items:center;justify-content:center;flex-direction:column;gap:0;overflow:hidden">
+<div id="screen-loading" style="display:flex;position:fixed;inset:0;z-index:9999;background:var(--bg,#F8FAFC);align-items:center;justify-content:center;flex-direction:column;gap:0;overflow:hidden">
   <!-- Curtain lines — two vertical bars that split open -->
-  <div id="splash-curtain-l" style="position:absolute;inset:0 50% 0 0;background:#E8E4DF;transform-origin:left center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
-  <div id="splash-curtain-r" style="position:absolute;inset:0 0 0 50%;background:#E8E4DF;transform-origin:right center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
+  <div id="splash-curtain-l" style="position:absolute;inset:0 50% 0 0;background:var(--card,#fff);transform-origin:left center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
+  <div id="splash-curtain-r" style="position:absolute;inset:0 0 0 50%;background:var(--card,#fff);transform-origin:right center;transition:transform .6s cubic-bezier(.77,0,.18,1)"></div>
   <!-- Logo content -->
   <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:.85rem">
-    <div style="width:64px;height:64px;border-radius:50%;background:#FFFFFF;border:1px solid #CEC8C0;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 2px 12px rgba(60,50,40,.1)">🌐</div>
-    <div style="font-size:1.6rem;font-weight:500;letter-spacing:-.02em;color:#282420">Konnekt</div>
-    <div style="font-size:.72rem;color:#9A9080;letter-spacing:.1em;text-transform:uppercase">Verbinde deine Nachbarschaft</div>
-    <div style="margin-top:.5rem;width:32px;height:1px;background:#CEC8C0;border-radius:1px;overflow:hidden">
-      <div id="splash-bar" style="height:100%;width:0;background:#9A8878;transition:width 1.2s ease-out"></div>
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#10B981,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 4px 20px rgba(16,185,129,.35)">🌐</div>
+    <div style="font-size:1.6rem;font-weight:700;letter-spacing:-.02em;color:var(--text,#0F172A)">Konnekt</div>
+    <div style="font-size:.72rem;color:var(--muted,#64748B);letter-spacing:.1em;text-transform:uppercase">Verbinde deine Nachbarschaft</div>
+    <div style="margin-top:.5rem;width:80px;height:2px;background:var(--border,#E2E8F0);border-radius:2px;overflow:hidden">
+      <div id="splash-bar" style="height:100%;width:0;background:linear-gradient(90deg,#10B981,#3B82F6);transition:width 1.2s ease-out"></div>
     </div>
   </div>
 </div>
@@ -1461,7 +1467,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <div style="margin-top:1.2rem">
           <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
             <span><span class="section-dot" style="background:var(--purple)"></span> Meine Bubbles & Hangouts</span>
-            <button onclick="startWalk()" style="background:var(--text);color:var(--bg);border:none;border-radius:99px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">🚶 Spazieren</button>
+            <button onclick="startWalk()" style="background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;border:none;border-radius:99px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,.3)">🚶 Spazieren</button>
           </div>
           <div id="my-bubbles-list"><div class="loading">Lade…</div></div>
           <div class="section-title" style="margin-top:.5rem"><span class="section-dot" style="background:var(--green)"></span> Meine Events (organisiert)</div>
@@ -1794,8 +1800,8 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     </div>
 
     <!-- Pro card -->
-    <div class="pricing-card" style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--border)"></div>
+    <div class="pricing-card" style="background:var(--card2);border:1px solid rgba(99,102,241,.3);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366F1,#3B82F6)"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <span style="font-size:1.5rem">⭐</span>
         <div>
@@ -1815,12 +1821,12 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <li style="font-size:.83rem;color:var(--dim)">🔝 Priorität in Zeitbank & Eventsuche</li>
         <li style="font-size:.83rem;color:var(--dim)">🎯 Unbegrenzte Events erstellen</li>
       </ul>
-      <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">⭐ Pro werden — 9 CHF/Monat</button>
+      <button class="btn-primary" onclick="upgradeTier('pro')" id="pro-btn" style="background:linear-gradient(135deg,#6366F1,#3B82F6);box-shadow:0 4px 16px rgba(99,102,241,.35)">⭐ Pro werden — 9 CHF/Monat</button>
     </div>
 
     <!-- Business card -->
-    <div class="pricing-card" style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:1px;background:var(--border)"></div>
+    <div class="pricing-card" style="background:var(--card2);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:1.3rem;margin-bottom:1rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#F59E0B,#EF4444)"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <span style="font-size:1.5rem">🏢</span>
         <div>
@@ -1839,12 +1845,12 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <li style="font-size:.83rem;color:var(--dim)">📋 Monatlicher Impact-Report (PDF)</li>
         <li style="font-size:.83rem;color:var(--dim)">🤝 Partnerseite + Logo auf Landing Page</li>
       </ul>
-      <button class="btn-primary" onclick="upgradeTier('business')" id="business-btn" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🏢 Business werden — 49 CHF/Monat</button>
+      <button class="btn-primary" onclick="upgradeTier('business')" id="business-btn" style="background:linear-gradient(135deg,#F59E0B,#EF4444);box-shadow:0 4px 16px rgba(245,158,11,.3)">🏢 Business werden — 49 CHF/Monat</button>
     </div>
 
     <!-- NGO card -->
-    <div style="background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:1.3rem;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--border)"></div>
+    <div style="background:var(--card2);border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:1.3rem;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#10B981,#06B6D4)"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem">
         <span style="font-size:1.5rem">🌱</span>
         <div>
@@ -1856,7 +1862,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         </div>
       </div>
       <p style="font-size:.83rem;color:var(--dim);margin-bottom:1rem">Alle Business-Features — gratis für eingetragene NGOs, Vereine & soziale Institutionen (Nachweis erforderlich).</p>
-      <button class="btn-primary" onclick="contactNGO()" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🌱 NGO-Partnerschaft anfragen</button>
+      <button class="btn-primary" onclick="contactNGO()" style="background:linear-gradient(135deg,#10B981,#06B6D4);box-shadow:0 4px 16px rgba(16,185,129,.3)">🌱 NGO-Partnerschaft anfragen</button>
     </div>
 
     <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:1rem">
@@ -1899,10 +1905,10 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <button type="button" id="ev-type-btn-hangout"  onclick="setEvType('hangout')"  style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🎮 Hangout</button>
       <button type="button" id="ev-type-btn-quartier" onclick="setEvType('quartier')" style="flex:1;padding:.6rem;border-radius:9px;border:none;font-size:.75rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s">🏘️ Quartier</button>
     </div>
-    <div id="ev-hangout-hint" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
+    <div id="ev-hangout-hint" style="display:none;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
       🎮 Hangout: Öffentliches Event — Leute in der Nähe sehen es auf der Karte und können anfragen mitzumachen. Du entscheidest wer rein darf.
     </div>
-    <div id="ev-quartier-hint" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
+    <div id="ev-quartier-hint" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;padding:.6rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.65rem">
       🏘️ Quartier-Event: Für alle die ins Viertel ziehen oder schon hier wohnen. Zeig wer du bist, was du anbietest oder suchst. Perfekt um Nachbarn kennenzulernen.
     </div>
     <div class="field-group" style="margin-bottom:.65rem">
@@ -2173,7 +2179,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
     </div>
     <div id="bubble-error" style="display:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-bottom:.65rem"></div>
-    <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:var(--text);color:var(--bg);box-shadow:var(--shadow)">🫧 Bubble droppen!</button>
+    <button class="btn-primary" id="bubble-submit-btn" onclick="submitDropBubble()" style="background:linear-gradient(135deg,var(--accent),var(--blue));color:#fff;box-shadow:0 4px 16px rgba(16,185,129,.35)">🫧 Bubble droppen!</button>
   </div>
 </div>
 
@@ -2350,7 +2356,7 @@ function updateThemeUI(theme) {
   if (!btn) return;
   btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   const meta = document.getElementById('theme-color-meta');
-  if (meta) meta.content = theme === 'dark' ? '#0a0f1e' : '#f0f4f8';
+  if (meta) meta.content = theme === 'dark' ? '#F8FAFC' : '#0F172A';
   updateMapTiles(theme);
 }
 
@@ -2587,7 +2593,7 @@ function updateUserUI() {
     profWrap.innerHTML = `<span>${initial}</span>${editBadge}`;
   }
   const tier = currentUser.subscription_tier || 'free';
-  const tierBadge = tier === 'pro' ? ' <span style="font-size:.65rem;background:var(--text);color:var(--bg);border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">⭐ PRO</span>'
+  const tierBadge = tier === 'pro' ? ' <span style="font-size:.65rem;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">⭐ PRO</span>'
     : tier === 'business' ? ' <span style="font-size:.65rem;background:var(--orange);color:white;border-radius:99px;padding:.1rem .45rem;font-weight:700;vertical-align:middle">🏢 BIZ</span>' : '';
   document.getElementById('prof-name').innerHTML = esc(currentUser.display_name || currentUser.username) + tierBadge;
   document.getElementById('prof-city').textContent = currentUser.city ? '📍 ' + currentUser.city : '';
@@ -2599,7 +2605,7 @@ function updateUserUI() {
   const streak = currentUser.streak_days || 0;
   const hours = currentUser.volunteer_hours || 0;
   let streakHtml = '';
-  if (streak >= 2) streakHtml += `<span class="streak-badge" style="background:var(--card2);border:1px solid var(--border);color:var(--muted)">🔥 ${streak} Tage aktiv</span> `;
+  if (streak >= 2) streakHtml += `<span class="streak-badge" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.35);color:var(--orange)">🔥 ${streak} Tage aktiv</span> `;
   if (hours > 0) {
     const proNote = tier === 'pro' ? ' · 3× Multiplikator aktiv' : '';
     streakHtml += `<span class="streak-badge">⏱️ ${hours}h Ehrenamt${proNote}</span>`;
@@ -2925,7 +2931,7 @@ async function loadFeed() {
       </div>`;
     } else if (item.type === 'deed') {
       const deedTc = TYPE_COLORS[item.category] || {color:'var(--green)', emoji:'💚'};
-      return `<div class="feed-item" style="border-left-color:var(--accent);background:var(--card2)">
+      return `<div class="feed-item" style="border-left-color:${deedTc.color};background:${deedTc.color}12">
         <div style="display:flex;gap:.6rem;align-items:flex-start">
           <div ${authorClick}>${avatar}</div>
           <div style="flex:1;min-width:0">
@@ -3140,7 +3146,7 @@ async function loadEvents() {
 
     const pts = (isHangout && !isRegistered && !isCompleted) ? '' : `<span class="event-pts">⭐ +${ev.points_reward}</span>`;
     const trendingBadge = (ev.participants_count||0) >= 5
-      ? `<span style="font-size:.62rem;font-weight:700;color:var(--text);background:var(--card2);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">🔥 Beliebt</span>` : '';
+      ? `<span style="font-size:.62rem;font-weight:700;color:var(--orange);background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);padding:.15rem .5rem;border-radius:99px;margin-left:.4rem">🔥 Beliebt</span>` : '';
     const flagBtn = !isOrganizer
       ? `<button class="btn-flag" onclick="flagEvent(${ev.id},this)" title="Event melden" style="background:none;border:1px solid var(--border);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;color:var(--dim);cursor:pointer">⚑</button>`
       : '';
@@ -3294,7 +3300,7 @@ function _navigateToBubble(lat, lng, name) {
       <div style="font-size:.8rem;color:var(--muted);margin-bottom:.3rem">📍 ${name}</div>
       ${distLine}
       <button onclick="window.open('${mapsUrl}','_blank');document.getElementById('nav-sheet').remove()"
-        style="background:var(--text);color:var(--bg);border:none;border-radius:10px;padding:.55rem 1.6rem;font-weight:700;font-size:.95rem;cursor:pointer;width:100%">
+        style="background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;border:none;border-radius:10px;padding:.55rem 1.6rem;font-weight:700;font-size:.95rem;cursor:pointer;width:100%;box-shadow:0 3px 12px rgba(16,185,129,.3)">
         Öffne Maps 🗺️
       </button>
       <button onclick="document.getElementById('nav-sheet').remove()"
@@ -3353,7 +3359,7 @@ async function loadMapEvents() {
       if (!ev.lat || !ev.lng) return;
       const isHangout  = ev.type === 'hangout';
       const isQuartier = ev.type === 'quartier';
-      const bg = isHangout ? '#7A7888' : isQuartier ? '#9A8868' : '#6A7888';
+      const bg = isHangout ? '#8B5CF6' : isQuartier ? '#F97316' : '#3B82F6';
       const CAT_MAP = {volunteer:'🌱',environment:'🌿',senior:'💛',health:'❤️',education:'📚',sport:'🏃',social:'👥',astronomy:'🔭',gaming:'🎮',cooking:'👨‍🍳',photography:'📷',hiking:'🥾'};
       const emoji = isQuartier ? '🏘️' : (isHangout ? '🎮' : (CAT_MAP[ev.category] || '🌱'));
       const icon = L.divIcon({
@@ -3368,10 +3374,10 @@ async function loadMapEvents() {
       const timeStr = dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       const spots = ev.max_participants > 0 ? `${ev.participants_count||0}/${ev.max_participants}` : `${ev.participants_count||0} dabei`;
       const actionBtn = isHangout
-        ? `<button onclick="joinRequest(${ev.id},this)" style="background:#605870;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">✋ Beitreten anfragen</button>`
-        : `<button onclick="registerEvent(${ev.id},this)" style="background:#506070;color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">Mitmachen</button>`;
+        ? `<button onclick="joinRequest(${ev.id},this)" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">✋ Beitreten anfragen</button>`
+        : `<button onclick="registerEvent(${ev.id},this)" style="background:linear-gradient(135deg,#10B981,#3B82F6);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem">Mitmachen</button>`;
       marker.bindPopup(`<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:.1rem">
-        ${isHangout ? '<div style="font-size:.65rem;font-weight:700;color:#7A7888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">🎮 HANGOUT · OFFEN</div>' : ''}
+        ${isHangout ? '<div style="font-size:.65rem;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">🎮 HANGOUT · OFFEN</div>' : ''}
         <div style="font-weight:700;font-size:.95rem;margin-bottom:.25rem;line-height:1.3">${ev.title}</div>
         <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">📅 ${dateStr} ${timeStr}</div>
         <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">👤 ${spots}${ev.points_reward ? ` · ⭐ +${ev.points_reward}` : ''}</div>
@@ -3402,7 +3408,7 @@ function _drawHeatmap(events) {
     const avgLat = cell.lats.reduce((a,b)=>a+b,0)/cell.lats.length;
     const avgLng = cell.lngs.reduce((a,b)=>a+b,0)/cell.lngs.length;
     const n = cell.count;
-    const color = n >= 7 ? '#706050' : n >= 4 ? '#8A8070' : n >= 2 ? '#A09080' : '#B8B0A8';
+    const color = n >= 7 ? '#EF4444' : n >= 4 ? '#F97316' : n >= 2 ? '#F59E0B' : '#10B981';
     const opacity = Math.min(0.18 + n * 0.04, 0.45);
     const circle = L.circle([avgLat, avgLng], {
       radius: 500, color: color, fillColor: color,
@@ -4209,7 +4215,7 @@ async function loadLonelyMapLayer() {
     users.forEach(u => {
       if (!u.lat || !u.lng) return;
       const conns = u.connection_count || 0;
-      const warmth = conns === 0 ? '#908880' : conns <= 1 ? '#A09888' : '#8A9080';
+      const warmth = conns === 0 ? '#EF4444' : conns <= 1 ? '#F97316' : '#10B981';
       const size = 32;
       const icon = L.divIcon({
         className: '',
@@ -4664,7 +4670,7 @@ function _showWalkOverlay() {
         </div>
       </div>
       <button id="walk-stop-btn" onclick="stopWalk()"
-        style="width:100%;background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;opacity:.4">
+        style="width:100%;background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;border:none;border-radius:12px;padding:.75rem;font-size:.95rem;font-weight:800;cursor:pointer;opacity:.4">
         🏁 Noch ${Math.ceil((600-elapsed)/60)} Min...
       </button>
       <button onclick="document.getElementById('walk-overlay').remove()"
@@ -4709,17 +4715,17 @@ async function stopWalk() {
     if (overlay) overlay.querySelector('#walk-panel').innerHTML = `
       <div style="text-align:center;padding:.5rem 0">
         <div style="font-size:3rem;margin-bottom:.4rem">🎉</div>
-        <div style="font-size:1.2rem;font-weight:900;color:var(--text);margin-bottom:.2rem">+${pts} Punkte!</div>
+        <div style="font-size:1.2rem;font-weight:900;color:var(--green);margin-bottom:.2rem">+${pts} Punkte!</div>
         <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">${session.steps} Schritte · ${distLabel} · ${mm}:${ss} min</div>
         <button onclick="document.getElementById('walk-overlay').remove();loadProfile()"
-          style="background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:.7rem 2rem;font-size:.95rem;font-weight:800;cursor:pointer">
+          style="background:var(--green);color:#fff;border:none;border-radius:12px;padding:.7rem 2rem;font-size:.95rem;font-weight:800;cursor:pointer">
           Super! 💪
         </button>
       </div>`;
     // draw route on map if we have coords
     if (session.route.length > 1 && leafletMap) {
       if (_routeLayer) leafletMap.removeLayer(_routeLayer);
-      _routeLayer = L.polyline(session.route, {color:'#9A8878',weight:4,opacity:.85}).addTo(leafletMap);
+      _routeLayer = L.polyline(session.route, {color:'#10B981',weight:4,opacity:.85}).addTo(leafletMap);
       leafletMap.fitBounds(_routeLayer.getBounds(), {padding:[50,50]});
     }
   } catch(e) {
@@ -5902,7 +5908,7 @@ async function loadAchievements() {
     el.innerHTML = `
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">${earned.length} von ${d.total} freigeschaltet</div>
       <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem">
-        ${earned.map(a => `<div title="${esc(a.desc)}" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.4rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem"><span>${a.icon}</span><span style="font-weight:700;color:var(--text)">${esc(a.title)}</span></div>`).join('')}
+        ${earned.map(a => `<div title="${esc(a.desc)}" style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(59,130,246,.08));border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:.4rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.35rem"><span>${a.icon}</span><span style="font-weight:700;color:var(--accent)">${esc(a.title)}</span></div>`).join('')}
       </div>
       ${locked.length ? `
         <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.4rem">Noch zu verdienen:</div>
@@ -6452,9 +6458,9 @@ function renderDonut(categories) {
   if (!canvas) return;
 
   const CAT_COLORS = {
-    volunteer: '#8A9080', social: '#8A8898', environment: '#909880',
-    senior: '#A09080', health: '#908888', education: '#8888A0',
-    sport: '#9A9080', other: '#7A7870'
+    volunteer: '#10B981', social: '#8B5CF6', environment: '#06B6D4',
+    senior: '#F97316', health: '#EF4444', education: '#3B82F6',
+    sport: '#F59E0B', other: '#6366F1'
   };
   const labels = categories.slice(0,6).map(c => catLabel(c.name));
   const data   = categories.slice(0,6).map(c => c.count);
@@ -6577,7 +6583,7 @@ async function submitDropBubble() {
 
 function _bubbleTimeLeft(isoStr) {
   const secs = Math.max(0, Math.floor((new Date(isoStr.includes('Z') ? isoStr : isoStr + 'Z') - Date.now()) / 1000));
-  if (secs <= 0)   return { label: 'Abgelaufen', color: 'var(--dim)' };
+  if (secs <= 0)   return { label: 'Abgelaufen', color: 'var(--red)' };
   if (secs < 60)   return { label: `${secs}s`,              color: 'var(--orange)' };
   if (secs < 3600) return { label: `${Math.floor(secs/60)}min ${secs%60}s`, color: 'var(--orange)' };
   const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = secs%60;
@@ -6742,7 +6748,7 @@ async function loadMapShops() {
       const emoji = BIZ_EMOJI[s.category] || '🏪';
       const icon = L.divIcon({
         className: '',
-        html: `<div style="background:var(--accent,#9A8878);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(0,0,0,.35);border:2.5px solid rgba(255,255,255,.7);cursor:pointer">${emoji}</div>`,
+        html: `<div style="background:var(--accent,#10B981);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 3px 10px rgba(16,185,129,.4);border:2.5px solid rgba(255,255,255,.7);cursor:pointer">${emoji}</div>`,
         iconSize: [38,38], iconAnchor: [19,19]
       });
       const marker = L.marker([s.lat, s.lng], {icon}).addTo(leafletMap);
@@ -6799,22 +6805,22 @@ async function loadMapBubbles() {
         }).addTo(leafletMap));
       }
       const { label: timeLabel } = _bubbleTimeLeft(b.expires_at);
-      const hangoutBadge = isHangout ? `<span style="background:#9A9080;color:#F8F7F5;font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:500">🎪 Hangout</span>` : '';
-      const blurBadge = isBlurred ? `<span style="background:#B0A898;color:#F8F7F5;font-size:.55rem;padding:.1rem .35rem;border-radius:99px">📍 ~Ort</span>` : '';
+      const hangoutBadge = isHangout ? `<span style="background:rgba(139,92,246,.15);color:#A78BFA;border:1px solid rgba(139,92,246,.3);font-size:.55rem;padding:.1rem .35rem;border-radius:99px;font-weight:600">🎪 Hangout</span>` : '';
+      const blurBadge = isBlurred ? `<span style="background:rgba(94,114,228,.12);color:var(--blue);border:1px solid rgba(94,114,228,.25);font-size:.55rem;padding:.1rem .35rem;border-radius:99px">📍 ~Ort</span>` : '';
       const size = isHangout ? 46 : 40;
       const icon = L.divIcon({
         className: '',
-        html: `<div data-bubble-expires="${b.expires_at}" data-bid="${b.id}" style="background:${isHangout?'linear-gradient(135deg,#8A8070,#A09080)':'linear-gradient(135deg,#9A9080,#B0A898)'};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px solid ${isOwn?'#9A8878':'rgba(255,255,255,.7)'};cursor:pointer;box-shadow:${isOwn?'0 0 0 3px rgba(154,136,120,.4)':'var(--shadow-sm)'};transition:opacity 1s">${b.emoji||'✨'}</div>`,
+        html: `<div data-bubble-expires="${b.expires_at}" data-bid="${b.id}" style="background:${isHangout?'linear-gradient(135deg,#8B5CF6,#EC4899)':'linear-gradient(135deg,#10B981,#3B82F6)'};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px solid ${isOwn?'#10B981':'rgba(255,255,255,.7)'};cursor:pointer;box-shadow:${isOwn?'0 0 0 3px rgba(16,185,129,.4)':'0 2px 8px rgba(16,185,129,.35)'};transition:opacity 1s">${b.emoji||'✨'}</div>`,
         iconSize: [size,size], iconAnchor: [size/2,size/2]
       });
       const marker = L.marker([b.lat, b.lng], {icon}).addTo(leafletMap);
       bubbleMapMarkers.push(marker);
       bubbleMarkerMap[b.id] = marker;
       const navBtn = (!isBlurred && b.lat && b.lng)
-        ? `<button onclick="_navigateToBubble(${b.lat},${b.lng},'${b.title.replace(/'/g,"\\'")}');leafletMap.closePopup()" style="margin-top:.5rem;width:100%;background:#282420;color:#F8F7F5;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:500;cursor:pointer">🧭 Navigieren</button>`
+        ? `<button onclick="_navigateToBubble(${b.lat},${b.lng},'${b.title.replace(/'/g,"\\'")}');leafletMap.closePopup()" style="margin-top:.5rem;width:100%;background:linear-gradient(135deg,#10B981,#3B82F6);color:#fff;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(16,185,129,.3)">🧭 Navigieren</button>`
         : '';
       const joinBtn = (isHangout && !isOwn && !b.my_request)
-        ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:#9A8878;color:#F8F7F5;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:500;cursor:pointer">Anfragen</button>`
+        ? `<button onclick="requestJoinBubble(${b.id})" style="margin-top:.4rem;width:100%;background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;border:none;border-radius:8px;padding:.4rem;font-size:.75rem;font-weight:700;cursor:pointer">Anfragen</button>`
         : (b.my_request ? `<div style="margin-top:.4rem;font-size:.72rem;color:var(--muted);text-align:center">${{pending:'⏳ Anfrage ausstehend',approved:'✅ Zugelassen',denied:'❌ Abgelehnt'}[b.my_request]||''}</div>` : '');
       const capacityLine = isHangout && b.max_attendees
         ? `<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">👥 ${b.join_count||0}/${b.max_attendees} Plätze</div>` : '';

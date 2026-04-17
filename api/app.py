@@ -496,6 +496,7 @@ def init_db():
         # PROD NUKE: wipe everything once, clean slate for launch
         _nuke_for_prod(c)
         _ensure_admin_user(c)
+        _ensure_demo_events(c)
 
 def _clear_seeded_content(c):
     """One-time launch cleanup: wipe all fake/seeded content. Runs until no seeded events remain."""
@@ -648,6 +649,45 @@ def _seed_demo(c):
     ]
     for cpn in coupons:
         c.execute("INSERT INTO coupons (business_id,title,description,points_cost,category) VALUES (?,?,?,?,?)", cpn)
+
+def _ensure_demo_events(c):
+    """On every boot: if there are fewer than 3 upcoming events, seed rolling demo events.
+    This keeps the Aktionen tab populated regardless of how long the DB has been running."""
+    upcoming = c.execute(
+        "SELECT COUNT(*) FROM events WHERE status='active' AND starts_at >= datetime('now','-2 hours')"
+    ).fetchone()[0]
+    if upcoming >= 3:
+        return
+    # Get admin user as organizer (always exists)
+    admin = c.execute("SELECT id FROM users WHERE is_admin=1 LIMIT 1").fetchone()
+    if not admin:
+        return
+    admin_id = admin["id"]
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    # Delete stale seeded events before re-seeding
+    c.execute("DELETE FROM events WHERE organizer_id=? AND starts_at < datetime('now')", (admin_id,))
+    demo_events = [
+        ("Nachbarschafts-Treff 🤝", "Gemeinsam Kaffee trinken und neue Leute aus der Nachbarschaft kennenlernen. Alle herzlich willkommen!", "social", "hangout", "Bundesplatz, Bern", "Bern", 46.9466, 7.4438, 0, 15, 1, 15),
+        ("Freiwillige gesucht: Stadtgarten 🌱", "Gemeinsam den städtischen Gemeinschaftsgarten pflegen. Handschuhe werden gestellt.", "volunteer", "volunteer", "Stadtgarten Lorraine, Bern", "Bern", 46.9562, 7.4397, 80, 20, 2, 9),
+        ("Sprachcafé — alle Sprachen 🌍", "Übe Deutsch, Englisch oder Französisch — oder einfach zuhören. Alle Niveaus, alle Herkunft.", "social", "hangout", "Café de la Grenette, Bern", "Bern", 46.9481, 7.4476, 0, 30, 3, 17),
+        ("Senioren-Kaffeenachmittag ☕", "Besuche einsame Senioren im Altersheim für 1-2h Gesellschaft, Kaffee & Gespräch.", "senior", "volunteer", "Altersheim Brunnmatt, Bern", "Bern", 46.9459, 7.4127, 100, 6, 4, 14),
+        ("Outdoor Yoga — gratis für alle 🧘", "Yoga im Park. Keine Vorkenntnisse nötig. Bitte eigene Matte mitbringen.", "health", "volunteer", "Bundesgarten, Bern", "Bern", 46.9433, 7.4348, 50, 20, 5, 7),
+        ("Quartier-Reinigung Länggasse ♻️", "Gemeinsam Müll sammeln. Material wird gestellt. Gut für die Seele!", "environment", "volunteer", "Länggasse, Bern", "Bern", 46.9518, 7.4196, 80, 30, 6, 9),
+        ("Brettspiel-Abend 🎲", "Chess, Scrabble, Catan — alle Sprachen ok. Einfach reinkommen und mitspielen!", "social", "hangout", "Münstergasse 38, Bern", "Bern", 46.9473, 7.4500, 0, 10, 7, 18),
+    ]
+    for (title, desc, cat, ev_type, addr, city, lat, lng, pts, max_p, days, hour) in demo_events:
+        starts = (now + timedelta(days=days)).replace(hour=hour, minute=0, second=0, microsecond=0)
+        try:
+            c.execute("""INSERT INTO events
+                (organizer_id,title,description,category,type,is_public,address,city,lat,lng,
+                 starts_at,points_reward,max_participants,status)
+                VALUES (?,?,?,?,?,1,?,?,?,?,?,?,?,'active')""",
+                (admin_id, title, desc, cat, ev_type, addr, city, lat, lng,
+                 starts.strftime('%Y-%m-%dT%H:%M:%S'), pts, max_p))
+        except Exception:
+            pass
+
 
 def _seed_events(c):
     """Seed demo events — hangouts + volunteer — so the map & list are never empty."""
