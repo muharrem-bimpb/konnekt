@@ -448,6 +448,26 @@ def init_db():
             FOREIGN KEY(lobby_id) REFERENCES lobbies(id),
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS meetpoints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            creator_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            emoji TEXT DEFAULT '📍',
+            description TEXT DEFAULT '',
+            schedule TEXT DEFAULT '',
+            lat REAL NOT NULL,
+            lng REAL NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(creator_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS meetpoint_checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meetpoint_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            checked_in_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(meetpoint_id) REFERENCES meetpoints(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
         """)
         # Add subscription_tier column to users if not exists (migration)
         try:
@@ -2600,6 +2620,43 @@ def get_dashboard():
         })
 
 # ── Businesses ───────────────────────────────────────────────────────────────
+
+@app.get("/api/meetpoints")
+def get_meetpoints():
+    with get_db() as c:
+        rows = c.execute("""
+            SELECT m.*, u.username as creator_name,
+                   (SELECT COUNT(*) FROM meetpoint_checkins WHERE meetpoint_id=m.id) as checkin_count,
+                   (SELECT MAX(checked_in_at) FROM meetpoint_checkins WHERE meetpoint_id=m.id) as last_checkin
+            FROM meetpoints m JOIN users u ON m.creator_id=u.id
+            ORDER BY m.created_at DESC LIMIT 100
+        """).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post("/api/meetpoints")
+@require_auth
+def create_meetpoint():
+    d = request.json or {}
+    name = (d.get("name") or "").strip()
+    if not name: return jsonify({"error": "Name required"}), 400
+    lat = float(d.get("lat", 0))
+    lng = float(d.get("lng", 0))
+    if not lat or not lng: return jsonify({"error": "Location required"}), 400
+    with get_db() as c:
+        cur = c.execute(
+            "INSERT INTO meetpoints (creator_id,name,emoji,description,schedule,lat,lng) VALUES (?,?,?,?,?,?,?)",
+            (g.user_id, name, d.get("emoji","📍"), d.get("description",""), d.get("schedule",""), lat, lng)
+        )
+        mp = dict(c.execute("SELECT * FROM meetpoints WHERE id=?", (cur.lastrowid,)).fetchone())
+    return jsonify(mp), 201
+
+@app.post("/api/meetpoints/<int:mid>/checkin")
+@require_auth
+def checkin_meetpoint(mid):
+    with get_db() as c:
+        c.execute("INSERT INTO meetpoint_checkins (meetpoint_id,user_id) VALUES (?,?)", (mid, g.user_id))
+        count = c.execute("SELECT COUNT(*) FROM meetpoint_checkins WHERE meetpoint_id=?", (mid,)).fetchone()[0]
+    return jsonify({"checkin_count": count})
 
 @app.get("/api/businesses")
 def get_businesses():

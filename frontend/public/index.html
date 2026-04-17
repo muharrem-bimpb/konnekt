@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="dark">
+<html lang="de" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F8FAFC" id="theme-color-meta">
+<meta name="theme-color" content="#0F172A" id="theme-color-meta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Konnekt">
@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <title>Konnekt</title>
-<style>/* Prevent flash */html,body{background:#F8FAFC;color:#0F172A}</style>
+<style>/* Prevent flash */html,body{background:#0F172A;color:#F8FAFC}</style>
 <style>
 /* ── Konnekt Design System — Timeless ── */
 :root[data-theme="dark"] {
@@ -102,6 +102,12 @@ body {
   overflow: hidden;
   transition: background-color .18s, color .18s;
 }
+/* Dark mode: subtle color glow in corners */
+[data-theme="light"] body {
+  background: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(16,185,129,.07) 0%, transparent 55%),
+              radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139,92,246,.07) 0%, transparent 55%),
+              var(--bg);
+}
 /* Slowly rotating mandala — lives on ::before so it can spin independently */
 body::before {
   content: '';
@@ -110,10 +116,10 @@ body::before {
   width: min(72vmin, 500px); height: min(72vmin, 500px);
   background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><g transform='translate(200 200)' fill='none' stroke='%2310B981' stroke-width='0.65'><circle r='188' stroke-width='0.35'/><circle r='168'/><circle r='148' stroke-width='0.4'/><circle r='128'/><circle r='108'/><circle r='88' stroke-width='0.5'/><circle r='70'/><circle r='52' stroke-width='0.4'/><circle r='36'/><circle r='22' stroke-width='0.5'/><circle r='10'/><line x1='0' y1='-188' x2='0' y2='188' stroke-width='0.35'/><line x1='-188' y1='0' x2='188' y2='0' stroke-width='0.35'/><line x1='-133' y1='-133' x2='133' y2='133' stroke-width='0.35'/><line x1='133' y1='-133' x2='-133' y2='133' stroke-width='0.35'/><line x1='-71' y1='-175' x2='71' y2='175' stroke-width='0.28'/><line x1='71' y1='-175' x2='-71' y2='175' stroke-width='0.28'/><line x1='-175' y1='-71' x2='175' y2='71' stroke-width='0.28'/><line x1='175' y1='-71' x2='-175' y2='71' stroke-width='0.28'/><ellipse rx='15' ry='36' transform='rotate(0)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(45)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(90)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(135)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(180)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(225)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(270)translate(0 -128)'/><ellipse rx='15' ry='36' transform='rotate(315)translate(0 -128)'/><ellipse rx='9' ry='22' transform='rotate(22.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(67.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(112.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(157.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(202.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(247.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(292.5)translate(0 -70)'/><ellipse rx='9' ry='22' transform='rotate(337.5)translate(0 -70)'/><circle cx='0' cy='-88' r='2.5' fill='%2310B981' stroke='none'/><circle cx='62' cy='-62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='88' cy='0' r='2.5' fill='%2310B981' stroke='none'/><circle cx='62' cy='62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='0' cy='88' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-62' cy='62' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-88' cy='0' r='2.5' fill='%2310B981' stroke='none'/><circle cx='-62' cy='-62' r='2.5' fill='%2310B981' stroke='none'/></g></svg>");
   background-size: contain; background-repeat: no-repeat; background-position: center;
-  pointer-events: none; z-index: -1; opacity: 0.05;
+  pointer-events: none; z-index: -1; opacity: 0.07;
   animation: mandalaSpin 120s linear infinite;
 }
-[data-theme="light"] body::before { opacity: 0.07; }
+[data-theme="light"] body::before { opacity: 0.13; }
 /* Subtle paper grain overlay */
 body::after {
   content: '';
@@ -233,22 +239,27 @@ input.field:focus, select.field:focus {
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   background: var(--card);
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   display: flex; align-items: center; justify-content: space-between;
   height: calc(62px + var(--safe-top));
   padding: 0 1rem;
   padding-top: var(--safe-top);
   transition: border-color .25s;
 }
+.topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--blue) 33%, var(--purple) 66%, var(--pink));
+  pointer-events: none;
+}
 .topbar-brand {
   font-weight: 500; font-size: 1.2rem; letter-spacing: .01em; color: var(--text);
   display: flex; align-items: center; gap: .35rem;
 }
-.topbar-brand .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; flex-shrink: 0; }
+.topbar-brand .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--blue)); display: inline-block; flex-shrink: 0; }
 .topbar-brand span { color: var(--text); }
 .topbar-right { display: flex; align-items: center; gap: .4rem; }
 .points-badge {
-  background: transparent; border: 1px solid var(--border);
+  background: rgba(251,146,60,.15); border: 1px solid rgba(251,146,60,.35);
   border-radius: 6px; padding: .2rem .6rem; font-size: .72rem; font-weight: 700; color: var(--orange);
   display: flex; align-items: center; gap: .25rem;
 }
@@ -276,11 +287,16 @@ input.field:focus, select.field:focus {
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
   background: var(--card);
-  border-top: 1px solid var(--border);
+  border-top: none;
   display: flex; align-items: stretch;
   height: calc(58px + var(--safe-bot));
   padding-bottom: var(--safe-bot);
   transition: border-color .25s;
+}
+.bottom-nav::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--orange), var(--pink) 33%, var(--purple) 66%, var(--blue));
+  pointer-events: none;
 }
 .nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -288,9 +304,13 @@ input.field:focus, select.field:focus {
   color: var(--muted); border: none; background: none; position: relative;
 }
 .nav-item.active { color: var(--accent); font-weight: 600; }
+.nav-item:nth-child(2).active { color: var(--purple); }
+.nav-item:nth-child(3).active { color: var(--pink); }
+.nav-item:nth-child(4).active { color: var(--orange); }
+.nav-item:nth-child(5).active { color: var(--blue); }
 .nav-item.active::after {
   content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 20px; height: 2px; background: var(--accent); border-radius: 99px;
+  width: 20px; height: 2px; background: currentColor; border-radius: 99px;
 }
 .nav-item .nav-icon { font-size: 1.2rem; line-height: 1; }
 .nav-item .nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .03em; }
@@ -434,9 +454,9 @@ input.field:focus, select.field:focus {
 /* ── Map tile filters ── */
 .leaflet-control-attribution { display: none !important; }
 /* Paper/sketch mode → bright, washed-out, matches white bg */
-[data-theme="dark"]  .leaflet-tile-pane { filter: brightness(1.5) saturate(.5) contrast(.88); }
+[data-theme="dark"]  .leaflet-tile-pane { filter: brightness(1.1) saturate(.65) contrast(.92); }
 /* Ink/dark mode → dim and desaturated */
-[data-theme="light"] .leaflet-tile-pane { filter: brightness(.55) saturate(.4) contrast(1.1); }
+[data-theme="light"] .leaflet-tile-pane { filter: brightness(.88) saturate(1.05) contrast(1.05); }
 
 /* ── Sketch hover overrides ── */
 [data-theme="dark"] .card:hover  { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
@@ -522,19 +542,20 @@ input.field:focus, select.field:focus {
   overflow: hidden; box-shadow: var(--shadow);
   transition: background .18s, box-shadow .15s, transform .15s;
 }
+[data-theme="light"] .card { border-color: rgba(71,85,105,.7); }
 .card:active { transform: translateY(1px); box-shadow: var(--shadow-sm); }
 .card-body { padding: .85rem; }
 .section-title {
   font-size: .62rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
-  font-weight: 500;
+  font-weight: 700;
   margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem;
   border-bottom: 1px solid var(--border); padding-bottom: .4rem;
 }
-.section-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.section-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 
 /* ── Challenge widget ── */
 .challenge-card {
-  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--card) 60%, rgba(16,185,129,.1) 100%); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius);
   padding: .9rem; margin-bottom: .85rem;
   position: relative; overflow: hidden;
 }
@@ -545,7 +566,7 @@ input.field:focus, select.field:focus {
 .progress-bar-wrap { background: var(--card2); border-radius: 99px; height: 10px; margin-bottom: .35rem; overflow: hidden; border: 1px solid var(--border); }
 .progress-bar-fill {
   height: 100%; border-radius: 99px;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--blue));
   transition: width .6s cubic-bezier(.4,0,.2,1);
 }
 .progress-label { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
@@ -565,6 +586,9 @@ input.field:focus, select.field:focus {
 }
 .hero-stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
 .hero-stat-lbl { font-size: .65rem; color: var(--muted); margin-top: .2rem; }
+.hero-stat:nth-child(1) .hero-stat-num { color: var(--accent); }
+.hero-stat:nth-child(2) .hero-stat-num { color: var(--orange); }
+.hero-stat:nth-child(3) .hero-stat-num { color: var(--purple); }
 
 /* ── Event cards ── */
 .event-card {
@@ -588,14 +612,22 @@ input.field:focus, select.field:focus {
 }
 .event-card:active { opacity: .75; }
 .event-img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--card2); }
-.event-img-placeholder { width: 100%; height: 150px; background: linear-gradient(135deg, var(--card2), var(--border)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+.event-img-placeholder { width: 100%; height: 150px; background: linear-gradient(135deg, rgba(16,185,129,.25), rgba(59,130,246,.25)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
 .event-body { padding: .9rem; }
 .event-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; margin-bottom: .6rem; }
 .event-cat { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: .2rem .55rem; border-radius: 99px; }
-.cat-volunteer, .cat-social, .cat-environment, .cat-outdoor, .cat-senior, .cat-health,
-.cat-education, .cat-children, .cat-sport, .cat-seasonal, .cat-other, .cat-hangout {
-  background: var(--card2); color: var(--muted); border: 1px solid var(--border);
-}
+.cat-volunteer   { background: rgba(16,185,129,.18);  color: #34D399; border: 1px solid rgba(16,185,129,.4); }
+.cat-environment { background: rgba(16,185,129,.18);  color: #34D399; border: 1px solid rgba(16,185,129,.4); }
+.cat-social      { background: rgba(244,114,182,.18); color: #F472B6; border: 1px solid rgba(244,114,182,.4); }
+.cat-hangout     { background: rgba(244,114,182,.18); color: #F472B6; border: 1px solid rgba(244,114,182,.4); }
+.cat-outdoor     { background: rgba(96,165,250,.18);  color: #60A5FA; border: 1px solid rgba(96,165,250,.4); }
+.cat-sport       { background: rgba(96,165,250,.18);  color: #60A5FA; border: 1px solid rgba(96,165,250,.4); }
+.cat-senior      { background: rgba(251,146,60,.18);  color: #FB923C; border: 1px solid rgba(251,146,60,.4); }
+.cat-health      { background: rgba(248,113,113,.18); color: #F87171; border: 1px solid rgba(248,113,113,.4); }
+.cat-education   { background: rgba(167,139,250,.18); color: #A78BFA; border: 1px solid rgba(167,139,250,.4); }
+.cat-children    { background: rgba(252,211,77,.18);  color: #FCD34D; border: 1px solid rgba(252,211,77,.4); }
+.cat-seasonal    { background: rgba(167,139,250,.18); color: #A78BFA; border: 1px solid rgba(167,139,250,.4); }
+.cat-other       { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
 .hangout-badge { font-size:.62rem;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.15rem .5rem;font-weight:500;display:inline-flex;align-items:center;gap:.2rem }
 #events-map .leaflet-popup-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 #map-container { background: var(--card2); }
@@ -609,7 +641,7 @@ input.field:focus, select.field:focus {
 .event-meta span { display: flex; align-items: center; gap: .2rem; }
 .event-actions { display: flex; gap: .5rem; }
 .btn-join {
-  flex: 1; background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius);
+  flex: 1; background: linear-gradient(135deg, var(--accent), var(--blue)); color: #fff; border: none; border-radius: var(--radius);
   padding: .6rem; font-size: .83rem; font-weight: 500; transition: all .15s;
   box-shadow: var(--shadow-sm);
 }
@@ -673,9 +705,9 @@ input.field:focus, select.field:focus {
 .person-bio { font-size: .72rem; color: var(--dim); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .person-badges { display: flex; gap: .35rem; margin-top: .35rem; flex-wrap: wrap; }
 .badge { font-size: .62rem; padding: .15rem .45rem; border-radius: 99px; font-weight: 600; }
-.badge-senior { background: rgba(249,115,22,.12); color: var(--orange); border: 1px solid rgba(249,115,22,.25); }
-.badge-vol { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
-.badge-ngo { background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.badge-senior { background: rgba(251,146,60,.2); color: var(--orange); border: 1px solid rgba(251,146,60,.4); }
+.badge-vol { background: rgba(52,211,153,.2); color: var(--green); border: 1px solid rgba(52,211,153,.4); }
+.badge-ngo { background: rgba(52,211,153,.2); color: var(--green); border: 1px solid rgba(52,211,153,.4); }
 .btn-connect {
   background: var(--card2); border: 1px solid var(--border);
   color: var(--muted); border-radius: 8px; padding: .45rem .85rem;
@@ -805,12 +837,13 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 /* ── FAB ── */
 .fab {
   position: fixed; right: 1rem; bottom: calc(72px + var(--safe-bot) + .65rem);
-  width: 46px; height: 46px; border-radius: 50%;
-  background: var(--text); color: var(--bg); border: none;
-  font-size: 1.25rem; z-index: 90; display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--shadow-lg);
-  transition: all .15s;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--pink)); color: #fff; border: none;
+  font-size: 1.3rem; z-index: 90; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(167,139,250,.45), var(--shadow-lg);
+  transition: all .2s;
 }
+.fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(167,139,250,.6), var(--shadow-lg); }
 .fab:active { opacity: .7; }
 
 /* ── Modal ── */
@@ -884,6 +917,9 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 /* ── Leaderboard ── */
 .lb-item { display: flex; align-items: center; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
 .lb-rank { font-size: 1.1rem; font-weight: 800; min-width: 2rem; text-align: center; }
+.lb-item:nth-child(1) .lb-rank { color: var(--yellow); }
+.lb-item:nth-child(2) .lb-rank { color: var(--dim); }
+.lb-item:nth-child(3) .lb-rank { color: var(--orange); }
 .lb-name { flex: 1; font-size: .9rem; font-weight: 600; }
 .lb-pts { font-size: .85rem; font-weight: 700; color: var(--orange); }
 .lb-bar { height: 4px; background: linear-gradient(90deg, var(--accent), var(--neon)); border-radius: 99px; margin-top: .25rem; transition: width .8s; }
@@ -893,6 +929,10 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 .impact-item { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: .75rem; box-shadow: var(--shadow-sm); }
 .impact-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
 .impact-lbl { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+.impact-item:nth-child(1) .impact-num { color: var(--accent); }
+.impact-item:nth-child(2) .impact-num { color: var(--blue); }
+.impact-item:nth-child(3) .impact-num { color: var(--purple); }
+.impact-item:nth-child(4) .impact-num { color: var(--orange); }
 
 .empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 2rem 1rem; }
 .loading { text-align: center; color: var(--muted); padding: 2rem; }
@@ -1233,11 +1273,12 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--text);color:var(--bg);border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer">🌱 Events</button>
         <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🫧 Bubbles</button>
         <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🏪 Shops</button>
-        <button id="map-show-lonely-btn"    onclick="setMapMode('lonely')"    style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🤝 Nahbar</button>
+        <button id="map-show-lonely-btn"       onclick="setMapMode('lonely')"      style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🤝 Nahbar</button>
+        <button id="map-show-meetpoints-btn"  onclick="setMapMode('meetpoints')"  style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">📍 Treffpunkte</button>
         <button onclick="locateMeOnMap()" title="Mein Standort" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .75rem;font-size:.75rem;cursor:pointer;box-shadow:var(--shadow)">📍</button>
       </div>
       <!-- Bubble drop button — bottom right, separate from filters -->
-      <button id="map-create-btn" onclick="openCreateEventOrBubble()"
+      <button id="map-create-btn" onclick="openDropBubble()"
         style="position:absolute;bottom:2.4rem;left:50%;transform:translateX(-50%);z-index:500;
                background:linear-gradient(135deg,var(--purple),var(--accent));
                color:#000;border:none;border-radius:14px;
@@ -1245,6 +1286,15 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
                cursor:pointer;box-shadow:0 0 18px rgba(189,147,249,.4);
                display:flex;align-items:center;gap:.4rem;white-space:nowrap">
         🫧 Bubble droppen
+      </button>
+      <button id="map-meetpoint-btn" onclick="openCreateMeetpoint()"
+        style="position:absolute;bottom:2.4rem;right:.8rem;z-index:500;
+               background:linear-gradient(135deg,var(--orange),var(--yellow));
+               color:#000;border:none;border-radius:14px;
+               padding:.6rem 1rem;font-size:.78rem;font-weight:800;
+               cursor:pointer;box-shadow:0 0 14px rgba(249,115,22,.4);
+               display:none;align-items:center;gap:.3rem;white-space:nowrap">
+        📍 +
       </button>
       <!-- Map info panel (collapsible) -->
       <div id="map-info-panel" style="position:absolute;bottom:.65rem;left:.65rem;z-index:500">
@@ -1276,7 +1326,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
     </div>
     <!-- FABs -->
-    <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none;background:var(--purple);color:white">🫧</button>
+    <button class="fab" id="fab-bubble" onclick="openDropBubble()" title="Bubble droppen" style="display:none">🫧</button>
   </div>
 
   <div class="screen" id="screen-coupons">
@@ -1289,7 +1339,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <div class="neon-line" style="margin-bottom:.85rem"></div>
       <!-- Coupon / Trail / Redeemed tab toggle -->
       <div style="display:flex;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:3px;gap:3px;margin-bottom:.75rem">
-        <button type="button" id="reward-tab-coupons"  onclick="switchRewardTab('coupons')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:var(--accent);color:#000;cursor:pointer">🎟️ Coupons</button>
+        <button type="button" id="reward-tab-coupons"  onclick="switchRewardTab('coupons')"  style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--blue));color:#fff;cursor:pointer">🎟️ Coupons</button>
         <button type="button" id="reward-tab-trails"   onclick="switchRewardTab('trails')"   style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">🗺️ Trails</button>
         <button type="button" id="reward-tab-redeemed" onclick="switchRewardTab('redeemed')" style="flex:1;padding:.5rem;border-radius:9px;border:none;font-size:.78rem;font-weight:700;background:transparent;color:var(--dim);cursor:pointer">📦 Eingelöst</button>
       </div>
@@ -1357,7 +1407,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
               <span id="deed-char-count" style="color:var(--muted)">0 / 20 Zeichen</span>
               <span id="deed-remaining" style="color:var(--green)">3 Taten heute noch möglich</span>
             </div>
-            <button class="btn-primary" style="background:var(--green);color:#000" onclick="logDeed()" id="deed-submit-btn">✓ Eintragen (+25 Punkte)</button>
+            <button class="btn-primary" style="background:linear-gradient(135deg,var(--accent),var(--blue))" onclick="logDeed()" id="deed-submit-btn">✓ Eintragen (+25 Punkte)</button>
           </div>
         </div>
       </div>
@@ -1686,6 +1736,35 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 </div>
 
 <!-- ══ BUSINESS REGISTRATION MODAL ══ -->
+<div class="modal-overlay" id="modal-meetpoint">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 Treffpunkt anlegen <button class="modal-close" onclick="closeModal('modal-meetpoint')">✕</button></div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:.85rem;line-height:1.5">Ein fester Ort wo sich Menschen regelmäßig treffen — Stammtisch, Sportplatz, Café-Stammtisch.</div>
+    <div class="modal-body" style="padding:0">
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem">
+        <div style="flex:0 0 60px">
+          <div class="field-label">Emoji</div>
+          <input id="mp-emoji" type="text" class="field-input" value="📍" maxlength="2" style="text-align:center;font-size:1.4rem;padding:.5rem">
+        </div>
+        <div style="flex:1">
+          <div class="field-label">Name *</div>
+          <input id="mp-name" type="text" class="field-input" placeholder="z.B. Donnerstags-Stammtisch" maxlength="60">
+        </div>
+      </div>
+      <div class="field-label">Wann / Rhythmus</div>
+      <input id="mp-schedule" type="text" class="field-input" placeholder="z.B. Di 18:00, jeden Sa morgens" maxlength="80" style="margin-bottom:.75rem">
+      <div class="field-label">Beschreibung (optional)</div>
+      <textarea id="mp-desc" class="ta field-input" placeholder="Wer ist willkommen? Was passiert dort?" rows="2" style="margin-bottom:.75rem;resize:none"></textarea>
+      <div style="display:flex;gap:.5rem;margin-bottom:.85rem">
+        <div style="flex:1"><div class="field-label">Breitengrad</div><input id="mp-lat" type="number" class="field-input" step="0.000001"></div>
+        <div style="flex:1"><div class="field-label">Längengrad</div><input id="mp-lng" type="number" class="field-input" step="0.000001"></div>
+      </div>
+      <button class="btn-primary" id="mp-submit-btn" onclick="submitCreateMeetpoint()" style="width:100%">📍 Treffpunkt erstellen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-business-reg">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -2362,7 +2441,7 @@ function updateThemeUI(theme) {
 
 function updateMapTiles(theme) {
   if (!leafletMap) return;
-  const t = MAP_TILES[theme] || MAP_TILES.dark;
+  const t = MAP_TILES[theme === 'light' ? 'dark' : 'light'] || MAP_TILES.dark;
   if (leafletTileLayer) leafletMap.removeLayer(leafletTileLayer);
   leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
   leafletTileLayer.addTo(leafletMap);
@@ -3330,7 +3409,7 @@ function initMap() {
   // Default: Bern centre
   leafletMap = L.map('events-map', {zoomControl:true}).setView([46.9480, 7.4474], 13);
   const curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const t = MAP_TILES[curTheme] || MAP_TILES.dark;
+  const t = MAP_TILES[curTheme === 'light' ? 'dark' : 'light'] || MAP_TILES.dark;
   leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
   leafletTileLayer.addTo(leafletMap);
   // Try GPS location
@@ -4846,7 +4925,7 @@ function openMapPicker(target) {
       _pickerMap = L.map('picker-map', { zoomControl: true })
         .setView([46.9480, 7.4474], 14);
       const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const t = MAP_TILES[theme] || MAP_TILES.dark;
+      const t = MAP_TILES[theme === 'light' ? 'dark' : 'light'] || MAP_TILES.dark;
       L.tileLayer(t.url, { attribution: '', maxZoom: 19 }).addTo(_pickerMap);
       _pickerMap.on('click', e => _pickerSetPin(e.latlng.lat, e.latlng.lng));
     }
@@ -6706,12 +6785,10 @@ function setMapMode(mode) {
   const buBtn = document.getElementById('map-show-bubbles-btn');
   const shBtn = document.getElementById('map-show-shops-btn');
   const loBtn = document.getElementById('map-show-lonely-btn');
+  const mpBtn = document.getElementById('map-show-meetpoints-btn');
 
   // Reset all buttons to inactive style
-  evBtn.style.background = 'var(--card)'; evBtn.style.color = 'var(--muted)'; evBtn.style.border = '1px solid var(--border)';
-  buBtn.style.background = 'var(--card)'; buBtn.style.color = 'var(--muted)'; buBtn.style.border = '1px solid var(--border)';
-  shBtn.style.background = 'var(--card)'; shBtn.style.color = 'var(--muted)'; shBtn.style.border = '1px solid var(--border)';
-  if (loBtn) { loBtn.style.background = 'var(--card)'; loBtn.style.color = 'var(--muted)'; loBtn.style.border = '1px solid var(--border)'; }
+  [evBtn, buBtn, shBtn, loBtn, mpBtn].forEach(b => { if (b) { b.style.background = 'var(--card)'; b.style.color = 'var(--muted)'; b.style.border = '1px solid var(--border)'; } });
 
   // Clear all markers + reset counter
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
@@ -6719,6 +6796,7 @@ function setMapMode(mode) {
   auraMapMarkers.forEach(m => leafletMap.removeLayer(m)); auraMapMarkers = [];
   shopMapMarkers.forEach(m => leafletMap.removeLayer(m)); shopMapMarkers = [];
   _heatLayers.forEach(l => leafletMap.removeLayer(l)); _heatLayers = [];
+  meetpointMapMarkers.forEach(m => leafletMap.removeLayer(m)); meetpointMapMarkers = [];
   const _ct = document.getElementById('map-counter-text'); if (_ct) _ct.textContent = '…';
   _lonelyMarkers.forEach(m => m.remove()); _lonelyMarkers = [];
 
@@ -6734,7 +6812,77 @@ function setMapMode(mode) {
   } else if (mode === 'lonely') {
     if (loBtn) { loBtn.style.background = 'var(--text)'; loBtn.style.color = 'var(--bg)'; loBtn.style.border = 'none'; }
     loadLonelyMapLayer();
+  } else if (mode === 'meetpoints') {
+    if (mpBtn) { mpBtn.style.background = 'var(--orange)'; mpBtn.style.color = '#fff'; mpBtn.style.border = 'none'; }
+    const mpCBtn = document.getElementById('map-meetpoint-btn');
+    if (mpCBtn) mpCBtn.style.display = 'flex';
+    loadMapMeetpoints();
   }
+  // hide meetpoint create btn unless in meetpoints mode
+  if (mode !== 'meetpoints') { const b = document.getElementById('map-meetpoint-btn'); if (b) b.style.display = 'none'; }
+}
+
+let meetpointMapMarkers = [];
+
+async function loadMapMeetpoints() {
+  if (!leafletMap) return;
+  try {
+    const pts = await apiFetch('/api/meetpoints');
+    pts.forEach(p => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:linear-gradient(135deg,#F97316,#FCD34D);color:#fff;border-radius:14px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 4px 14px rgba(249,115,22,.5);border:2.5px solid rgba(255,255,255,.8);cursor:pointer">${p.emoji||'📍'}</div>`,
+        iconSize: [44,44], iconAnchor: [22,22]
+      });
+      const marker = L.marker([p.lat, p.lng], {icon}).addTo(leafletMap);
+      meetpointMapMarkers.push(marker);
+      const lastSeen = p.last_checkin ? `<br><span style="font-size:.7rem;color:#94A3B8">Zuletzt: ${new Date(p.last_checkin+'Z').toLocaleDateString('de')}</span>` : '';
+      marker.bindPopup(`<div style="min-width:180px">
+        <b style="font-size:.95rem">${p.emoji||'📍'} ${p.name}</b>
+        ${p.schedule ? `<div style="font-size:.78rem;color:#F97316;margin:.2rem 0">🕐 ${p.schedule}</div>` : ''}
+        ${p.description ? `<div style="font-size:.8rem;margin:.2rem 0">${p.description}</div>` : ''}
+        <div style="font-size:.75rem;color:#94A3B8;margin:.2rem 0">👥 ${p.checkin_count} Check-ins${lastSeen}</div>
+        <button onclick="checkinMeetpoint(${p.id},this)" style="margin-top:.5rem;width:100%;background:linear-gradient(135deg,#F97316,#FCD34D);color:#fff;border:none;border-radius:8px;padding:.4rem;font-size:.78rem;font-weight:700;cursor:pointer">✓ Ich bin hier</button>
+      </div>`);
+    });
+    _updateMapCounter(null, null, pts.length);
+  } catch(e) { console.warn('loadMapMeetpoints error', e); }
+}
+
+async function checkinMeetpoint(mid, btn) {
+  try {
+    const r = await apiFetch(`/api/meetpoints/${mid}/checkin`, {method:'POST'});
+    if (btn) { btn.textContent = `✓ ${r.checkin_count} Check-ins`; btn.disabled = true; btn.style.opacity = '.6'; }
+  } catch(e) { console.warn(e); }
+}
+
+function openCreateMeetpoint() {
+  const center = leafletMap ? leafletMap.getCenter() : {lat:0,lng:0};
+  document.getElementById('mp-name').value = '';
+  document.getElementById('mp-emoji').value = '📍';
+  document.getElementById('mp-schedule').value = '';
+  document.getElementById('mp-desc').value = '';
+  document.getElementById('mp-lat').value = center.lat.toFixed(6);
+  document.getElementById('mp-lng').value = center.lng.toFixed(6);
+  openModal('modal-meetpoint');
+}
+
+async function submitCreateMeetpoint() {
+  const name = document.getElementById('mp-name').value.trim();
+  if (!name) return;
+  const btn = document.getElementById('mp-submit-btn');
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/meetpoints', {method:'POST', body: JSON.stringify({
+      name, emoji: document.getElementById('mp-emoji').value || '📍',
+      schedule: document.getElementById('mp-schedule').value.trim(),
+      description: document.getElementById('mp-desc').value.trim(),
+      lat: parseFloat(document.getElementById('mp-lat').value),
+      lng: parseFloat(document.getElementById('mp-lng').value)
+    })});
+    closeModal('modal-meetpoint');
+    setMapMode('meetpoints');
+  } catch(e) { btn.disabled = false; }
 }
 
 async function loadMapShops() {
