@@ -5666,6 +5666,7 @@ let _arSelected = null;
 let _arOrientSource = null; // 'absolute' | 'relative' — locked on first valid reading
 let _arEmptyFrames = 0;
 let _arPinEls = new Map();  // bubble id → DOM element (avoid full innerHTML rebuild)
+let _arRefreshTimer = null;
 
 async function openARView() {
   _arHeading = 0; _arBeta = 90; _arOrientSource = null;
@@ -5692,12 +5693,19 @@ async function openARView() {
   navigator.geolocation.getCurrentPosition(async pos => {
     _arPos = pos.coords;
     overlay.querySelector('div')?.remove();
-    try {
-      const city = currentUser?.city || '';
-      _arBubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
-    } catch {}
+    await _arRefreshBubbles();
     _arLoop(overlay);
+    // Refresh bubbles every 30s so newly dropped ones appear without reopening
+    _arRefreshTimer = setInterval(_arRefreshBubbles, 30000);
   }, () => { err.textContent = 'GPS not available.'; err.style.display='block'; });
+}
+
+async function _arRefreshBubbles() {
+  try {
+    // Fetch without city filter so nearby bubbles with different city strings aren't missed.
+    // AR filters by actual GPS distance anyway.
+    _arBubbles = await apiFetch('/api/bubbles');
+  } catch {}
 }
 
 function _arOrient(e) {
@@ -5712,11 +5720,15 @@ function _arOrient(e) {
 
   const alpha = e.webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) : null);
   if (alpha !== null) {
-    // EMA smoothing around the wraparound-safe shortest arc
     const diff = ((alpha - _arHeading + 540) % 360) - 180;
-    _arHeading = (_arHeading + diff * 0.25 + 360) % 360;
+    // Dead-zone: ignore sub-degree noise; stronger smoothing (0.1) for stability
+    if (Math.abs(diff) > 0.8)
+      _arHeading = (_arHeading + diff * 0.1 + 360) % 360;
   }
-  if (e.beta != null) _arBeta = e.beta;
+  if (e.beta != null) {
+    const bd = e.beta - _arBeta;
+    if (Math.abs(bd) > 0.5) _arBeta = _arBeta + bd * 0.15;
+  }
 }
 
 function _arBearing(lat1,lng1,lat2,lng2) {
@@ -5845,6 +5857,7 @@ function closeARView() {
   window.removeEventListener('deviceorientationabsolute', _arOrient, true);
   window.removeEventListener('deviceorientation', _arOrient, true);
   _arSelected = null; _arOrientSource = null;
+  if (_arRefreshTimer) { clearInterval(_arRefreshTimer); _arRefreshTimer = null; }
   _arPinEls.forEach(el => el.remove()); _arPinEls = new Map();
   document.getElementById('ar-bubble-card')?.remove();
   document.getElementById('ar-empty-msg')?.remove();
