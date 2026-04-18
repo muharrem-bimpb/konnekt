@@ -5790,8 +5790,9 @@ function _arLoop(overlay) {
   const myAlt = _arPos.altitude ?? 0;
 
   // Horizon Y: shifts based on device tilt (beta=90 → horizon at H/2)
-  const tilt = _arBeta - 90; // positive = looking up
-  const horizonY = H / 2 - (tilt / (FOV_V / 2)) * (H / 2);
+  // tilt>0 = looking up → horizon moves down (larger y); tilt<0 = looking down → horizon moves up
+  const tilt = _arBeta - 90;
+  const horizonY = H / 2 + (tilt / (FOV_V / 2)) * (H / 2);
 
   const pins = _arBubbles.filter(b => b.lat && b.lng).map(b => {
     const bearing = _arBearing(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
