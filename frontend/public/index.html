@@ -168,10 +168,11 @@ button { font-family: inherit; cursor: pointer; }
 /* Swipe edge hints */
 .swipe-edge {
   position: fixed; top: calc(62px + var(--safe-top)); bottom: calc(58px + var(--safe-bot));
-  width: 28px; z-index: 150; pointer-events: none;
+  width: 36px; z-index: 1002; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity .15s;
 }
+@media (max-width: 767px) { .swipe-edge { pointer-events: auto; } }
 .swipe-edge-left  { left: 0;  background: linear-gradient(to right, rgba(100,90,80,.1), transparent); }
 .swipe-edge-right { right: 0; background: linear-gradient(to left,  rgba(100,90,80,.1), transparent); }
 .swipe-edge.visible { opacity: 1; }
@@ -285,7 +286,7 @@ input.field:focus, select.field:focus {
 
 /* ── Bottom nav ── */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 1001;
   background: var(--card);
   border-top: none;
   display: flex; align-items: stretch;
@@ -323,13 +324,13 @@ input.field:focus, select.field:focus {
 
 /* ── Dial Nav ── */
 #dial-backdrop {
-  position: fixed; inset: 0; z-index: 199;
+  position: fixed; inset: 0; z-index: 1000;
   background: rgba(0,0,0,0); display: none;
   transition: background .25s;
 }
 #dial-nav {
   display: none;
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 1001;
   pointer-events: none; align-items: flex-end; justify-content: center;
 }
 @media (max-width: 767px) { #dial-nav { display: flex; } }
@@ -803,6 +804,17 @@ input.field:focus, select.field:focus {
   transition: all .15s;
 }
 .deed-cat.active { border-color: var(--accent); color: var(--accent); background: var(--card2); }
+.map-filter-btn {
+  flex-shrink: 0; white-space: nowrap;
+  background: var(--card); color: var(--muted);
+  border: 1.5px solid var(--border); border-radius: 99px;
+  padding: .4rem .9rem; font-size: .75rem; font-weight: 600;
+  cursor: pointer; box-shadow: var(--shadow-sm);
+  transition: background .15s, color .15s, border-color .15s;
+}
+.map-filter-btn.active-filter {
+  background: var(--text); color: var(--bg); border-color: transparent;
+}
 .group-type-btn {
   background: var(--card2); border: 1.5px solid var(--border); border-radius: 10px;
   padding: .55rem; font-size: .82rem; font-weight: 600; color: var(--dim); cursor: pointer;
@@ -1256,16 +1268,17 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <!-- position:absolute+inset:0 is the only reliable way to make Leaflet fill a flex child -->
       <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
       <!-- Map mode toolbar -->
-      <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;max-width:95vw">
-        <button id="map-show-events-btn"    onclick="setMapMode('events')"    style="background:var(--text);color:var(--bg);border:none;border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer">🌱 Events</button>
-        <button id="map-show-bubbles-btn"   onclick="setMapMode('bubbles')"   style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🫧 Bubbles</button>
-        <button id="map-show-shops-btn"     onclick="setMapMode('shops')"     style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🏪 Shops</button>
-        <button id="map-show-lonely-btn"       onclick="setMapMode('lonely')"      style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">🤝 Nahbar</button>
-        <button id="map-show-meetpoints-btn"  onclick="setMapMode('meetpoints')"  style="background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.75rem;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm)">📍 Treffpunkte</button>
-        <button onclick="locateMeOnMap()" title="Mein Standort" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:99px;padding:.4rem .75rem;font-size:.75rem;cursor:pointer;box-shadow:var(--shadow)">📍</button>
+      <div id="map-toolbar" style="position:absolute;top:.75rem;left:0;right:0;z-index:500;display:flex;gap:.5rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 .75rem;scrollbar-width:none">
+        <button id="map-show-events-btn"     onclick="setMapMode('events')"     class="map-filter-btn active-filter">🌱 Events</button>
+        <button id="map-show-bubbles-btn"    onclick="setMapMode('bubbles')"    class="map-filter-btn">🫧 Bubbles</button>
+        <button id="map-show-shops-btn"      onclick="setMapMode('shops')"      class="map-filter-btn">🏪 Shops</button>
+        <button id="map-show-lonely-btn"     onclick="setMapMode('lonely')"     class="map-filter-btn">🤝 Nahbar</button>
+        <button id="map-show-meetpoints-btn" onclick="setMapMode('meetpoints')" class="map-filter-btn">📍 Treffpunkte</button>
+        <button onclick="locateMeOnMap()" title="Mein Standort" class="map-filter-btn" style="flex-shrink:0">🎯</button>
+        <button onclick="openARView()" class="map-filter-btn" style="flex-shrink:0;background:linear-gradient(135deg,var(--purple),var(--accent));color:#000;border-color:transparent;font-weight:700">AR 🫧</button>
       </div>
       <!-- Bubble drop button — bottom right, separate from filters -->
-      <button id="map-create-btn" onclick="openDropBubble()"
+      <button id="map-create-btn" ontouchstart="if(event.touches.length>1)event.preventDefault()" onclick="if(!window._mapZooming)openDropBubble()"
         style="position:absolute;bottom:2.4rem;left:50%;transform:translateX(-50%);z-index:500;
                background:linear-gradient(135deg,var(--purple),var(--accent));
                color:#000;border:none;border-radius:14px;
@@ -1675,36 +1688,116 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
   <div class="modal" style="max-height:88dvh">
     <div class="modal-handle"></div>
     <div class="modal-title" id="lobby-detail-title">Gruppe <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button></div>
-    <div class="modal-body" style="overflow-y:auto">
-      <div id="lobby-detail-desc" style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem"></div>
-      <!-- Tab strip -->
-      <div style="display:flex;gap:.5rem;margin-bottom:.85rem;border-bottom:1px solid var(--border);padding-bottom:.5rem">
-        <button class="pill active" id="grp-tab-members" onclick="switchGroupTab('members')">Mitglieder</button>
-        <button class="pill" id="grp-tab-events" onclick="switchGroupTab('events')">Events</button>
-      </div>
-      <!-- Members pane -->
-      <div id="grp-pane-members">
-        <!-- Invite link box -->
-        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:1rem">
-          <div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem;font-weight:600;letter-spacing:.04em">EINLADUNGSLINK</div>
-          <div style="display:flex;gap:.5rem;align-items:center">
-            <input id="lobby-invite-url" class="form-input" style="flex:1;font-size:.72rem;padding:.35rem .6rem" readonly onclick="this.select()">
-            <button class="btn-secondary" style="padding:.35rem .7rem;font-size:.78rem;flex-shrink:0" onclick="copyLobbyInvite()">Kopieren</button>
-          </div>
-          <div id="lobby-owner-actions" style="display:none;margin-top:.5rem;display:flex;gap:.5rem">
-            <button class="btn-secondary" style="font-size:.72rem;padding:.3rem .6rem" onclick="rotateLobbyInvite()">🔄 Neuer Link</button>
-          </div>
+    <!-- Tab strip -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:0">
+      <button id="grptab-content" onclick="grpTab('content')" style="flex:1;padding:.6rem;background:none;border:none;border-bottom:2px solid var(--accent);font-size:.82rem;font-weight:700;color:var(--accent);cursor:pointer">Inhalt</button>
+      <button id="grptab-members" onclick="grpTab('members')" style="flex:1;padding:.6rem;background:none;border:none;border-bottom:2px solid transparent;font-size:.82rem;font-weight:600;color:var(--dim);cursor:pointer">Mitglieder</button>
+      <button id="grptab-invite" onclick="grpTab('invite')" style="flex:1;padding:.6rem;background:none;border:none;border-bottom:2px solid transparent;font-size:.82rem;font-weight:600;color:var(--dim);cursor:pointer">Einladen</button>
+    </div>
+    <!-- Content pane -->
+    <div id="grppane-content" class="modal-body" style="overflow-y:auto;flex:1">
+      <div id="grp-content-area"><div class="loading">Lade…</div></div>
+    </div>
+    <!-- Members pane -->
+    <div id="grppane-members" class="modal-body" style="display:none;overflow-y:auto;flex:1">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
+      <div id="lobby-members-list"></div>
+      <button class="btn-secondary" style="width:100%;margin-top:1rem;color:var(--red);border-color:var(--red)" onclick="leaveLobby()">Gruppe verlassen</button>
+    </div>
+    <!-- Invite pane -->
+    <div id="grppane-invite" class="modal-body" style="display:none;overflow-y:auto;flex:1">
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(59,130,246,.08));border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:1rem 1.1rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem">
+          <span style="font-size:1.1rem">🔗</span>
+          <span style="font-size:.72rem;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase">Einladungslink</span>
         </div>
-        <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
-        <div id="lobby-members-list"></div>
-        <button class="btn-secondary" style="width:100%;margin-top:1rem;color:var(--red);border-color:var(--red)" onclick="leaveLobby()">Gruppe verlassen</button>
-      </div>
-      <!-- Events pane -->
-      <div id="grp-pane-events" style="display:none">
-        <div id="grp-events-list"><div class="loading">Lade…</div></div>
-        <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="openCreateEventForGroup()">+ Event für diese Gruppe erstellen</button>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem;line-height:1.4">Teile diesen Link — wer ihn hat, kann der Gruppe beitreten.</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:.55rem .75rem;font-family:monospace;font-size:.7rem;color:var(--text);word-break:break-all;margin-bottom:.65rem;cursor:pointer;user-select:all" id="lobby-invite-url-display"></div>
+        <input id="lobby-invite-url" type="hidden">
+        <div style="display:flex;gap:.5rem">
+          <button onclick="copyLobbyInvite()" style="flex:1;background:var(--accent);color:#000;border:none;border-radius:9px;padding:.55rem;font-size:.82rem;font-weight:700;cursor:pointer">📋 Kopieren</button>
+          <button onclick="shareLobbyInvite()" style="flex:1;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:.55rem;font-size:.82rem;font-weight:600;cursor:pointer">↗ Teilen</button>
+        </div>
+        <div id="lobby-owner-actions" style="display:none;margin-top:.5rem">
+          <button class="btn-secondary" style="width:100%;font-size:.75rem;padding:.35rem;margin-top:.4rem" onclick="rotateLobbyInvite()">🔄 Neuen Link generieren</button>
+        </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ GROUP POST FORM MODAL ══ -->
+<div class="modal-overlay" id="modal-grp-post">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="grp-post-modal-title">Beitrag <button class="modal-close" onclick="closeModal('modal-grp-post')">✕</button></div>
+    <div class="modal-body">
+      <label class="form-label">Titel *</label>
+      <input class="form-input" id="grp-post-title-input" placeholder="…" maxlength="120" style="margin-bottom:.65rem">
+      <div id="grp-post-body-wrap">
+        <label class="form-label">Nachricht (optional)</label>
+        <textarea class="ta" id="grp-post-body-input" rows="3" placeholder="Mehr Details…" style="margin-bottom:.65rem"></textarea>
+      </div>
+      <div id="grp-post-when-wrap" style="display:none">
+        <label class="form-label">Wann? (optional)</label>
+        <input class="form-input" id="grp-post-when-input" placeholder="z.B. Heute 19:00, Samstag 10:00…" maxlength="60" style="margin-bottom:.65rem">
+      </div>
+      <button class="btn-primary" style="width:100%" onclick="submitGrpPost()">Veröffentlichen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STORY CAMERA MODAL ══ -->
+<div class="modal-overlay" id="modal-story-camera">
+  <div class="modal" style="background:#000;border-radius:20px;overflow:hidden;padding:0">
+    <div style="position:relative">
+      <video id="story-camera-preview" style="width:100%;aspect-ratio:9/16;max-height:65dvh;object-fit:cover;display:block" muted playsinline></video>
+      <button onclick="closeStoryCamera()" style="position:absolute;top:.75rem;right:.75rem;background:rgba(0,0,0,.55);border:none;color:#fff;border-radius:50%;width:34px;height:34px;font-size:.9rem;cursor:pointer">✕</button>
+      <div id="story-record-progress" style="display:none;position:absolute;top:.75rem;left:.75rem;background:rgba(239,68,68,.8);color:#fff;font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:99px"></div>
+    </div>
+    <div id="story-camera-err" style="display:none;color:var(--red);font-size:.8rem;padding:.5rem .85rem"></div>
+    <div style="display:flex;gap:.75rem;padding:.85rem;background:#111">
+      <button onclick="captureStoryPhoto()" style="flex:1;background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:12px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">📷 Foto</button>
+      <button id="story-record-btn" onclick="_isRecording?stopStoryRecording():startStoryRecording()" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:12px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer">🎬 Video (15s)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STORY PREVIEW MODAL ══ -->
+<div class="modal-overlay" id="modal-story-preview">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Story teilen <button class="modal-close" onclick="closeModal('modal-story-preview')">✕</button></div>
+    <div class="modal-body">
+      <div id="story-preview-container" style="text-align:center;margin-bottom:.75rem"></div>
+      <input type="hidden" id="story-preview-data">
+      <input type="hidden" id="story-preview-type">
+      <label class="form-label">Caption (optional)</label>
+      <input id="story-caption-input" class="form-input" placeholder="Was machst du gerade?" maxlength="120" style="margin-bottom:.85rem">
+      <button id="story-submit-btn" class="btn-primary" style="width:100%" onclick="submitStory()">✓ Story teilen (+10 Punkte)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STORY VIEWER MODAL ══ -->
+<div class="modal-overlay" id="modal-story-viewer">
+  <div class="modal" style="max-height:92dvh">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('modal-story-viewer')" style="position:absolute;top:.75rem;right:.75rem;z-index:2">✕</button>
+    <div id="story-viewer-content" class="modal-body" style="overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ══ AR BUBBLES MODAL ══ -->
+<div class="modal-overlay" id="modal-ar">
+  <div style="position:fixed;inset:0;background:#000;z-index:1">
+    <video id="ar-camera" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" muted playsinline></video>
+    <div id="ar-overlay" style="position:absolute;inset:0;pointer-events:none"></div>
+    <div style="position:absolute;top:.85rem;left:.85rem;right:.85rem;display:flex;justify-content:space-between;align-items:center;z-index:2">
+      <div style="background:rgba(0,0,0,.55);color:#fff;padding:.35rem .75rem;border-radius:99px;font-size:.78rem;font-weight:700">🫧 AR Bubbles</div>
+      <button onclick="closeARView()" style="background:rgba(0,0,0,.55);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:.9rem;cursor:pointer">✕</button>
+    </div>
+    <div id="ar-err" style="display:none;position:absolute;bottom:2rem;left:1rem;right:1rem;background:rgba(239,68,68,.85);color:#fff;border-radius:10px;padding:.75rem;font-size:.82rem;text-align:center;z-index:2"></div>
   </div>
 </div>
 
@@ -1746,26 +1839,31 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">📍 Treffpunkt anlegen <button class="modal-close" onclick="closeModal('modal-meetpoint')">✕</button></div>
-    <div style="font-size:.78rem;color:var(--muted);margin-bottom:.85rem;line-height:1.5">Ein fester Ort wo sich Menschen regelmäßig treffen — Stammtisch, Sportplatz, Café-Stammtisch.</div>
-    <div class="modal-body" style="padding:0">
-      <div style="display:flex;gap:.5rem;margin-bottom:.75rem">
-        <div style="flex:0 0 60px">
-          <div class="field-label">Emoji</div>
-          <input id="mp-emoji" type="text" class="field-input" value="📍" maxlength="2" style="text-align:center;font-size:1.4rem;padding:.5rem">
+    <div class="modal-body">
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:flex-end">
+        <div style="flex:0 0 56px">
+          <label class="form-label">Emoji</label>
+          <input id="mp-emoji" type="text" class="form-input" value="📍" maxlength="2" style="text-align:center;font-size:1.3rem;padding:.4rem">
         </div>
         <div style="flex:1">
-          <div class="field-label">Name *</div>
-          <input id="mp-name" type="text" class="field-input" placeholder="z.B. Donnerstags-Stammtisch" maxlength="60">
+          <label class="form-label">Name *</label>
+          <input id="mp-name" type="text" class="form-input" placeholder="z.B. Donnerstags-Stammtisch" maxlength="60">
         </div>
       </div>
-      <div class="field-label">Wann / Rhythmus</div>
-      <input id="mp-schedule" type="text" class="field-input" placeholder="z.B. Di 18:00, jeden Sa morgens" maxlength="80" style="margin-bottom:.75rem">
-      <div class="field-label">Beschreibung (optional)</div>
-      <textarea id="mp-desc" class="ta field-input" placeholder="Wer ist willkommen? Was passiert dort?" rows="2" style="margin-bottom:.75rem;resize:none"></textarea>
-      <div style="display:flex;gap:.5rem;margin-bottom:.85rem">
-        <div style="flex:1"><div class="field-label">Breitengrad</div><input id="mp-lat" type="number" class="field-input" step="0.000001"></div>
-        <div style="flex:1"><div class="field-label">Längengrad</div><input id="mp-lng" type="number" class="field-input" step="0.000001"></div>
+      <label class="form-label">Wann / Rhythmus</label>
+      <input id="mp-schedule" type="text" class="form-input" placeholder="z.B. jeden Di 18:00" maxlength="80" style="margin-bottom:.65rem">
+      <label class="form-label">Beschreibung (optional)</label>
+      <textarea id="mp-desc" class="ta" placeholder="Wer ist willkommen? Was passiert dort?" rows="2" style="margin-bottom:.75rem"></textarea>
+      <label class="form-label">Adresse / Ort</label>
+      <div style="position:relative;margin-bottom:.4rem">
+        <input id="mp-addr" type="text" class="form-input" placeholder="Strasse, Ort suchen…" autocomplete="off"
+          oninput="mpAddrSearch(this.value)"
+          onblur="setTimeout(()=>document.getElementById('mp-addr-sugg').style.display='none',300)">
+        <div id="mp-addr-sugg" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);max-height:160px;overflow-y:auto"></div>
       </div>
+      <div id="mp-location-hint" style="font-size:.72rem;color:var(--muted);margin-bottom:.85rem">📍 Kein Ort gewählt — Kartenmitte wird verwendet.</div>
+      <input id="mp-lat" type="hidden" value="0">
+      <input id="mp-lng" type="hidden" value="0">
       <button class="btn-primary" id="mp-submit-btn" onclick="submitCreateMeetpoint()" style="width:100%">📍 Treffpunkt erstellen</button>
     </div>
   </div>
@@ -2056,12 +2154,6 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <input type="hidden" id="ev-lng" value="0">
       <div id="ev-addr-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);max-height:180px;overflow-y:auto"></div>
       <div id="ev-city-err" style="display:none;font-size:.75rem;color:#f0a500;margin-top:.25rem"></div>
-    </div>
-    <div class="field-group" style="margin-bottom:.85rem">
-      <div class="field-label">Für eine Gruppe posten (optional)</div>
-      <select class="field" id="ev-group-id">
-        <option value="">— öffentliches Event —</option>
-      </select>
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
     <div id="ev-error" style="display:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-top:.65rem"></div>
@@ -2521,7 +2613,7 @@ async function submitAuth() {
 
 function showAuthError(msg) {
   const el = document.getElementById('auth-error');
-  el.textContent = msg; el.style.display = '';
+  el.textContent = msg; el.style.display = 'block';
 }
 
 function logout() {
@@ -2843,8 +2935,23 @@ function _initSwipe() {
   const hintL = document.getElementById('swipe-hint-left');
   const hintR = document.getElementById('swipe-hint-right');
 
+  // Attach swipe listeners to edge strips (work on map screen too)
+  [hintL, hintR].forEach(edge => {
+    if (!edge) return;
+    edge.addEventListener('touchstart', e => {
+      _swipeX = e.touches[0].clientX; _swipeY = e.touches[0].clientY; _swipeActive = true;
+    }, {passive: true});
+    edge.addEventListener('touchend', e => {
+      if (!_swipeActive) return; _swipeActive = false;
+      const dx = e.changedTouches[0].clientX - _swipeX;
+      const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
+      if (Math.abs(dx) < 30 || dy > Math.abs(dx)) return;
+      _navigateWorld(dx < 0 ? 1 : -1, dx < 0 ? 'right' : 'left');
+    }, {passive: true});
+  });
+
   app.addEventListener('touchstart', e => {
-    // Disable swipe nav on map screen — Leaflet owns all touch events there
+    // On map screen only allow edge-strip swipes (handled above)
     if (document.getElementById('screen-map')?.classList.contains('active')) return;
     // Ignore touches inside modals, scrolling areas, map elements
     if (e.target.closest('.modal-overlay, .scroll-body, #events-scroll, #events-map, #map-toolbar, #map-info-panel')) return;
@@ -3420,6 +3527,8 @@ function initMap() {
   }
   // Default: Bern centre
   leafletMap = L.map('events-map', {zoomControl:true}).setView([46.9480, 7.4474], 13);
+  leafletMap.on('zoomstart', () => { window._mapZooming = true; });
+  leafletMap.on('zoomend',   () => { setTimeout(() => { window._mapZooming = false; }, 300); });
   const curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const t = MAP_TILES[curTheme === 'light' ? 'dark' : 'light'] || MAP_TILES.dark;
   leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
@@ -3851,15 +3960,6 @@ function openCreateEvent() {
   }
   document.getElementById('ev-error').style.display = 'none';
   ['ev-title','ev-start','ev-city','ev-addr'].forEach(id => clearFieldErr(id));
-  // Populate group selector
-  apiFetch('/api/lobbies').then(groups => {
-    const sel = document.getElementById('ev-group-id');
-    if (!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">— öffentliches Event —</option>' +
-      groups.map(g => `<option value="${g.id}">${groupEmoji(g.type)} ${esc(g.name)}</option>`).join('');
-    if (cur) sel.value = cur;
-  }).catch(() => {});
   // Auto-save draft as user types
   ['ev-title','ev-desc','ev-addr','ev-city'].forEach(id => {
     const el = document.getElementById(id);
@@ -3956,8 +4056,7 @@ async function createEvent() {
       max_participants: parseInt(document.getElementById('ev-max').value)||0,
       address: addr,
       city,
-      ...(lat && lng ? {lat, lng} : {}),
-      ...(document.getElementById('ev-group-id')?.value ? {group_id: parseInt(document.getElementById('ev-group-id').value)} : {})
+      ...(lat && lng ? {lat, lng} : {})
     });
     ['ev-title','ev-desc','ev-addr'].forEach(id => { document.getElementById(id).value = ''; clearFieldErr(id); });
     document.getElementById('ev-lat').value = '0'; document.getElementById('ev-lng').value = '0';
@@ -4998,10 +5097,11 @@ function confirmMapPick() {
   closeModal('modal-map-picker');
 }
 
-// ── Gruppen (formerly Lobbies) ────────────────────────────────────────────
+// ── Gruppen ───────────────────────────────────────────────────────────────
 let _currentLobbyId = null;
 let _currentLobbyRole = null;
 let _currentLobbyCode = null;
+let _currentLobbyType = 'other';
 let _selectedGroupType = 'wg';
 
 const GROUP_TYPE_META = {
@@ -5058,56 +5158,32 @@ async function submitCreateLobby() {
   } catch(e) { errEl.textContent = e.message || 'Fehler'; errEl.style.display = 'block'; }
 }
 
-function switchGroupTab(tab) {
-  document.getElementById('grp-pane-members').style.display = tab === 'members' ? '' : 'none';
-  document.getElementById('grp-pane-events').style.display  = tab === 'events'  ? '' : 'none';
-  document.getElementById('grp-tab-members').classList.toggle('active', tab === 'members');
-  document.getElementById('grp-tab-events').classList.toggle('active', tab === 'events');
-  if (tab === 'events') loadGroupEvents();
-}
 
-async function loadGroupEvents() {
-  if (!_currentLobbyId) return;
-  const el = document.getElementById('grp-events-list');
-  el.innerHTML = '<div class="loading">Lade…</div>';
-  try {
-    const events = await apiFetch(`/api/lobbies/${_currentLobbyId}/events`);
-    if (!events.length) {
-      el.innerHTML = '<p style="font-size:.8rem;color:var(--dim)">Noch keine Events in dieser Gruppe.</p>';
-      return;
-    }
-    el.innerHTML = events.map(e => `
-      <div class="card" style="margin-bottom:.55rem">
-        <div class="card-body" style="padding:.7rem .85rem">
-          <div style="font-weight:700;font-size:.88rem">${esc(e.title)}</div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${new Date(e.starts_at).toLocaleDateString('de-CH',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${esc(e.city||e.address||'')}</div>
-          <div style="font-size:.72rem;color:var(--muted)">${e.participants_count}${e.max_participants?'/'+e.max_participants:''} dabei · ${e.points_reward} Punkte</div>
-        </div>
-      </div>`).join('');
-  } catch(e) { el.innerHTML = '<p style="font-size:.8rem;color:var(--red)">Fehler beim Laden.</p>'; }
-}
-
-function openCreateEventForGroup() {
-  closeModal('modal-lobby-detail');
-  openModal('modal-create-event');
-  const sel = document.getElementById('ev-group-id');
-  if (sel) sel.value = _currentLobbyId;
+function grpTab(tab) {
+  ['content','members','invite'].forEach(t => {
+    document.getElementById(`grppane-${t}`).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById(`grptab-${t}`);
+    btn.style.borderBottomColor = t === tab ? 'var(--accent)' : 'transparent';
+    btn.style.color = t === tab ? 'var(--accent)' : 'var(--dim)';
+    btn.style.fontWeight = t === tab ? '700' : '600';
+  });
+  if (tab === 'content') loadGroupContent();
 }
 
 async function openLobbyDetail(lid) {
   _currentLobbyId = lid;
-  switchGroupTab('members');
+  grpTab('content');
   try {
     const d = await apiFetch(`/api/lobbies/${lid}`);
     _currentLobbyRole = d.my_role;
     _currentLobbyCode = d.lobby.invite_code;
+    _currentLobbyType = d.lobby.type || 'other';
     const meta = GROUP_TYPE_META[d.lobby.type] || GROUP_TYPE_META.other;
     document.getElementById('lobby-detail-title').innerHTML =
       `${meta.emoji} ${esc(d.lobby.name)} <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button>`;
-    document.getElementById('lobby-detail-desc').textContent = d.lobby.description || '';
     _setLobbyInviteUrl(d.lobby.invite_code);
     const oa = document.getElementById('lobby-owner-actions');
-    if (oa) oa.style.display = d.my_role === 'owner' ? 'flex' : 'none';
+    if (oa) oa.style.display = d.my_role === 'owner' ? 'block' : 'none';
     document.getElementById('lobby-members-list').innerHTML = d.members.map(m => {
       const isMe = m.id === (currentUser && currentUser.id);
       const canKick = d.my_role === 'owner' && !isMe && m.role !== 'owner';
@@ -5124,24 +5200,622 @@ async function openLobbyDetail(lid) {
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 
+// ── Group content (type-specific) ─────────────────────────────────────────
+
+async function loadGroupContent() {
+  const el = document.getElementById('grp-content-area');
+  if (!_currentLobbyId) return;
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const [posts, stories] = await Promise.all([
+      apiFetch(`/api/lobbies/${_currentLobbyId}/posts`),
+      apiFetch(`/api/lobbies/${_currentLobbyId}/stories`)
+    ]);
+    el.innerHTML = renderStoriesRow(stories) + renderGroupContent(_currentLobbyType, posts);
+  } catch(e) { el.innerHTML = `<p style="color:var(--red);font-size:.8rem">${e.message}</p>`; }
+}
+
+function renderGroupContent(type, posts) {
+  if (type === 'wg') return renderWG(posts);
+  if (type === 'verein') return renderVerein(posts);
+  if (type === 'gemeinde') return renderGemeinde(posts);
+  return renderGeneric(posts);
+}
+
+// ── WG ────────────────────────────────────────────────────────────────────
+function renderWG(posts) {
+  const announcements = posts.filter(p => p.post_type === 'announcement');
+  const chores        = posts.filter(p => p.post_type === 'chore');
+  const shopping      = posts.filter(p => p.post_type === 'shopping');
+  return `
+    <div style="margin-bottom:1.1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">📌 PINWAND</div>
+        <button onclick="openGrpPostForm('announcement')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Nachricht</button>
+      </div>
+      ${announcements.length ? announcements.map(p => renderAnnouncementCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Noch nichts gepinnt.</p>'}
+    </div>
+    <div style="margin-bottom:1.1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">🧹 AUFGABEN</div>
+        <button onclick="openGrpPostForm('chore')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Aufgabe</button>
+      </div>
+      ${chores.length ? chores.map(p => renderChoreCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Keine offenen Aufgaben.</p>'}
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">🛒 EINKAUFSLISTE</div>
+        <button onclick="openGrpPostForm('shopping')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Item</button>
+      </div>
+      ${shopping.length ? shopping.map(p => renderShoppingCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Liste ist leer.</p>'}
+    </div>`;
+}
+
+// ── Verein ────────────────────────────────────────────────────────────────
+function renderVerein(posts) {
+  const sessions = posts.filter(p => p.post_type === 'wer_kommt');
+  const news     = posts.filter(p => p.post_type === 'announcement');
+  return `
+    <div style="margin-bottom:1.1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">⚽ WER KOMMT?</div>
+        <button onclick="openGrpPostForm('wer_kommt')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Session</button>
+      </div>
+      ${sessions.length ? sessions.map(p => renderWerKommtCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Noch keine Sessions. Erstelle eine!</p>'}
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">📢 NEWS</div>
+        <button onclick="openGrpPostForm('announcement')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Ankündigung</button>
+      </div>
+      ${news.length ? news.map(p => renderAnnouncementCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Keine News.</p>'}
+    </div>`;
+}
+
+// ── Gemeinde ──────────────────────────────────────────────────────────────
+function renderGemeinde(posts) {
+  const announcements = posts.filter(p => p.post_type === 'announcement');
+  const offers        = posts.filter(p => p.post_type === 'chore');
+  return `
+    <div style="margin-bottom:1.1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">📢 ANKÜNDIGUNGEN</div>
+        <button onclick="openGrpPostForm('announcement')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Ankündigung</button>
+      </div>
+      ${announcements.length ? announcements.map(p => renderAnnouncementCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Noch keine Ankündigungen.</p>'}
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">🤝 ANGEBOTE & GESUCHE</div>
+        <button onclick="openGrpPostForm('chore')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Eintrag</button>
+      </div>
+      ${offers.length ? offers.map(p => renderChoreCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Noch keine Einträge.</p>'}
+    </div>`;
+}
+
+// ── Generic ───────────────────────────────────────────────────────────────
+function renderGeneric(posts) {
+  return `
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.05em">💬 BEITRÄGE</div>
+        <button onclick="openGrpPostForm('announcement')" style="background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:700;cursor:pointer">+ Beitrag</button>
+      </div>
+      ${posts.length ? posts.map(p => renderAnnouncementCard(p)).join('') : '<p style="font-size:.78rem;color:var(--dim);padding:.3rem 0">Noch keine Beiträge.</p>'}
+    </div>`;
+}
+
+// ── Card renderers ────────────────────────────────────────────────────────
+function renderAnnouncementCard(p) {
+  return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.75rem .9rem;margin-bottom:.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.2rem">${esc(p.title)}</div>
+        ${p.body ? `<div style="font-size:.78rem;color:var(--muted);line-height:1.4">${esc(p.body)}</div>` : ''}
+        <div style="font-size:.68rem;color:var(--dim);margin-top:.3rem">${esc(p.author_name)} · ${relTime(p.created_at)}</div>
+      </div>
+      <button onclick="deleteGrpPost(${p.id})" style="background:none;border:none;color:var(--dim);font-size:.8rem;cursor:pointer;flex-shrink:0;padding:.1rem .3rem">✕</button>
+    </div>
+  </div>`;
+}
+
+function renderChoreCard(p) {
+  const done = !!p.done;
+  return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .6rem;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:.4rem;${done ? 'opacity:.55' : ''}">
+    <button onclick="toggleGrpPostDone(${p.id},${done})" style="width:22px;height:22px;border-radius:50%;border:2px solid ${done ? 'var(--accent)' : 'var(--border)'};background:${done ? 'var(--accent)' : 'transparent'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem">${done ? '✓' : ''}</button>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.85rem;font-weight:600;color:var(--text);${done ? 'text-decoration:line-through' : ''}">${esc(p.title)}</div>
+      <div style="font-size:.68rem;color:var(--dim)">${esc(p.author_name)} · ${relTime(p.created_at)}</div>
+    </div>
+    <button onclick="deleteGrpPost(${p.id})" style="background:none;border:none;color:var(--dim);font-size:.75rem;cursor:pointer">✕</button>
+  </div>`;
+}
+
+function renderShoppingCard(p) {
+  const done = !!p.done;
+  return `<div style="display:flex;align-items:center;gap:.65rem;padding:.45rem .6rem;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:.35rem;${done ? 'opacity:.5' : ''}">
+    <button onclick="toggleGrpPostDone(${p.id},${done})" style="width:20px;height:20px;border-radius:4px;border:2px solid ${done ? 'var(--accent)' : 'var(--border)'};background:${done ? 'var(--accent)' : 'transparent'};cursor:pointer;flex-shrink:0;font-size:.7rem;display:flex;align-items:center;justify-content:center">${done ? '✓' : ''}</button>
+    <div style="flex:1;font-size:.85rem;color:var(--text);${done ? 'text-decoration:line-through' : ''}">${esc(p.title)}</div>
+    <button onclick="deleteGrpPost(${p.id})" style="background:none;border:none;color:var(--dim);font-size:.75rem;cursor:pointer">✕</button>
+  </div>`;
+}
+
+function renderWerKommtCard(p) {
+  let meta = {}; try { meta = JSON.parse(p.meta||'{}'); } catch {}
+  const when = meta.when || '';
+  const yes = p.yes_count || 0;
+  const no  = p.no_count  || 0;
+  const myR = p.my_reaction;
+  return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:.85rem .9rem;margin-bottom:.6rem">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--text)">${esc(p.title)}</div>
+        ${when ? `<div style="font-size:.75rem;color:var(--accent);margin-top:.15rem">🕐 ${esc(when)}</div>` : ''}
+        <div style="font-size:.68rem;color:var(--dim);margin-top:.2rem">${esc(p.author_name)} · ${relTime(p.created_at)}</div>
+      </div>
+      <button onclick="deleteGrpPost(${p.id})" style="background:none;border:none;color:var(--dim);font-size:.8rem;cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-top:.75rem">
+      <button onclick="reactGrpPost(${p.id},'yes',this)" data-reaction="${myR||''}"
+        style="flex:1;padding:.45rem;border-radius:8px;border:2px solid ${myR==='yes' ? 'var(--accent)' : 'var(--border)'};background:${myR==='yes' ? 'rgba(16,185,129,.12)' : 'transparent'};color:${myR==='yes' ? 'var(--accent)' : 'var(--muted)'};font-size:.82rem;font-weight:700;cursor:pointer">
+        ✅ Ja <span style="font-size:.75rem;font-weight:400">${yes}</span>
+      </button>
+      <button onclick="reactGrpPost(${p.id},'no',this)" data-reaction="${myR||''}"
+        style="flex:1;padding:.45rem;border-radius:8px;border:2px solid ${myR==='no' ? 'var(--red)' : 'var(--border)'};background:${myR==='no' ? 'rgba(239,68,68,.1)' : 'transparent'};color:${myR==='no' ? 'var(--red)' : 'var(--muted)'};font-size:.82rem;font-weight:700;cursor:pointer">
+        ❌ Nein <span style="font-size:.75rem;font-weight:400">${no}</span>
+      </button>
+    </div>
+  </div>`;
+}
+
+function relTime(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso.replace(' ','T'))) / 1000;
+  if (diff < 60) return 'gerade eben';
+  if (diff < 3600) return `vor ${Math.floor(diff/60)} Min.`;
+  if (diff < 86400) return `vor ${Math.floor(diff/3600)} Std.`;
+  return new Date(iso.replace(' ','T')).toLocaleDateString('de-CH',{day:'numeric',month:'short'});
+}
+
+// ── Post actions ──────────────────────────────────────────────────────────
+async function toggleGrpPostDone(pid, currently) {
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/posts/${pid}`, 'PATCH', {done: !currently});
+    loadGroupContent();
+  } catch(e) { showToast(e.message); }
+}
+
+async function deleteGrpPost(pid) {
+  if (!confirm('Eintrag löschen?')) return;
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/posts/${pid}`, 'DELETE');
+    loadGroupContent();
+  } catch(e) { showToast(e.message); }
+}
+
+async function reactGrpPost(pid, reaction, btn) {
+  try {
+    const r = await apiFetch(`/api/lobbies/${_currentLobbyId}/posts/${pid}/react`, 'POST', {reaction});
+    loadGroupContent();
+  } catch(e) { showToast(e.message); }
+}
+
+// ── Create post form (inline modal) ──────────────────────────────────────
+let _grpPostType = 'announcement';
+
+function openGrpPostForm(type) {
+  _grpPostType = type;
+  const labels = {
+    announcement: { title: 'Nachricht / Ankündigung', placeholder: 'Was möchtest du mitteilen?', body: true, when: false },
+    chore:        { title: 'Aufgabe', placeholder: 'Was muss erledigt werden?', body: false, when: false },
+    shopping:     { title: 'Einkaufsitem', placeholder: 'Was fehlt?', body: false, when: false },
+    wer_kommt:    { title: 'Wer kommt?', placeholder: 'z.B. Training heute Abend', body: false, when: true },
+  };
+  const l = labels[type] || labels.announcement;
+  document.getElementById('grp-post-modal-title').textContent = l.title;
+  document.getElementById('grp-post-title-input').placeholder = l.placeholder;
+  document.getElementById('grp-post-body-wrap').style.display = l.body ? '' : 'none';
+  document.getElementById('grp-post-when-wrap').style.display = l.when ? '' : 'none';
+  document.getElementById('grp-post-title-input').value = '';
+  document.getElementById('grp-post-body-input').value = '';
+  document.getElementById('grp-post-when-input').value = '';
+  openModal('modal-grp-post');
+}
+
+async function submitGrpPost() {
+  const title = document.getElementById('grp-post-title-input').value.trim();
+  if (!title) { showToast('Titel eingeben'); return; }
+  const body = document.getElementById('grp-post-body-input').value.trim();
+  const when = document.getElementById('grp-post-when-input').value.trim();
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/posts`, 'POST', {
+      post_type: _grpPostType, title, body,
+      meta: when ? {when} : {}
+    });
+    closeModal('modal-grp-post');
+    loadGroupContent();
+  } catch(e) { showToast(e.message); }
+}
+
+// ── Group Stories ─────────────────────────────────────────────────────────
+
+function renderStoriesRow(stories) {
+  const addBtn = `
+    <div onclick="openStoryCamera()" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.3rem;cursor:pointer">
+      <div style="width:56px;height:56px;border-radius:50%;border:2px dashed var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:var(--card2)">+</div>
+      <span style="font-size:.6rem;color:var(--accent);font-weight:700">Story</span>
+    </div>`;
+  if (!stories.length) return `
+    <div style="display:flex;gap:.75rem;align-items:flex-end;padding:.5rem 0 1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      ${addBtn}
+      <span style="font-size:.75rem;color:var(--dim);align-self:center">Noch keine Stories — teile was du gerade machst!</span>
+    </div>`;
+  return `
+    <div style="display:flex;gap:.75rem;align-items:flex-end;padding:.5rem 0 1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      ${addBtn}
+      ${stories.map(s => {
+        const mine = s.author_id === (currentUser && currentUser.id);
+        const mins = Math.max(0, Math.round((new Date(s.expires_at+'Z') - Date.now()) / 60000));
+        return `<div onclick="openStoryViewer(${s.id})" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.3rem;cursor:pointer">
+          <div style="width:56px;height:56px;border-radius:50%;border:2.5px solid var(--accent);overflow:hidden;position:relative">
+            ${s.media_type==='video'
+              ? `<video src="${s.media_data}" style="width:100%;height:100%;object-fit:cover" muted playsinline></video>`
+              : `<img src="${s.media_data}" style="width:100%;height:100%;object-fit:cover">`}
+            ${mine ? `<div onclick="event.stopPropagation();deleteStory(${s.id})" style="position:absolute;top:0;right:0;background:rgba(0,0,0,.5);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#fff">✕</div>` : ''}
+          </div>
+          <span style="font-size:.58rem;color:var(--muted);font-weight:600">${esc(s.author_name.split(' ')[0])}</span>
+          <span style="font-size:.55rem;color:var(--dim)">${mins}m</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+let _currentStoryId = null;
+let _storyViewerData = null;
+
+async function openStoryViewer(sid) {
+  _currentStoryId = sid;
+  const el = document.getElementById('story-viewer-content');
+  el.innerHTML = '<div class="loading" style="color:#fff">Lade…</div>';
+  openModal('modal-story-viewer');
+  try {
+    const [stories, comments] = await Promise.all([
+      apiFetch(`/api/lobbies/${_currentLobbyId}/stories`),
+      apiFetch(`/api/stories/${sid}/comments`)
+    ]);
+    const s = stories.find(x => x.id === sid);
+    if (!s) { closeModal('modal-story-viewer'); return; }
+    _storyViewerData = s;
+    const mins = Math.max(0, Math.round((new Date(s.expires_at+'Z') - Date.now()) / 60000));
+    const reactionCounts = {};
+    (s.reactions_raw || '').split(',').filter(Boolean).forEach(e => reactionCounts[e] = (reactionCounts[e]||0)+1);
+    el.innerHTML = `
+      <div style="position:relative;width:100%;aspect-ratio:9/16;max-height:60dvh;background:#000;border-radius:16px;overflow:hidden;margin-bottom:.75rem">
+        ${s.media_type==='video'
+          ? `<video src="${s.media_data}" style="width:100%;height:100%;object-fit:cover" autoplay muted playsinline loop></video>`
+          : `<img src="${s.media_data}" style="width:100%;height:100%;object-fit:cover">`}
+        <div style="position:absolute;top:.75rem;left:.75rem;right:.75rem;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;color:#000">${esc((s.author_name||'?')[0].toUpperCase())}</div>
+            <span style="font-size:.75rem;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)">${esc(s.author_name)}</span>
+          </div>
+          <span style="font-size:.68rem;color:rgba(255,255,255,.8);background:rgba(0,0,0,.4);padding:.15rem .4rem;border-radius:99px">⏱ ${mins} Min.</span>
+        </div>
+        ${s.caption ? `<div style="position:absolute;bottom:.75rem;left:.75rem;right:.75rem;color:#fff;font-size:.82rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.8)">${esc(s.caption)}</div>` : ''}
+      </div>
+      <div style="display:flex;justify-content:center;gap:.75rem;margin-bottom:.75rem">
+        ${['🥳','🎉','🌋','🔆'].map(e => `
+          <button onclick="reactStory('${e}',this)" style="font-size:1.4rem;background:${s.my_reaction===e?'var(--card2)':'transparent'};border:2px solid ${s.my_reaction===e?'var(--accent)':'var(--border)'};border-radius:12px;padding:.3rem .5rem;cursor:pointer;line-height:1;transition:all .15s">
+            ${e}<span style="font-size:.65rem;color:var(--muted);display:block;text-align:center">${reactionCounts[e]||''}</span>
+          </button>`).join('')}
+      </div>
+      <div id="story-comments" style="max-height:140px;overflow-y:auto;margin-bottom:.5rem">
+        ${comments.map(c => `<div style="font-size:.78rem;margin-bottom:.3rem"><span style="font-weight:700;color:var(--accent)">${esc(c.author_name.split(' ')[0])}</span> ${esc(c.text)}</div>`).join('') || '<p style="font-size:.75rem;color:var(--dim)">Noch keine Kommentare.</p>'}
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <input id="story-comment-input" class="form-input" style="flex:1;font-size:.82rem" placeholder="hey so cool…" onkeydown="if(event.key==='Enter')postStoryComment()">
+        <button onclick="postStoryComment()" style="background:var(--accent);color:#000;border:none;border-radius:10px;padding:.45rem .75rem;font-weight:700;cursor:pointer">→</button>
+      </div>`;
+  } catch(e) { el.innerHTML = `<p style="color:var(--red)">${e.message}</p>`; }
+}
+
+async function reactStory(emoji) {
+  if (!_currentStoryId) return;
+  try {
+    await apiFetch(`/api/stories/${_currentStoryId}/react`, 'POST', {emoji});
+    openStoryViewer(_currentStoryId);
+  } catch(e) { showToast(e.message); }
+}
+
+async function postStoryComment() {
+  const inp = document.getElementById('story-comment-input');
+  const text = inp?.value.trim();
+  if (!text || !_currentStoryId) return;
+  try {
+    await apiFetch(`/api/stories/${_currentStoryId}/comments`, 'POST', {text});
+    inp.value = '';
+    openStoryViewer(_currentStoryId);
+  } catch(e) { showToast(e.message); }
+}
+
+async function deleteStory(sid) {
+  if (!confirm('Story löschen?')) return;
+  try {
+    await apiFetch(`/api/stories/${sid}`, 'DELETE');
+    loadGroupContent();
+  } catch(e) { showToast(e.message); }
+}
+
+// ── Story Camera ──────────────────────────────────────────────────────────
+let _cameraStream = null;
+let _mediaRecorder = null;
+let _recordedChunks = [];
+let _recordingTimer = null;
+let _isRecording = false;
+
+async function openStoryCamera() {
+  openModal('modal-story-camera');
+  const video = document.getElementById('story-camera-preview');
+  const err = document.getElementById('story-camera-err');
+  err.style.display = 'none';
+  try {
+    _cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    video.srcObject = _cameraStream;
+    video.play();
+  } catch(e) {
+    err.textContent = 'Kamera konnte nicht geöffnet werden: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+function stopCameraStream() {
+  if (_cameraStream) { _cameraStream.getTracks().forEach(t => t.stop()); _cameraStream = null; }
+  if (_recordingTimer) { clearTimeout(_recordingTimer); _recordingTimer = null; }
+  if (_mediaRecorder && _isRecording) { try { _mediaRecorder.stop(); } catch {} }
+  _isRecording = false;
+}
+
+function closeStoryCamera() {
+  stopCameraStream();
+  closeModal('modal-story-camera');
+}
+
+function captureStoryPhoto() {
+  const video = document.getElementById('story-camera-preview');
+  const canvas = document.createElement('canvas');
+  canvas.width = 640; canvas.height = Math.round(640 * video.videoHeight / video.videoWidth) || 854;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+  stopCameraStream();
+  closeModal('modal-story-camera');
+  openStoryPreview(dataUrl, 'photo');
+}
+
+function startStoryRecording() {
+  const video = document.getElementById('story-camera-preview');
+  if (!_cameraStream || _isRecording) return;
+  _recordedChunks = [];
+  _isRecording = true;
+  const btn = document.getElementById('story-record-btn');
+  btn.textContent = '⏹ Stop (15s)'; btn.style.background = 'var(--red)';
+  const progressEl = document.getElementById('story-record-progress');
+  progressEl.style.display = 'block';
+  let elapsed = 0;
+  const tick = setInterval(() => { elapsed++; progressEl.textContent = `${elapsed}s / 15s`; }, 1000);
+
+  _mediaRecorder = new MediaRecorder(_cameraStream, {mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 600000});
+  _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
+  _mediaRecorder.onstop = () => {
+    clearInterval(tick);
+    const blob = new Blob(_recordedChunks, {type:'video/webm'});
+    const reader = new FileReader();
+    reader.onload = () => {
+      stopCameraStream();
+      closeModal('modal-story-camera');
+      openStoryPreview(reader.result, 'video');
+    };
+    reader.readAsDataURL(blob);
+  };
+  _mediaRecorder.start();
+  _recordingTimer = setTimeout(() => { if (_isRecording) stopStoryRecording(); }, 15000);
+}
+
+function stopStoryRecording() {
+  if (_mediaRecorder && _isRecording) { _mediaRecorder.stop(); _isRecording = false; }
+  if (_recordingTimer) { clearTimeout(_recordingTimer); _recordingTimer = null; }
+  const btn = document.getElementById('story-record-btn');
+  if (btn) { btn.textContent = '🎬 Video aufnehmen (15s)'; btn.style.background = ''; }
+}
+
+function openStoryPreview(dataUrl, type) {
+  document.getElementById('story-preview-container').innerHTML = type === 'video'
+    ? `<video src="${dataUrl}" style="max-width:100%;max-height:280px;border-radius:12px;object-fit:cover" autoplay muted playsinline loop></video>`
+    : `<img src="${dataUrl}" style="max-width:100%;max-height:280px;border-radius:12px;object-fit:cover">`;
+  document.getElementById('story-preview-data').value = dataUrl;
+  document.getElementById('story-preview-type').value = type;
+  openModal('modal-story-preview');
+}
+
+async function submitStory() {
+  const media_data = document.getElementById('story-preview-data').value;
+  const media_type = document.getElementById('story-preview-type').value;
+  const caption = document.getElementById('story-caption-input').value.trim();
+  if (!media_data) { showToast('Kein Bild / Video'); return; }
+  const btn = document.getElementById('story-submit-btn');
+  btn.disabled = true; btn.textContent = 'Wird geteilt…';
+  try {
+    await apiFetch(`/api/lobbies/${_currentLobbyId}/stories`, 'POST', {media_data, media_type, caption});
+    closeModal('modal-story-preview');
+    document.getElementById('story-caption-input').value = '';
+    loadGroupContent();
+    showToast('✓ Story geteilt! +10 Punkte');
+    await refreshPoints();
+  } catch(e) { showToast(e.message||'Fehler'); }
+  finally { btn.disabled = false; btn.textContent = '✓ Story teilen'; }
+}
+
+// ── AR Bubbles ────────────────────────────────────────────────────────────
+let _arStream = null;
+let _arAnimFrame = null;
+let _arHeading = 0;
+let _arPos = null;
+let _arBubbles = [];
+let _arSelected = null;
+
+async function openARView() {
+  openModal('modal-ar');
+  const video = document.getElementById('ar-camera');
+  const overlay = document.getElementById('ar-overlay');
+  const err = document.getElementById('ar-err');
+  err.style.display = 'none';
+  overlay.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.6);margin-top:40px;font-size:.82rem">Kompass + GPS wird aktiviert…</div>';
+  try {
+    _arStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    video.srcObject = _arStream; video.play();
+  } catch(e) { err.textContent = 'Kamera: ' + e.message; err.style.display='block'; return; }
+
+  if ('DeviceOrientationEvent' in window) {
+    const req = DeviceOrientationEvent.requestPermission;
+    if (typeof req === 'function') { try { await req(); } catch {} }
+    window.addEventListener('deviceorientationabsolute', _arOrient, true);
+    window.addEventListener('deviceorientation', _arOrient, true);
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    _arPos = pos.coords;
+    try {
+      const city = currentUser?.city || '';
+      _arBubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
+    } catch {}
+    _arLoop(overlay);
+  }, () => { err.textContent = 'GPS nicht verfügbar.'; err.style.display='block'; });
+}
+
+function _arOrient(e) {
+  const alpha = e.webkitCompassHeading ?? (e.alpha ? (360 - e.alpha) : null);
+  if (alpha !== null) _arHeading = alpha;
+}
+
+function _arBearing(lat1,lng1,lat2,lng2) {
+  const dL = (lng2-lng1)*Math.PI/180, la1=lat1*Math.PI/180, la2=lat2*Math.PI/180;
+  return (Math.atan2(Math.sin(dL)*Math.cos(la2), Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dL))*180/Math.PI+360)%360;
+}
+function _arDist(lat1,lng1,lat2,lng2) {
+  const R=6371000,dLa=(lat2-lat1)*Math.PI/180,dLo=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function _arSelectBubble(id) {
+  _arSelected = _arBubbles.find(b => b.id === id) || null;
+  _arRenderCard();
+}
+
+function _arRenderCard() {
+  const existing = document.getElementById('ar-bubble-card');
+  if (existing) existing.remove();
+  if (!_arSelected) return;
+  const b = _arSelected;
+  const dist = _arPos ? _arDist(_arPos.latitude, _arPos.longitude, b.lat, b.lng) : null;
+  const distLabel = dist !== null ? (dist < 1000 ? `${Math.round(dist)} m away` : `${(dist/1000).toFixed(1)} km away`) : '';
+  const isMe = currentUser && b.owner_id === currentUser.id;
+  const expires = b.expires_at ? new Date(b.expires_at + 'Z').toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+  const card = document.createElement('div');
+  card.id = 'ar-bubble-card';
+  card.style.cssText = 'position:absolute;bottom:1.5rem;left:1rem;right:1rem;background:rgba(15,15,20,.9);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,.4);border-radius:16px;padding:1rem;z-index:10;color:#fff';
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(139,92,246,.3);border:2px solid rgba(139,92,246,.7);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${b.emoji||'🫧'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.display_name||'Bubble')}${isMe ? ' <span style="font-size:.65rem;background:rgba(99,230,190,.2);color:#63e6be;border-radius:4px;padding:.1rem .35rem;font-weight:600">YOU</span>' : ''}</div>
+        <div style="font-size:.75rem;color:rgba(139,92,246,.9);font-weight:600;margin-top:.1rem">${distLabel}</div>
+      </div>
+      <button onclick="_arSelected=null;_arRenderCard()" style="background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:.8rem;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+    ${b.title ? `<div style="margin-top:.65rem;font-size:.88rem;font-weight:600">${esc(b.title)}</div>` : ''}
+    ${b.description ? `<div style="margin-top:.3rem;font-size:.78rem;color:rgba(255,255,255,.7);line-height:1.4">${esc(b.description)}</div>` : ''}
+    <div style="margin-top:.6rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      ${b.address ? `<span style="font-size:.68rem;background:rgba(255,255,255,.08);border-radius:6px;padding:.2rem .5rem">📍 ${esc(b.address.slice(0,30))}</span>` : ''}
+      ${expires ? `<span style="font-size:.68rem;background:rgba(255,255,255,.08);border-radius:6px;padding:.2rem .5rem">⏱ until ${expires}</span>` : ''}
+      ${b.is_hangout ? `<span style="font-size:.68rem;background:rgba(99,102,241,.2);border-radius:6px;padding:.2rem .5rem">👥 ${b.join_count||0}/${b.max_attendees||'∞'}</span>` : ''}
+      ${b.location_blurred ? `<span style="font-size:.68rem;background:rgba(251,191,36,.15);color:#fbbf24;border-radius:6px;padding:.2rem .5rem">📍 approx. location</span>` : ''}
+    </div>`;
+  document.getElementById('modal-ar').querySelector('div').appendChild(card);
+}
+
+function _arLoop(overlay) {
+  if (!document.getElementById('modal-ar')?.classList.contains('active')) return;
+  if (!_arPos || !_arBubbles.length) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
+  const FOV = 70, W = overlay.offsetWidth, H = overlay.offsetHeight;
+  const myId = currentUser?.id;
+  const pins = _arBubbles.filter(b => b.lat && b.lng).map(b => {
+    const bearing = _arBearing(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
+    const dist = _arDist(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
+    let diff = ((bearing - _arHeading + 540) % 360) - 180;
+    const x = W/2 + (diff / FOV) * W;
+    const distLabel = dist < 1000 ? `${Math.round(dist)}m` : `${(dist/1000).toFixed(1)}km`;
+    const isMe = b.owner_id === myId;
+    return {b, x, dist, distLabel, isMe, visible: Math.abs(diff) < FOV*0.6};
+  }).filter(p => p.visible).sort((a,b) => a.dist-b.dist).slice(0,8);
+
+  overlay.innerHTML = pins.map(({b,x,dist,distLabel,isMe}) => {
+    // size shrinks with distance: 56px at 0m → 20px at 2000m+
+    const size = Math.max(20, Math.round(56 * Math.max(0, 1 - dist / 2000)));
+    const y = Math.max(60, H*0.2 + Math.min(dist/15, H*0.35));
+    const color = isMe ? 'rgba(99,230,190,' : 'rgba(139,92,246,';
+    const selected = _arSelected?.id === b.id;
+    return `<div style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);text-align:center;pointer-events:auto;cursor:pointer" onclick="_arSelectBubble(${b.id})">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color}.3);border:2px solid ${color}${selected?'1':'0.75'});box-shadow:${selected?`0 0 12px ${color}.6)`:'none'};display:flex;align-items:center;justify-content:center;font-size:${Math.max(10,size*0.42)}px;animation:pulseAura 2s infinite;margin:0 auto;transition:box-shadow .15s">
+        ${size > 28 ? (b.emoji||'🫧') : ''}
+      </div>
+      ${size > 22 ? `<div style="background:rgba(0,0,0,.7);color:#fff;border-radius:5px;padding:.1rem .35rem;font-size:${Math.max(8,size*0.22)}px;font-weight:700;margin-top:.2rem;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis">${esc((b.display_name||'Bubble').slice(0,12))}</div>` : ''}
+      <div style="color:rgba(255,255,255,.65);font-size:${Math.max(7,size*0.18)}px">${distLabel}</div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;color:rgba(255,255,255,.5);margin-top:40px;font-size:.8rem">No bubbles in view</div>';
+
+  _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay));
+}
+
+function closeARView() {
+  if (_arStream) { _arStream.getTracks().forEach(t=>t.stop()); _arStream=null; }
+  if (_arAnimFrame) { cancelAnimationFrame(_arAnimFrame); _arAnimFrame=null; }
+  window.removeEventListener('deviceorientationabsolute', _arOrient, true);
+  window.removeEventListener('deviceorientation', _arOrient, true);
+  _arSelected = null;
+  document.getElementById('ar-bubble-card')?.remove();
+  closeModal('modal-ar');
+}
+
 function _setLobbyInviteUrl(code) {
   const url = `${location.origin}?invite=${code}`;
   const inp = document.getElementById('lobby-invite-url');
+  const display = document.getElementById('lobby-invite-url-display');
   if (inp) inp.value = url;
+  if (display) display.textContent = url;
   _currentLobbyCode = code;
 }
 
 function copyLobbyInvite() {
   const url = document.getElementById('lobby-invite-url')?.value;
   if (!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('✓ Link kopiert!');
+    const btn = document.querySelector('[onclick="copyLobbyInvite()"]');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Kopiert!'; setTimeout(() => btn.textContent = orig, 1800); }
+  }).catch(() => {
+    const display = document.getElementById('lobby-invite-url-display');
+    if (display) { const r = document.createRange(); r.selectNode(display); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); document.execCommand('copy'); }
+    showToast('✓ Link kopiert!');
+  });
+}
+
+function shareLobbyInvite() {
+  const url = document.getElementById('lobby-invite-url')?.value;
+  if (!url) return;
   if (navigator.share) {
     navigator.share({ title: 'Konnekt Gruppe', url }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(url).then(() => showToast('Link kopiert!')).catch(() => {
-      document.getElementById('lobby-invite-url').select();
-      document.execCommand('copy');
-      showToast('Link kopiert!');
-    });
+    copyLobbyInvite();
   }
 }
 
@@ -5813,9 +6487,14 @@ async function sendMagicLink() {
   if (!email) { showToast('E-Mail eingeben'); return; }
   btn.disabled = true; btn.textContent = 'Wird gesendet…';
   try {
-    await apiFetch('/api/auth/magic', 'POST', {email});
-    document.getElementById('magic-msg').textContent = `✓ Magic Link wurde an ${email} gesendet! Bitte dein Postfach prüfen.`;
-    document.getElementById('magic-msg').style.display = 'block';
+    const res = await apiFetch('/api/auth/magic', 'POST', {email});
+    const msgEl = document.getElementById('magic-msg');
+    if (res.dev_url) {
+      msgEl.innerHTML = `✓ Kein E-Mail-Dienst konfiguriert. Klick direkt hier zum Anmelden:<br><br><a href="${res.dev_url}" style="color:var(--accent);word-break:break-all;font-size:.78rem">${res.dev_url}</a>`;
+    } else {
+      msgEl.textContent = `✓ Magic Link wurde an ${email} gesendet! Bitte dein Postfach prüfen.`;
+    }
+    msgEl.style.display = 'block';
     btn.textContent = '✓ Gesendet';
   } catch(e) {
     btn.disabled = false; btn.textContent = '✉️ Magic Link senden';
@@ -6863,8 +7542,8 @@ function setMapMode(mode) {
   const loBtn = document.getElementById('map-show-lonely-btn');
   const mpBtn = document.getElementById('map-show-meetpoints-btn');
 
-  // Reset all buttons to inactive style
-  [evBtn, buBtn, shBtn, loBtn, mpBtn].forEach(b => { if (b) { b.style.background = 'var(--card)'; b.style.color = 'var(--muted)'; b.style.border = '1px solid var(--border)'; } });
+  // Reset all filter buttons
+  document.querySelectorAll('.map-filter-btn').forEach(b => b.classList.remove('active-filter'));
 
   // Clear all markers + reset counter
   eventMapMarkers.forEach(m => leafletMap.removeLayer(m)); eventMapMarkers = [];
@@ -6876,25 +7555,18 @@ function setMapMode(mode) {
   const _ct = document.getElementById('map-counter-text'); if (_ct) _ct.textContent = '…';
   _lonelyMarkers.forEach(m => m.remove()); _lonelyMarkers = [];
 
-  if (mode === 'events') {
-    evBtn.style.background = 'var(--text)'; evBtn.style.color = 'var(--bg)'; evBtn.style.border = 'none';
-    loadMapEvents();
-  } else if (mode === 'bubbles') {
-    buBtn.style.background = 'var(--text)'; buBtn.style.color = 'var(--bg)'; buBtn.style.border = 'none';
-    loadMapBubbles();
-  } else if (mode === 'shops') {
-    shBtn.style.background = 'var(--text)'; shBtn.style.color = 'var(--bg)'; shBtn.style.border = 'none';
-    loadMapShops();
-  } else if (mode === 'lonely') {
-    if (loBtn) { loBtn.style.background = 'var(--text)'; loBtn.style.color = 'var(--bg)'; loBtn.style.border = 'none'; }
-    loadLonelyMapLayer();
-  } else if (mode === 'meetpoints') {
-    if (mpBtn) { mpBtn.style.background = 'var(--orange)'; mpBtn.style.color = '#fff'; mpBtn.style.border = 'none'; }
+  const modeBtn = {events:evBtn, bubbles:buBtn, shops:shBtn, lonely:loBtn, meetpoints:mpBtn}[mode];
+  if (modeBtn) modeBtn.classList.add('active-filter');
+
+  if (mode === 'events')      loadMapEvents();
+  else if (mode === 'bubbles') loadMapBubbles();
+  else if (mode === 'shops')   loadMapShops();
+  else if (mode === 'lonely')  loadLonelyMapLayer();
+  else if (mode === 'meetpoints') {
     const mpCBtn = document.getElementById('map-meetpoint-btn');
     if (mpCBtn) mpCBtn.style.display = 'flex';
     loadMapMeetpoints();
   }
-  // hide meetpoint create btn unless in meetpoints mode
   if (mode !== 'meetpoints') { const b = document.getElementById('map-meetpoint-btn'); if (b) b.style.display = 'none'; }
 }
 
@@ -6933,32 +7605,74 @@ async function checkinMeetpoint(mid, btn) {
 }
 
 function openCreateMeetpoint() {
-  const center = leafletMap ? leafletMap.getCenter() : {lat:0,lng:0};
   document.getElementById('mp-name').value = '';
   document.getElementById('mp-emoji').value = '📍';
   document.getElementById('mp-schedule').value = '';
   document.getElementById('mp-desc').value = '';
-  document.getElementById('mp-lat').value = center.lat.toFixed(6);
-  document.getElementById('mp-lng').value = center.lng.toFixed(6);
+  document.getElementById('mp-addr').value = '';
+  document.getElementById('mp-lat').value = '0';
+  document.getElementById('mp-lng').value = '0';
+  document.getElementById('mp-location-hint').textContent = '📍 Kein Ort gewählt — Kartenmitte wird verwendet.';
   openModal('modal-meetpoint');
+}
+
+let _mpAddrTimer = null;
+async function mpAddrSearch(q) {
+  clearTimeout(_mpAddrTimer);
+  const sugg = document.getElementById('mp-addr-sugg');
+  if (q.length < 3) { sugg.style.display = 'none'; return; }
+  _mpAddrTimer = setTimeout(async () => {
+    try {
+      const city = currentUser?.city || 'Schweiz';
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+' '+city)}&format=json&limit=4&countrycodes=ch`);
+      const results = await res.json();
+      if (!results.length) { sugg.style.display = 'none'; return; }
+      sugg.innerHTML = results.map(r => `
+        <div onclick="mpPickAddr(${r.lat},${r.lon},'${esc(r.display_name.split(',').slice(0,2).join(', '))}')"
+          style="padding:.55rem .85rem;font-size:.82rem;cursor:pointer;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background=''">
+          ${esc(r.display_name.split(',').slice(0,3).join(', '))}
+        </div>`).join('');
+      sugg.style.display = 'block';
+    } catch {}
+  }, 400);
+}
+
+function mpPickAddr(lat, lng, label) {
+  document.getElementById('mp-lat').value = lat;
+  document.getElementById('mp-lng').value = lng;
+  document.getElementById('mp-addr').value = label;
+  document.getElementById('mp-addr-sugg').style.display = 'none';
+  document.getElementById('mp-location-hint').textContent = `✓ ${label}`;
+  document.getElementById('mp-location-hint').style.color = 'var(--accent)';
 }
 
 async function submitCreateMeetpoint() {
   const name = document.getElementById('mp-name').value.trim();
-  if (!name) return;
+  if (!name) { showToast('Name eingeben'); return; }
+  let lat = parseFloat(document.getElementById('mp-lat').value) || 0;
+  let lng = parseFloat(document.getElementById('mp-lng').value) || 0;
+  if (!lat || !lng) {
+    const center = leafletMap ? leafletMap.getCenter() : {lat: 46.948, lng: 7.447};
+    lat = center.lat; lng = center.lng;
+  }
   const btn = document.getElementById('mp-submit-btn');
-  btn.disabled = true;
+  btn.disabled = true; btn.textContent = 'Wird erstellt…';
   try {
-    await apiFetch('/api/meetpoints', {method:'POST', body: JSON.stringify({
+    await apiFetch('/api/meetpoints', 'POST', {
       name, emoji: document.getElementById('mp-emoji').value || '📍',
       schedule: document.getElementById('mp-schedule').value.trim(),
       description: document.getElementById('mp-desc').value.trim(),
-      lat: parseFloat(document.getElementById('mp-lat').value),
-      lng: parseFloat(document.getElementById('mp-lng').value)
-    })});
+      lat, lng
+    });
     closeModal('modal-meetpoint');
     setMapMode('meetpoints');
-  } catch(e) { btn.disabled = false; }
+    showToast('✓ Treffpunkt erstellt!');
+  } catch(e) {
+    showToast(e.message || 'Fehler');
+  } finally {
+    btn.disabled = false; btn.textContent = '📍 Treffpunkt erstellen';
+  }
 }
 
 async function loadMapShops() {
