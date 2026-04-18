@@ -803,6 +803,12 @@ input.field:focus, select.field:focus {
   transition: all .15s;
 }
 .deed-cat.active { border-color: var(--accent); color: var(--accent); background: var(--card2); }
+.group-type-btn {
+  background: var(--card2); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: .55rem; font-size: .82rem; font-weight: 600; color: var(--dim); cursor: pointer;
+  transition: all .15s;
+}
+.group-type-btn.active { border-color: var(--accent); color: var(--accent); background: var(--card2); }
 textarea.ta {
   background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
   padding: .75rem; color: var(--text); font-family: inherit; font-size: .88rem;
@@ -1356,10 +1362,10 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <p>Verbinde dich mit Menschen in deiner Nähe. Besuche Senioren. Tausche Fähigkeiten. Hinterlasse Gutes.</p>
       </div>
 
-      <!-- Private Lobbys -->
-      <div class="section-title" style="margin-bottom:.5rem"><span class="section-dot" style="background:var(--purple)"></span> Meine Lobbys</div>
+      <!-- Gruppen -->
+      <div class="section-title" style="margin-bottom:.5rem"><span class="section-dot" style="background:var(--purple)"></span> Meine Gruppen</div>
       <div id="lobbies-list"></div>
-      <button class="btn-secondary" style="width:100%;margin-bottom:1rem" onclick="openModal('modal-create-lobby')">+ Neue Lobby erstellen</button>
+      <button class="btn-secondary" style="width:100%;margin-bottom:1rem" onclick="openModal('modal-create-lobby')">+ Neue Gruppe erstellen</button>
 
       <!-- SOS / Notfall Button -->
       <div class="sos-card">
@@ -1644,41 +1650,60 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 <div class="modal-overlay" id="modal-create-lobby">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">🔒 Neue Lobby <button class="modal-close" onclick="closeModal('modal-create-lobby')">✕</button></div>
+    <div class="modal-title">👥 Neue Gruppe <button class="modal-close" onclick="closeModal('modal-create-lobby')">✕</button></div>
     <div class="modal-body">
+      <!-- Group type selector -->
+      <label class="form-label">Gruppentyp *</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem" id="group-type-picker">
+        <button class="group-type-btn active" data-type="wg" onclick="selectGroupType('wg')">🏠 WG</button>
+        <button class="group-type-btn" data-type="verein" onclick="selectGroupType('verein')">⚽ Verein</button>
+        <button class="group-type-btn" data-type="gemeinde" onclick="selectGroupType('gemeinde')">🏘️ Gemeinde</button>
+        <button class="group-type-btn" data-type="other" onclick="selectGroupType('other')">💬 Sonstige</button>
+      </div>
       <label class="form-label">Name *</label>
-      <input class="form-input" id="lobby-name" placeholder="z.B. Nachbarschaftsgruppe Nord" maxlength="60">
+      <input class="form-input" id="lobby-name" placeholder="z.B. WG Rosengasse 12" maxlength="60">
       <label class="form-label" style="margin-top:.65rem">Beschreibung (optional)</label>
-      <textarea class="ta" id="lobby-desc" placeholder="Worum geht es in dieser Lobby?" rows="2" maxlength="200"></textarea>
+      <textarea class="ta" id="lobby-desc" placeholder="Worum geht es in dieser Gruppe?" rows="2" maxlength="200"></textarea>
       <div id="lobby-create-err" style="display:none;color:var(--red);font-size:.8rem;margin-top:.4rem"></div>
-      <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitCreateLobby()">Lobby erstellen</button>
+      <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="submitCreateLobby()">Gruppe erstellen</button>
     </div>
   </div>
 </div>
 
-<!-- ══ LOBBY DETAIL MODAL ══ -->
+<!-- ══ GRUPPE DETAIL MODAL ══ -->
 <div class="modal-overlay" id="modal-lobby-detail">
   <div class="modal" style="max-height:88dvh">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="lobby-detail-title">Lobby <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button></div>
-    <div class="modal-body">
+    <div class="modal-title" id="lobby-detail-title">Gruppe <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button></div>
+    <div class="modal-body" style="overflow-y:auto">
       <div id="lobby-detail-desc" style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem"></div>
-      <!-- Invite link box -->
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:1rem">
-        <div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem;font-weight:600;letter-spacing:.04em">EINLADUNGSLINK</div>
-        <div style="display:flex;gap:.5rem;align-items:center">
-          <input id="lobby-invite-url" class="form-input" style="flex:1;font-size:.72rem;padding:.35rem .6rem" readonly onclick="this.select()">
-          <button class="btn-secondary" style="padding:.35rem .7rem;font-size:.78rem;flex-shrink:0" onclick="copyLobbyInvite()">Kopieren</button>
-        </div>
-        <div id="lobby-owner-actions" style="display:none;margin-top:.5rem;display:flex;gap:.5rem">
-          <button class="btn-secondary" style="font-size:.72rem;padding:.3rem .6rem" onclick="rotateLobbyInvite()">🔄 Neuer Link</button>
-        </div>
+      <!-- Tab strip -->
+      <div style="display:flex;gap:.5rem;margin-bottom:.85rem;border-bottom:1px solid var(--border);padding-bottom:.5rem">
+        <button class="pill active" id="grp-tab-members" onclick="switchGroupTab('members')">Mitglieder</button>
+        <button class="pill" id="grp-tab-events" onclick="switchGroupTab('events')">Events</button>
       </div>
-      <!-- Members -->
-      <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
-      <div id="lobby-members-list"></div>
-      <!-- Leave -->
-      <button class="btn-secondary" style="width:100%;margin-top:1rem;color:var(--red);border-color:var(--red)" onclick="leaveLobby()">Lobby verlassen</button>
+      <!-- Members pane -->
+      <div id="grp-pane-members">
+        <!-- Invite link box -->
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:1rem">
+          <div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem;font-weight:600;letter-spacing:.04em">EINLADUNGSLINK</div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <input id="lobby-invite-url" class="form-input" style="flex:1;font-size:.72rem;padding:.35rem .6rem" readonly onclick="this.select()">
+            <button class="btn-secondary" style="padding:.35rem .7rem;font-size:.78rem;flex-shrink:0" onclick="copyLobbyInvite()">Kopieren</button>
+          </div>
+          <div id="lobby-owner-actions" style="display:none;margin-top:.5rem;display:flex;gap:.5rem">
+            <button class="btn-secondary" style="font-size:.72rem;padding:.3rem .6rem" onclick="rotateLobbyInvite()">🔄 Neuer Link</button>
+          </div>
+        </div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:.5rem">MITGLIEDER</div>
+        <div id="lobby-members-list"></div>
+        <button class="btn-secondary" style="width:100%;margin-top:1rem;color:var(--red);border-color:var(--red)" onclick="leaveLobby()">Gruppe verlassen</button>
+      </div>
+      <!-- Events pane -->
+      <div id="grp-pane-events" style="display:none">
+        <div id="grp-events-list"><div class="loading">Lade…</div></div>
+        <button class="btn-primary" style="width:100%;margin-top:.85rem" onclick="openCreateEventForGroup()">+ Event für diese Gruppe erstellen</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2031,6 +2056,12 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <input type="hidden" id="ev-lng" value="0">
       <div id="ev-addr-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);max-height:180px;overflow-y:auto"></div>
       <div id="ev-city-err" style="display:none;font-size:.75rem;color:#f0a500;margin-top:.25rem"></div>
+    </div>
+    <div class="field-group" style="margin-bottom:.85rem">
+      <div class="field-label">Für eine Gruppe posten (optional)</div>
+      <select class="field" id="ev-group-id">
+        <option value="">— öffentliches Event —</option>
+      </select>
     </div>
     <button class="btn-primary" id="ev-submit-btn" onclick="createEvent()">🌱 Event erstellen (+20 Punkte)</button>
     <div id="ev-error" style="display:none;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .85rem;font-size:.82rem;margin-top:.65rem"></div>
@@ -3820,6 +3851,15 @@ function openCreateEvent() {
   }
   document.getElementById('ev-error').style.display = 'none';
   ['ev-title','ev-start','ev-city','ev-addr'].forEach(id => clearFieldErr(id));
+  // Populate group selector
+  apiFetch('/api/lobbies').then(groups => {
+    const sel = document.getElementById('ev-group-id');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— öffentliches Event —</option>' +
+      groups.map(g => `<option value="${g.id}">${groupEmoji(g.type)} ${esc(g.name)}</option>`).join('');
+    if (cur) sel.value = cur;
+  }).catch(() => {});
   // Auto-save draft as user types
   ['ev-title','ev-desc','ev-addr','ev-city'].forEach(id => {
     const el = document.getElementById(id);
@@ -3916,7 +3956,8 @@ async function createEvent() {
       max_participants: parseInt(document.getElementById('ev-max').value)||0,
       address: addr,
       city,
-      ...(lat && lng ? {lat, lng} : {})
+      ...(lat && lng ? {lat, lng} : {}),
+      ...(document.getElementById('ev-group-id')?.value ? {group_id: parseInt(document.getElementById('ev-group-id').value)} : {})
     });
     ['ev-title','ev-desc','ev-addr'].forEach(id => { document.getElementById(id).value = ''; clearFieldErr(id); });
     document.getElementById('ev-lat').value = '0'; document.getElementById('ev-lng').value = '0';
@@ -4957,10 +4998,26 @@ function confirmMapPick() {
   closeModal('modal-map-picker');
 }
 
-// ── Private Lobbies ───────────────────────────────────────────────────────
+// ── Gruppen (formerly Lobbies) ────────────────────────────────────────────
 let _currentLobbyId = null;
 let _currentLobbyRole = null;
 let _currentLobbyCode = null;
+let _selectedGroupType = 'wg';
+
+const GROUP_TYPE_META = {
+  wg:       { emoji: '🏠', label: 'WG' },
+  verein:   { emoji: '⚽', label: 'Verein' },
+  gemeinde: { emoji: '🏘️', label: 'Gemeinde' },
+  other:    { emoji: '💬', label: 'Gruppe' },
+};
+
+function groupEmoji(type) { return (GROUP_TYPE_META[type] || GROUP_TYPE_META.other).emoji; }
+function groupLabel(type) { return (GROUP_TYPE_META[type] || GROUP_TYPE_META.other).label; }
+
+function selectGroupType(type) {
+  _selectedGroupType = type;
+  document.querySelectorAll('.group-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+}
 
 async function loadLobbies() {
   const el = document.getElementById('lobbies-list');
@@ -4968,16 +5025,16 @@ async function loadLobbies() {
   try {
     const lobbies = await apiFetch('/api/lobbies');
     if (!lobbies.length) {
-      el.innerHTML = '<p style="font-size:.8rem;color:var(--dim);margin-bottom:.6rem">Noch keine Lobbys. Erstelle eine und lade Freunde ein.</p>';
+      el.innerHTML = '<p style="font-size:.8rem;color:var(--dim);margin-bottom:.6rem">Noch keine Gruppen. Erstelle eine und lade Freunde ein.</p>';
       return;
     }
     el.innerHTML = lobbies.map(l => `
       <div class="card" style="margin-bottom:.55rem;cursor:pointer" onclick="openLobbyDetail(${l.id})">
         <div class="card-body" style="display:flex;align-items:center;gap:.75rem;padding:.7rem .85rem">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--card2);border:1.5px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🔒</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--card2);border:1.5px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${groupEmoji(l.type)}</div>
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:.88rem;color:var(--text)">${esc(l.name)}</div>
-            <div style="font-size:.72rem;color:var(--muted)">${l.member_count} Mitglied${l.member_count!==1?'er':''} · ${l.is_owner?'<span style="color:var(--accent)">Besitzer</span>':'Mitglied'}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${groupLabel(l.type)} · ${l.member_count} Mitglied${l.member_count!==1?'er':''} · ${l.is_owner?'<span style="color:var(--accent)">Admin</span>':'Mitglied'}</div>
           </div>
           <span style="color:var(--dim);font-size:.85rem">›</span>
         </div>
@@ -4992,23 +5049,61 @@ async function submitCreateLobby() {
   errEl.style.display = 'none';
   if (!name) { errEl.textContent = 'Name erforderlich'; errEl.style.display = 'block'; return; }
   try {
-    await apiFetch('/api/lobbies', 'POST', { name, description: desc });
+    await apiFetch('/api/lobbies', 'POST', { name, description: desc, type: _selectedGroupType });
     closeModal('modal-create-lobby');
     document.getElementById('lobby-name').value = '';
     document.getElementById('lobby-desc').value = '';
     loadLobbies();
-    showToast('✓ Lobby erstellt!');
+    showToast('✓ Gruppe erstellt!');
   } catch(e) { errEl.textContent = e.message || 'Fehler'; errEl.style.display = 'block'; }
+}
+
+function switchGroupTab(tab) {
+  document.getElementById('grp-pane-members').style.display = tab === 'members' ? '' : 'none';
+  document.getElementById('grp-pane-events').style.display  = tab === 'events'  ? '' : 'none';
+  document.getElementById('grp-tab-members').classList.toggle('active', tab === 'members');
+  document.getElementById('grp-tab-events').classList.toggle('active', tab === 'events');
+  if (tab === 'events') loadGroupEvents();
+}
+
+async function loadGroupEvents() {
+  if (!_currentLobbyId) return;
+  const el = document.getElementById('grp-events-list');
+  el.innerHTML = '<div class="loading">Lade…</div>';
+  try {
+    const events = await apiFetch(`/api/lobbies/${_currentLobbyId}/events`);
+    if (!events.length) {
+      el.innerHTML = '<p style="font-size:.8rem;color:var(--dim)">Noch keine Events in dieser Gruppe.</p>';
+      return;
+    }
+    el.innerHTML = events.map(e => `
+      <div class="card" style="margin-bottom:.55rem">
+        <div class="card-body" style="padding:.7rem .85rem">
+          <div style="font-weight:700;font-size:.88rem">${esc(e.title)}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">${new Date(e.starts_at).toLocaleDateString('de-CH',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${esc(e.city||e.address||'')}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${e.participants_count}${e.max_participants?'/'+e.max_participants:''} dabei · ${e.points_reward} Punkte</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<p style="font-size:.8rem;color:var(--red)">Fehler beim Laden.</p>'; }
+}
+
+function openCreateEventForGroup() {
+  closeModal('modal-lobby-detail');
+  openModal('modal-create-event');
+  const sel = document.getElementById('ev-group-id');
+  if (sel) sel.value = _currentLobbyId;
 }
 
 async function openLobbyDetail(lid) {
   _currentLobbyId = lid;
+  switchGroupTab('members');
   try {
     const d = await apiFetch(`/api/lobbies/${lid}`);
     _currentLobbyRole = d.my_role;
     _currentLobbyCode = d.lobby.invite_code;
+    const meta = GROUP_TYPE_META[d.lobby.type] || GROUP_TYPE_META.other;
     document.getElementById('lobby-detail-title').innerHTML =
-      `🔒 ${esc(d.lobby.name)} <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button>`;
+      `${meta.emoji} ${esc(d.lobby.name)} <button class="modal-close" onclick="closeModal('modal-lobby-detail')">✕</button>`;
     document.getElementById('lobby-detail-desc').textContent = d.lobby.description || '';
     _setLobbyInviteUrl(d.lobby.invite_code);
     const oa = document.getElementById('lobby-owner-actions');
@@ -5020,7 +5115,7 @@ async function openLobbyDetail(lid) {
         <div style="width:32px;height:32px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--accent);flex-shrink:0">${esc((m.display_name||'?')[0].toUpperCase())}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:.85rem;font-weight:600;color:var(--text)">${esc(m.display_name||'Unbekannt')}</div>
-          <div style="font-size:.7rem;color:var(--muted)">${m.role==='owner'?'👑 Besitzer':'Mitglied'} · ${m.city||''}</div>
+          <div style="font-size:.7rem;color:var(--muted)">${m.role==='owner'?'👑 Admin':'Mitglied'} · ${m.city||''}</div>
         </div>
         ${canKick?`<button onclick="kickLobbyMember(${m.id})" style="border:none;background:none;color:var(--red);font-size:.75rem;cursor:pointer;padding:.2rem .4rem">Entfernen</button>`:''}
       </div>`;
@@ -5040,7 +5135,7 @@ function copyLobbyInvite() {
   const url = document.getElementById('lobby-invite-url')?.value;
   if (!url) return;
   if (navigator.share) {
-    navigator.share({ title: 'Konnekt Lobby', url }).catch(() => {});
+    navigator.share({ title: 'Konnekt Gruppe', url }).catch(() => {});
   } else {
     navigator.clipboard.writeText(url).then(() => showToast('Link kopiert!')).catch(() => {
       document.getElementById('lobby-invite-url').select();
@@ -5069,12 +5164,12 @@ async function kickLobbyMember(uid) {
 }
 
 async function leaveLobby() {
-  if (!_currentLobbyId || !confirm('Lobby verlassen?')) return;
+  if (!_currentLobbyId || !confirm('Gruppe verlassen?')) return;
   try {
     await apiFetch(`/api/lobbies/${_currentLobbyId}/leave`, 'POST');
     closeModal('modal-lobby-detail');
     loadLobbies();
-    showToast('Du hast die Lobby verlassen');
+    showToast('Du hast die Gruppe verlassen');
   } catch(e) { showToast(e.message || 'Fehler'); }
 }
 

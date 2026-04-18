@@ -474,6 +474,16 @@ def init_db():
             c.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
         except sqlite3.OperationalError:
             pass  # column already exists
+        # Add group type to lobbies (migration)
+        try:
+            c.execute("ALTER TABLE lobbies ADD COLUMN type TEXT DEFAULT 'other'")
+        except sqlite3.OperationalError:
+            pass
+        # Add group_id to events so events can be scoped to a group (migration)
+        try:
+            c.execute("ALTER TABLE events ADD COLUMN group_id INTEGER REFERENCES lobbies(id)")
+        except sqlite3.OperationalError:
+            pass
         # Add type + is_public + quartier columns to events (migration)
         for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1"), ("is_quartier", "INTEGER DEFAULT 0")]:
             try:
@@ -1597,16 +1607,21 @@ def create_event():
     ev_type     = d.get("type", "volunteer")
     is_pub      = 1 if ev_type in ("hangout", "quartier") else 0
     is_quartier = 1 if ev_type == "quartier" else 0
+    group_id    = d.get("group_id") or None
     with get_db() as c:
+        if group_id:
+            mem = c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (group_id, g.user_id)).fetchone()
+            if not mem:
+                return jsonify({"error": "Nicht Mitglied dieser Gruppe"}), 403
         c.execute("""
-            INSERT INTO events (organizer_id,title,description,category,type,is_public,is_quartier,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO events (organizer_id,title,description,category,type,is_public,is_quartier,address,city,lat,lng,starts_at,ends_at,max_participants,points_reward,tags,group_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             g.user_id, d["title"], d.get("description",""), d.get("category","other"),
             ev_type, is_pub, is_quartier,
             d.get("address",""), d.get("city",""), lat, lng,
             d["starts_at"], d.get("ends_at"), d.get("max_participants",0),
-            d.get("points_reward",50), json.dumps(d.get("tags",[]))
+            d.get("points_reward",50), json.dumps(d.get("tags",[])), group_id
         ))
         eid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
     award_points(g.user_id, 20, "Event erstellt", "event", eid)
@@ -4481,7 +4496,7 @@ def shop_interest():
 def get_lobbies():
     with get_db() as c:
         rows = c.execute("""
-            SELECT l.id, l.name, l.description, l.invite_code, l.created_at,
+            SELECT l.id, l.name, l.description, l.invite_code, l.created_at, l.type,
                    COUNT(lm2.id) AS member_count,
                    CASE WHEN l.creator_id=? THEN 1 ELSE 0 END AS is_owner
             FROM lobbies l
@@ -4498,10 +4513,13 @@ def create_lobby():
     name = (d.get("name") or "").strip()
     if not name:
         return jsonify({"error": "Name erforderlich"}), 400
+    group_type = (d.get("type") or "other").strip()
+    if group_type not in ("wg", "verein", "gemeinde", "other"):
+        group_type = "other"
     code = secrets.token_urlsafe(8)
     with get_db() as c:
-        c.execute("INSERT INTO lobbies (name, description, creator_id, invite_code) VALUES (?,?,?,?)",
-                  (name, (d.get("description") or "").strip(), g.user_id, code))
+        c.execute("INSERT INTO lobbies (name, description, creator_id, invite_code, type) VALUES (?,?,?,?,?)",
+                  (name, (d.get("description") or "").strip(), g.user_id, code, group_type))
         lid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
         c.execute("INSERT INTO lobby_members (lobby_id, user_id, role) VALUES (?,?,?)", (lid, g.user_id, "owner"))
     return jsonify({"id": lid, "invite_code": code}), 201
@@ -4513,13 +4531,32 @@ def get_lobby(lid):
         mem = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
         if not mem:
             return jsonify({"error": "Kein Zugriff"}), 403
-        lobby = c.execute("SELECT id,name,description,invite_code,created_at FROM lobbies WHERE id=?", (lid,)).fetchone()
+        lobby = c.execute("SELECT id,name,description,invite_code,created_at,type FROM lobbies WHERE id=?", (lid,)).fetchone()
         members = c.execute("""
             SELECT u.id, u.display_name, u.avatar_url, u.city, lm.role, lm.joined_at
             FROM lobby_members lm JOIN users u ON u.id=lm.user_id
             WHERE lm.lobby_id=? ORDER BY lm.role DESC, lm.joined_at ASC
         """, (lid,)).fetchall()
     return jsonify({"lobby": dict(lobby), "members": [dict(m) for m in members], "my_role": mem["role"]})
+
+@app.get("/api/lobbies/<int:lid>/events")
+@require_auth
+def get_group_events(lid):
+    with get_db() as c:
+        mem = c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if not mem:
+            return jsonify({"error": "Kein Zugriff"}), 403
+        events = c.execute("""
+            SELECT e.id, e.title, e.description, e.category, e.type, e.starts_at, e.ends_at,
+                   e.address, e.city, e.lat, e.lng, e.max_participants, e.participants_count,
+                   e.points_reward, e.status, e.organizer_id,
+                   u.display_name AS organizer_name,
+                   (SELECT 1 FROM event_registrations WHERE event_id=e.id AND user_id=?) AS registered
+            FROM events e JOIN users u ON u.id=e.organizer_id
+            WHERE e.group_id=? AND e.status='active'
+            ORDER BY e.starts_at ASC
+        """, (g.user_id, lid)).fetchall()
+    return jsonify([dict(e) for e in events])
 
 @app.post("/api/lobbies/join/<code>")
 @require_auth
