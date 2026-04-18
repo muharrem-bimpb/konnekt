@@ -1242,8 +1242,8 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       </div>
     </div>
     <!-- Filter pills row -->
-    <div style="flex-shrink:0;display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem .35rem;background:var(--bg);border-bottom:1px solid var(--border)">
-      <div class="filter-row" id="event-filters" style="flex:1;padding:0;margin:0;background:none;border:none">
+    <div style="flex-shrink:0;padding:.45rem .5rem .4rem;background:var(--bg);border-bottom:1px solid var(--border)">
+      <div id="event-filters" style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;max-width:480px;margin:0 auto">
         <div class="fpill active" onclick="filterEvents('',this)">Alle</div>
         <div class="fpill" onclick="filterEvents('volunteer',this)">🌱 Ehrenamt</div>
         <div class="fpill" onclick="filterEvents('social',this)">👥 Sozial</div>
@@ -1271,7 +1271,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <!-- position:absolute+inset:0 is the only reliable way to make Leaflet fill a flex child -->
       <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
       <!-- Map mode toolbar -->
-      <div id="map-toolbar" style="position:absolute;top:.75rem;left:0;right:0;z-index:500;display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;padding:0 .6rem">
+      <div id="map-toolbar" style="position:absolute;top:.75rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;padding:0 .5rem;max-width:480px;width:100%">
         <button id="map-show-events-btn"     onclick="setMapMode('events')"     class="map-filter-btn active-filter">🌱 Events</button>
         <button id="map-show-bubbles-btn"    onclick="setMapMode('bubbles')"    class="map-filter-btn">🫧 Bubbles</button>
         <button id="map-show-shops-btn"      onclick="setMapMode('shops')"      class="map-filter-btn">🏪 Shops</button>
@@ -1797,7 +1797,13 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
     <video id="ar-camera" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" muted playsinline></video>
     <div id="ar-overlay" style="position:absolute;inset:0;pointer-events:none"></div>
     <div style="position:absolute;top:.85rem;left:.85rem;right:.85rem;display:flex;justify-content:space-between;align-items:center;z-index:2">
-      <div style="background:rgba(0,0,0,.55);color:#fff;padding:.35rem .75rem;border-radius:99px;font-size:.78rem;font-weight:700">🫧 AR Bubbles</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <div style="background:rgba(0,0,0,.55);color:#fff;padding:.35rem .75rem;border-radius:99px;font-size:.78rem;font-weight:700">🫧 AR Bubbles</div>
+          <div style="background:rgba(139,92,246,.7);color:#fff;padding:.2rem .5rem;border-radius:99px;font-size:.62rem;font-weight:800;letter-spacing:.04em">BETA</div>
+        </div>
+        <div style="background:rgba(0,0,0,.45);color:rgba(255,255,255,.7);padding:.25rem .65rem;border-radius:8px;font-size:.62rem;line-height:1.3;max-width:220px">Compass-based — accuracy depends on device calibration</div>
+      </div>
       <button onclick="closeARView()" style="background:rgba(0,0,0,.55);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:.9rem;cursor:pointer">✕</button>
     </div>
     <div id="ar-err" style="display:none;position:absolute;bottom:2rem;left:1rem;right:1rem;background:rgba(239,68,68,.85);color:#fff;border-radius:10px;padding:.75rem;font-size:.82rem;text-align:center;z-index:2"></div>
@@ -2712,8 +2718,6 @@ async function loadApp() {
     // Poll notifications every 60s
     if (_notifPollTimer) clearInterval(_notifPollTimer);
     _notifPollTimer = setInterval(pollNotifications, 60000);
-    // Init swipe navigation
-    _initSwipe();
     // Deep-links from manifest shortcuts and shared event URLs
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
@@ -2931,62 +2935,6 @@ function dialNav(screen) {
 }
 
 // ── Swipe navigation ─────────────────────────────────────────────────────
-let _swipeX = 0, _swipeY = 0, _swipeActive = false;
-const SWIPE_MIN = 55; // px threshold
-
-function _initSwipe() {
-  const app = document.getElementById('app');
-  const hintL = document.getElementById('swipe-hint-left');
-  const hintR = document.getElementById('swipe-hint-right');
-
-  // Attach swipe listeners to edge strips (work on map screen too)
-  [hintL, hintR].forEach(edge => {
-    if (!edge) return;
-    edge.addEventListener('touchstart', e => {
-      _swipeX = e.touches[0].clientX; _swipeY = e.touches[0].clientY; _swipeActive = true;
-    }, {passive: true});
-    edge.addEventListener('touchend', e => {
-      if (!_swipeActive) return; _swipeActive = false;
-      const dx = e.changedTouches[0].clientX - _swipeX;
-      const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
-      if (Math.abs(dx) < 30 || dy > Math.abs(dx)) return;
-      _navigateWorld(dx < 0 ? 1 : -1, dx < 0 ? 'right' : 'left');
-    }, {passive: true});
-  });
-
-  app.addEventListener('touchstart', e => {
-    // On map screen only allow edge-strip swipes (handled above)
-    if (document.getElementById('screen-map')?.classList.contains('active')) return;
-    // Ignore touches inside modals, scrolling areas, map elements
-    if (e.target.closest('.modal-overlay, .scroll-body, #events-scroll, #events-map, #map-toolbar, #map-info-panel')) return;
-    _swipeX = e.touches[0].clientX;
-    _swipeY = e.touches[0].clientY;
-    _swipeActive = true;
-  }, {passive: true});
-
-  app.addEventListener('touchmove', e => {
-    if (!_swipeActive) return;
-    const dx = e.touches[0].clientX - _swipeX;
-    const dy = Math.abs(e.touches[0].clientY - _swipeY);
-    if (Math.abs(dx) < 12 || dy > Math.abs(dx)) return; // not a horizontal swipe
-    // Show edge hint
-    if (dx < 0 && hintR) { hintR.classList.add('visible'); if (hintL) hintL.classList.remove('visible'); }
-    if (dx > 0 && hintL) { hintL.classList.add('visible'); if (hintR) hintR.classList.remove('visible'); }
-  }, {passive: true});
-
-  app.addEventListener('touchend', e => {
-    if (hintL) hintL.classList.remove('visible');
-    if (hintR) hintR.classList.remove('visible');
-    if (!_swipeActive) return;
-    _swipeActive = false;
-    const dx = e.changedTouches[0].clientX - _swipeX;
-    const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
-    if (Math.abs(dx) < SWIPE_MIN || dy > Math.abs(dx) * 0.9) return;
-    // dx < 0 = swipe left = go to Community (higher index)
-    // dx > 0 = swipe right = go to Nahbar (lower index)
-    _navigateWorld(dx < 0 ? 1 : -1, dx < 0 ? 'right' : 'left');
-  }, {passive: true});
-}
 
 function _navigateWorld(delta, swipeDir) {
   const newIdx = Math.max(0, Math.min(WORLDS.length - 1, _worldIdx + delta));
@@ -8111,13 +8059,14 @@ function _initMapQuickDrop() {
   if (!leafletMap) return;
   const container = leafletMap.getContainer();
   const _startPress = (e) => {
+    // Never trigger on multi-touch (pinch/zoom)
+    if (e.touches && e.touches.length > 1) return;
     const latlng = e.latlng || (e.touches && leafletMap.containerPointToLatLng(
       L.point(e.touches[0].clientX - container.getBoundingClientRect().left,
               e.touches[0].clientY - container.getBoundingClientRect().top)));
     if (!latlng) return;
     _mapLongPressTimer = setTimeout(() => {
       _mapLongPressTimer = null;
-      // Pre-fill the bubble drop modal with map coords
       const latEl = document.getElementById('bubble-lat');
       const lngEl = document.getElementById('bubble-lng');
       if (latEl) latEl.value = latlng.lat.toFixed(5);
@@ -8127,15 +8076,16 @@ function _initMapQuickDrop() {
     }, 600);
   };
   const _cancelPress = () => { if (_mapLongPressTimer) { clearTimeout(_mapLongPressTimer); _mapLongPressTimer = null; } };
-  // Set _mapZooming immediately on 2-finger touch — beats the button's onclick check
   container.addEventListener('touchstart', e => {
     if (e.touches.length >= 2) {
+      // Second finger landed — kill any pending long-press and mark as zooming
+      _cancelPress();
       window._mapZooming = true;
       clearTimeout(window._mapZoomEndTimer);
       window._mapZoomEndTimer = setTimeout(() => { window._mapZooming = false; }, 700);
     }
   }, {passive: true});
-  container.addEventListener('touchstart', _startPress, {passive:true});
+  container.addEventListener('touchstart', _startPress, {passive: true});
   container.addEventListener('touchend', _cancelPress);
   container.addEventListener('touchmove', _cancelPress);
   container.addEventListener('mousedown', _startPress);
