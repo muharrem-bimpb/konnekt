@@ -73,6 +73,35 @@
   --safe-bot:  env(safe-area-inset-bottom, 0px);
 }
 
+:root[data-theme="zen"] {
+  /* ZEN — Japanese minimalist: warm off-white, ink black, vermilion red */
+  --bg:        #FAFAF8;
+  --card:      #FFFFFF;
+  --card2:     #F5F3F0;
+  --border:    #E5E0D8;
+  --accent:    #E63946;
+  --accent2:   #FF6B74;
+  --green:     #E63946;
+  --neon:      #FF6B74;
+  --purple:    #C1121F;
+  --orange:    #E76F51;
+  --pink:      #E63946;
+  --red:       #C1121F;
+  --blue:      #457B9D;
+  --yellow:    #E9C46A;
+  --text:      #1A1A1A;
+  --muted:     #777770;
+  --dim:       #AAAAAA;
+  --shadow-sm: 0 1px 2px rgba(26,26,26,.06),0 1px 3px rgba(26,26,26,.08);
+  --shadow:    0 4px 6px rgba(26,26,26,.06),0 2px 4px rgba(26,26,26,.05);
+  --shadow-lg: 0 20px 40px rgba(26,26,26,.1),0 8px 16px rgba(26,26,26,.06);
+  --radius:    12px;
+  --radius-lg: 20px;
+  --safe-top:  env(safe-area-inset-top, 0px);
+  --safe-bot:  env(safe-area-inset-bottom, 0px);
+}
+[data-theme="zen"] .leaflet-tile-pane { filter: brightness(.92) saturate(.7) contrast(1.05); }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes mandalaSpin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
 @keyframes confettiFall {
@@ -207,6 +236,7 @@ button { font-family: inherit; cursor: pointer; }
 .field-group { display: flex; flex-direction: column; gap: .4rem; }
 .field-label { font-size: .73rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .form-label { display:block; font-size:.73rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem; font-weight:600; }
+.theme-pick-btn.active { outline: 2px solid var(--accent); outline-offset: 2px; }
 input.field, select.field, input.form-input, textarea.form-input {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: none;
@@ -1486,6 +1516,28 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         </label>
       </div>
 
+      <!-- Theme picker -->
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;box-shadow:var(--shadow-sm)">
+        <div style="font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.7rem">Erscheinungsbild</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem">
+          <button class="theme-pick-btn" data-theme="dark" onclick="setTheme('dark')"
+            style="border:1.5px solid var(--border);border-radius:10px;padding:.6rem .4rem;cursor:pointer;background:#F8FAFC;display:flex;flex-direction:column;align-items:center;gap:.35rem">
+            <span style="font-size:1.2rem">🌙</span>
+            <span style="font-size:.68rem;font-weight:600;color:#0F172A">Hell</span>
+          </button>
+          <button class="theme-pick-btn" data-theme="light" onclick="setTheme('light')"
+            style="border:1.5px solid var(--border);border-radius:10px;padding:.6rem .4rem;cursor:pointer;background:#0F172A;display:flex;flex-direction:column;align-items:center;gap:.35rem">
+            <span style="font-size:1.2rem">☀️</span>
+            <span style="font-size:.68rem;font-weight:600;color:#F8FAFC">Dunkel</span>
+          </button>
+          <button class="theme-pick-btn" data-theme="zen" onclick="setTheme('zen')"
+            style="border:1.5px solid var(--border);border-radius:10px;padding:.6rem .4rem;cursor:pointer;background:#FAFAF8;display:flex;flex-direction:column;align-items:center;gap:.35rem">
+            <span style="font-size:1.2rem">⛩️</span>
+            <span style="font-size:.68rem;font-weight:600;color:#1A1A1A">Zen</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Invite friends -->
       <div style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-sm)">
         <div style="font-size:1.5rem">🔗</div>
@@ -2536,21 +2588,28 @@ if (!_storedTheme) localStorage.setItem('konnekt_theme', savedTheme);
 document.documentElement.setAttribute('data-theme', savedTheme);
 updateThemeUI(savedTheme);
 
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('konnekt_theme', theme);
+  updateThemeUI(theme);
+}
+
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('konnekt_theme', next);
-  updateThemeUI(next);
+  const next = cur === 'dark' ? 'light' : cur === 'light' ? 'zen' : 'dark';
+  setTheme(next);
 }
 
 function updateThemeUI(theme) {
   const btn = document.getElementById('theme-btn');
-  if (!btn) return;
-  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : theme === 'zen' ? '⛩️' : '🌙';
   const meta = document.getElementById('theme-color-meta');
-  if (meta) meta.content = theme === 'dark' ? '#F8FAFC' : '#0F172A';
+  if (meta) meta.content = theme === 'light' ? '#0F172A' : '#FAFAF8';
   updateMapTiles(theme);
+  // Sync profile picker if visible
+  document.querySelectorAll('.theme-pick-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
 }
 
 function updateMapTiles(theme) {
@@ -6082,6 +6141,7 @@ async function submitBugReport() {
 async function loadProfile() {
   if (!currentUser) return;
   syncLonelyMapToggle();
+  updateThemeUI(document.documentElement.getAttribute('data-theme') || 'dark');
   // Show admin button for admins/moderators
   const adminBtnWrap = document.getElementById('admin-panel-btn-wrap');
   if (adminBtnWrap) adminBtnWrap.style.display = (currentUser.is_admin || currentUser.is_moderator) ? '' : 'none';
