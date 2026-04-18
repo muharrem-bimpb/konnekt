@@ -319,7 +319,9 @@ input.field:focus, select.field:focus {
 /* ── Mobile: hide flat nav, use dial ── */
 @media (max-width: 767px) {
   .bottom-nav { display: none; }
-  body { padding-bottom: calc(64px + var(--safe-bot)); }
+  body { padding-bottom: 0; }
+  #world-indicator { display: none !important; }
+  #screen-map { height: calc(100dvh - 62px - var(--safe-top)); }
 }
 
 /* ── Dial Nav ── */
@@ -3529,7 +3531,7 @@ function initMap() {
   // Default: Bern centre
   leafletMap = L.map('events-map', {zoomControl:true}).setView([46.9480, 7.4474], 13);
   leafletMap.on('zoomstart', () => { window._mapZooming = true; });
-  leafletMap.on('zoomend',   () => { setTimeout(() => { window._mapZooming = false; }, 300); });
+  leafletMap.on('zoomend',   () => { setTimeout(() => { window._mapZooming = false; }, 600); });
   const curTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const t = MAP_TILES[curTheme === 'light' ? 'dark' : 'light'] || MAP_TILES.dark;
   leafletTileLayer = L.tileLayer(t.url, { attribution: t.attr, maxZoom: 19 });
@@ -8116,6 +8118,14 @@ function _initMapQuickDrop() {
     }, 600);
   };
   const _cancelPress = () => { if (_mapLongPressTimer) { clearTimeout(_mapLongPressTimer); _mapLongPressTimer = null; } };
+  // Set _mapZooming immediately on 2-finger touch — beats the button's onclick check
+  container.addEventListener('touchstart', e => {
+    if (e.touches.length >= 2) {
+      window._mapZooming = true;
+      clearTimeout(window._mapZoomEndTimer);
+      window._mapZoomEndTimer = setTimeout(() => { window._mapZooming = false; }, 700);
+    }
+  }, {passive: true});
   container.addEventListener('touchstart', _startPress, {passive:true});
   container.addEventListener('touchend', _cancelPress);
   container.addEventListener('touchmove', _cancelPress);
