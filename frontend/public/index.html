@@ -5790,36 +5790,25 @@ function _arLoop(overlay) {
   if (!document.getElementById('modal-ar')?.classList.contains('active')) return;
   if (!_arPos || !_arBubbles.length) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
 
-  // Skip render entirely if heading/tilt haven't moved enough to shift any pin
+  // Skip render if heading hasn't moved enough to shift any pin
   const hDelta = Math.abs((((_arHeading - _arLastRenderHeading) + 540) % 360) - 180);
-  const bDelta = Math.abs(_arBeta - _arLastRenderBeta);
-  if (hDelta < 0.15 && bDelta < 0.3) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
+  if (hDelta < 0.15) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
   _arLastRenderHeading = _arHeading;
-  _arLastRenderBeta = _arBeta;
 
-  const FOV_H = 70, FOV_V = 52;
+  const FOV_H = 70;
   const W = overlay.offsetWidth, H = overlay.offsetHeight;
   const myId = currentUser?.id;
-  const myAlt = _arPos.altitude ?? 0;
-
-  // Horizon Y: shifts based on device tilt (beta=90 → horizon at H/2)
-  // tilt>0 = looking up → horizon moves down (larger y); tilt<0 = looking down → horizon moves up
-  const tilt = _arBeta - 90;
-  const horizonY = H / 2 + (tilt / (FOV_V / 2)) * (H / 2);
 
   const pins = _arBubbles.filter(b => b.lat && b.lng).map(b => {
     const bearing = _arBearing(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
     const dist = _arDist(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
     const hDiff = ((bearing - _arHeading + 540) % 360) - 180;
     const x = W / 2 + (hDiff / (FOV_H / 2)) * (W / 2);
-    // Vertical: elevation angle from altitude difference
-    const altDiff = (b.altitude ?? 0) - myAlt;
-    const elvAngle = Math.atan2(altDiff, Math.max(dist, 1)) * 180 / Math.PI;
-    const y = horizonY - (elvAngle / (FOV_V / 2)) * (H / 2);
+    // Y: fixed band based on distance only — no tilt sensor involved, no jitter
+    const y = H * (0.52 - Math.min(dist / 6000, 0.28));
     const distLabel = dist < 1000 ? `${Math.round(dist)}m` : `${(dist/1000).toFixed(1)}km`;
     const isMe = b.owner_id === myId;
-    const visible = Math.abs(hDiff) < FOV_H * 0.55 && y > -40 && y < H + 40;
-    return {b, x, y, dist, distLabel, isMe, visible};
+    return {b, x, y, dist, distLabel, isMe, visible: Math.abs(hDiff) < FOV_H * 0.55};
   }).filter(p => p.visible).sort((a,b) => a.dist - b.dist).slice(0, 8);
 
   const visibleIds = new Set(pins.map(p => p.b.id));
