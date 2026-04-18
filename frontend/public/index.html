@@ -206,14 +206,15 @@ button { font-family: inherit; cursor: pointer; }
 .auth-tab.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-sm); }
 .field-group { display: flex; flex-direction: column; gap: .4rem; }
 .field-label { font-size: .73rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-input.field, select.field {
+.form-label { display:block; font-size:.73rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem; font-weight:600; }
+input.field, select.field, input.form-input, textarea.form-input {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: none;
   padding: .85rem 1rem; color: var(--text); font-size: .95rem; outline: none;
   transition: border-color .2s; width: 100%;
   font-family: inherit; font-weight: 400;
 }
-input.field:focus, select.field:focus {
+input.field:focus, select.field:focus, input.form-input:focus, textarea.form-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(154,136,120,.12);
   outline: none;
@@ -5175,6 +5176,8 @@ function grpTab(tab) {
 
 async function openLobbyDetail(lid) {
   _currentLobbyId = lid;
+  const ca = document.getElementById('grp-content-area');
+  if (ca) delete ca.dataset.loaded;
   grpTab('content');
   try {
     const d = await apiFetch(`/api/lobbies/${lid}`);
@@ -5208,13 +5211,15 @@ async function openLobbyDetail(lid) {
 async function loadGroupContent() {
   const el = document.getElementById('grp-content-area');
   if (!_currentLobbyId) return;
-  el.innerHTML = '<div class="loading">Lade…</div>';
+  // Only show spinner on first load — silent refresh otherwise
+  if (!el.dataset.loaded) el.innerHTML = '<div class="loading">Lade…</div>';
   try {
     const [posts, stories] = await Promise.all([
       apiFetch(`/api/lobbies/${_currentLobbyId}/posts`),
       apiFetch(`/api/lobbies/${_currentLobbyId}/stories`)
     ]);
     el.innerHTML = renderStoriesRow(stories) + renderGroupContent(_currentLobbyType, posts);
+    el.dataset.loaded = '1';
   } catch(e) { el.innerHTML = `<p style="color:var(--red);font-size:.8rem">${e.message}</p>`; }
 }
 
@@ -5562,7 +5567,7 @@ async function openStoryCamera() {
   const err = document.getElementById('story-camera-err');
   err.style.display = 'none';
   try {
-    _cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    _cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:true});
     video.srcObject = _cameraStream;
     video.play();
   } catch(e) {
@@ -5606,7 +5611,8 @@ function startStoryRecording() {
   let elapsed = 0;
   const tick = setInterval(() => { elapsed++; progressEl.textContent = `${elapsed}s / 15s`; }, 1000);
 
-  _mediaRecorder = new MediaRecorder(_cameraStream, {mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 600000});
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
+  _mediaRecorder = new MediaRecorder(_cameraStream, {mimeType, videoBitsPerSecond: 600000});
   _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
   _mediaRecorder.onstop = () => {
     clearInterval(tick);
