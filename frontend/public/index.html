@@ -2328,6 +2328,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
         <input class="field" id="bubble-addr" type="text" placeholder="Münsterplatz, Bern">
         <input type="hidden" id="bubble-lat" value="0">
         <input type="hidden" id="bubble-lng" value="0">
+        <input type="hidden" id="bubble-altitude" value="">
       </div>
       <div class="field-group">
         <div class="field-label">Läuft ab in</div>
@@ -5658,21 +5659,28 @@ async function submitStory() {
 let _arStream = null;
 let _arAnimFrame = null;
 let _arHeading = 0;
+let _arBeta = 90;          // device pitch: 90=upright/horizon, >90=looking up
 let _arPos = null;
 let _arBubbles = [];
 let _arSelected = null;
+let _arOrientSource = null; // 'absolute' | 'relative' — locked on first valid reading
+let _arEmptyFrames = 0;
+let _arPinEls = new Map();  // bubble id → DOM element (avoid full innerHTML rebuild)
 
 async function openARView() {
+  _arHeading = 0; _arBeta = 90; _arOrientSource = null;
+  _arEmptyFrames = 0; _arSelected = null;
+  _arPinEls.forEach(el => el.remove()); _arPinEls = new Map();
   openModal('modal-ar');
   const video = document.getElementById('ar-camera');
   const overlay = document.getElementById('ar-overlay');
   const err = document.getElementById('ar-err');
   err.style.display = 'none';
-  overlay.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.6);margin-top:40px;font-size:.82rem">Kompass + GPS wird aktiviert…</div>';
+  overlay.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.6);margin-top:40px;font-size:.82rem">Compass + GPS activating…</div>';
   try {
     _arStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
     video.srcObject = _arStream; video.play();
-  } catch(e) { err.textContent = 'Kamera: ' + e.message; err.style.display='block'; return; }
+  } catch(e) { err.textContent = 'Camera: ' + e.message; err.style.display='block'; return; }
 
   if ('DeviceOrientationEvent' in window) {
     const req = DeviceOrientationEvent.requestPermission;
@@ -5683,17 +5691,32 @@ async function openARView() {
 
   navigator.geolocation.getCurrentPosition(async pos => {
     _arPos = pos.coords;
+    overlay.querySelector('div')?.remove();
     try {
       const city = currentUser?.city || '';
       _arBubbles = await apiFetch(`/api/bubbles?city=${encodeURIComponent(city)}`);
     } catch {}
     _arLoop(overlay);
-  }, () => { err.textContent = 'GPS nicht verfügbar.'; err.style.display='block'; });
+  }, () => { err.textContent = 'GPS not available.'; err.style.display='block'; });
 }
 
 function _arOrient(e) {
-  const alpha = e.webkitCompassHeading ?? (e.alpha ? (360 - e.alpha) : null);
-  if (alpha !== null) _arHeading = alpha;
+  const isAbsolute = e.type === 'deviceorientationabsolute';
+  // Lock to first source that delivers a real reading — prevents dual-firing jitter
+  if (_arOrientSource === null) {
+    if (isAbsolute && e.alpha != null) _arOrientSource = 'absolute';
+    else if (!isAbsolute && (e.webkitCompassHeading != null || e.alpha != null)) _arOrientSource = 'relative';
+  }
+  if (_arOrientSource === 'absolute' && !isAbsolute) return;
+  if (_arOrientSource === 'relative' && isAbsolute) return;
+
+  const alpha = e.webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) : null);
+  if (alpha !== null) {
+    // EMA smoothing around the wraparound-safe shortest arc
+    const diff = ((alpha - _arHeading + 540) % 360) - 180;
+    _arHeading = (_arHeading + diff * 0.25 + 360) % 360;
+  }
+  if (e.beta != null) _arBeta = e.beta;
 }
 
 function _arBearing(lat1,lng1,lat2,lng2) {
@@ -5746,32 +5769,72 @@ function _arRenderCard() {
 function _arLoop(overlay) {
   if (!document.getElementById('modal-ar')?.classList.contains('active')) return;
   if (!_arPos || !_arBubbles.length) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
-  const FOV = 70, W = overlay.offsetWidth, H = overlay.offsetHeight;
+
+  const FOV_H = 70, FOV_V = 52;
+  const W = overlay.offsetWidth, H = overlay.offsetHeight;
   const myId = currentUser?.id;
+  const myAlt = _arPos.altitude ?? 0;
+
+  // Horizon Y: shifts based on device tilt (beta=90 → horizon at H/2)
+  const tilt = _arBeta - 90; // positive = looking up
+  const horizonY = H / 2 - (tilt / (FOV_V / 2)) * (H / 2);
+
   const pins = _arBubbles.filter(b => b.lat && b.lng).map(b => {
     const bearing = _arBearing(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
     const dist = _arDist(_arPos.latitude, _arPos.longitude, b.lat, b.lng);
-    let diff = ((bearing - _arHeading + 540) % 360) - 180;
-    const x = W/2 + (diff / FOV) * W;
+    const hDiff = ((bearing - _arHeading + 540) % 360) - 180;
+    const x = W / 2 + (hDiff / (FOV_H / 2)) * (W / 2);
+    // Vertical: elevation angle from altitude difference
+    const altDiff = (b.altitude ?? 0) - myAlt;
+    const elvAngle = Math.atan2(altDiff, Math.max(dist, 1)) * 180 / Math.PI;
+    const y = horizonY - (elvAngle / (FOV_V / 2)) * (H / 2);
     const distLabel = dist < 1000 ? `${Math.round(dist)}m` : `${(dist/1000).toFixed(1)}km`;
     const isMe = b.owner_id === myId;
-    return {b, x, dist, distLabel, isMe, visible: Math.abs(diff) < FOV*0.6};
-  }).filter(p => p.visible).sort((a,b) => a.dist-b.dist).slice(0,8);
+    const visible = Math.abs(hDiff) < FOV_H * 0.55 && y > -40 && y < H + 40;
+    return {b, x, y, dist, distLabel, isMe, visible};
+  }).filter(p => p.visible).sort((a,b) => a.dist - b.dist).slice(0, 8);
 
-  overlay.innerHTML = pins.map(({b,x,dist,distLabel,isMe}) => {
-    // size shrinks with distance: 56px at 0m → 20px at 2000m+
+  const visibleIds = new Set(pins.map(p => p.b.id));
+
+  // Remove pins that left the view
+  for (const [id, el] of _arPinEls) {
+    if (!visibleIds.has(id)) { el.remove(); _arPinEls.delete(id); }
+  }
+
+  // Update or create pin elements in-place (no full innerHTML rebuild = no flicker)
+  for (const {b, x, y, dist, distLabel, isMe} of pins) {
     const size = Math.max(20, Math.round(56 * Math.max(0, 1 - dist / 2000)));
-    const y = Math.max(60, H*0.2 + Math.min(dist/15, H*0.35));
     const color = isMe ? 'rgba(99,230,190,' : 'rgba(139,92,246,';
     const selected = _arSelected?.id === b.id;
-    return `<div style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);text-align:center;pointer-events:auto;cursor:pointer" onclick="_arSelectBubble(${b.id})">
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color}.3);border:2px solid ${color}${selected?'1':'0.75'});box-shadow:${selected?`0 0 12px ${color}.6)`:'none'};display:flex;align-items:center;justify-content:center;font-size:${Math.max(10,size*0.42)}px;animation:pulseAura 2s infinite;margin:0 auto;transition:box-shadow .15s">
-        ${size > 28 ? (b.emoji||'🫧') : ''}
-      </div>
-      ${size > 22 ? `<div style="background:rgba(0,0,0,.7);color:#fff;border-radius:5px;padding:.1rem .35rem;font-size:${Math.max(8,size*0.22)}px;font-weight:700;margin-top:.2rem;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis">${esc((b.display_name||'Bubble').slice(0,12))}</div>` : ''}
-      <div style="color:rgba(255,255,255,.65);font-size:${Math.max(7,size*0.18)}px">${distLabel}</div>
-    </div>`;
-  }).join('') || '<div style="text-align:center;color:rgba(255,255,255,.5);margin-top:40px;font-size:.8rem">No bubbles in view</div>';
+
+    let el = _arPinEls.get(b.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.style.cssText = 'position:absolute;left:0;top:0;text-align:center;pointer-events:auto;cursor:pointer;will-change:transform';
+      el.addEventListener('click', () => _arSelectBubble(b.id));
+      overlay.appendChild(el);
+      _arPinEls.set(b.id, el);
+    }
+
+    el.style.transform = `translate(calc(${x}px - 50%), calc(${y}px - 50%))`;
+    el.innerHTML = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color}.3);border:2px solid ${color}${selected?'1':'.75'});box-shadow:${selected?`0 0 14px ${color}.65)`:''};display:flex;align-items:center;justify-content:center;font-size:${Math.max(10,size*0.42)}px;animation:pulseAura 2s infinite;margin:0 auto">${size>28?b.emoji||'🫧':''}</div>${size>22?`<div style="background:rgba(0,0,0,.72);color:#fff;border-radius:5px;padding:.1rem .35rem;font-size:${Math.max(8,size*0.22)}px;font-weight:700;margin-top:.15rem;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis">${esc((b.display_name||'Bubble').slice(0,12))}</div>`:''}<div style="color:rgba(255,255,255,.65);font-size:${Math.max(7,size*0.18)}px">${distLabel}</div>`;
+  }
+
+  // Empty state — only after 1 second of nothing visible (avoids flash on rotation)
+  let emptyEl = document.getElementById('ar-empty-msg');
+  if (pins.length === 0) {
+    _arEmptyFrames++;
+    if (_arEmptyFrames > 60 && !emptyEl) {
+      const d = document.createElement('div');
+      d.id = 'ar-empty-msg';
+      d.style.cssText = 'position:absolute;top:42%;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.45);font-size:.8rem;pointer-events:none;white-space:nowrap';
+      d.textContent = 'No bubbles in view';
+      overlay.appendChild(d);
+    }
+  } else {
+    _arEmptyFrames = 0;
+    if (emptyEl) emptyEl.remove();
+  }
 
   _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay));
 }
@@ -5781,8 +5844,10 @@ function closeARView() {
   if (_arAnimFrame) { cancelAnimationFrame(_arAnimFrame); _arAnimFrame=null; }
   window.removeEventListener('deviceorientationabsolute', _arOrient, true);
   window.removeEventListener('deviceorientation', _arOrient, true);
-  _arSelected = null;
+  _arSelected = null; _arOrientSource = null;
+  _arPinEls.forEach(el => el.remove()); _arPinEls = new Map();
   document.getElementById('ar-bubble-card')?.remove();
+  document.getElementById('ar-empty-msg')?.remove();
   closeModal('modal-ar');
 }
 
@@ -7353,6 +7418,14 @@ function openDropBubble() {
   const addrEl = document.getElementById('bubble-addr');
   if (addrEl && !addrEl.value && currentUser?.city) addrEl.value = currentUser.city;
   document.getElementById('bubble-error').style.display = 'none';
+  // Capture device altitude for AR height positioning
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      const alt = p.coords.altitude;
+      const el = document.getElementById('bubble-altitude');
+      if (el && alt != null) el.value = alt;
+    }, () => {}, {timeout: 4000});
+  }
   openModal('modal-drop-bubble');
 }
 
@@ -7380,6 +7453,7 @@ async function submitDropBubble() {
       address: document.getElementById('bubble-addr').value.trim(),
       lat: parseFloat(document.getElementById('bubble-lat')?.value) || 0,
       lng: parseFloat(document.getElementById('bubble-lng')?.value) || 0,
+      altitude: document.getElementById('bubble-altitude')?.value !== '' ? parseFloat(document.getElementById('bubble-altitude').value) : null,
       city: currentUser?.city || '',
       hours: parseInt(document.getElementById('bubble-hours').value) || 3,
       is_hangout: isHangout,

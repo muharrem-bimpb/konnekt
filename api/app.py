@@ -484,6 +484,72 @@ def init_db():
             c.execute("ALTER TABLE events ADD COLUMN group_id INTEGER REFERENCES lobbies(id)")
         except sqlite3.OperationalError:
             pass
+        # Group stories (15-min ephemeral)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_stories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                media_type TEXT DEFAULT 'photo',
+                media_data TEXT NOT NULL,
+                caption TEXT DEFAULT '',
+                expires_at TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(group_id) REFERENCES lobbies(id),
+                FOREIGN KEY(author_id) REFERENCES users(id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_story_reactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                story_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                emoji TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(story_id, user_id),
+                FOREIGN KEY(story_id) REFERENCES group_stories(id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_story_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                story_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(story_id) REFERENCES group_stories(id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
+        # Group posts (pinboard, chores, shopping, wer_kommt)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                post_type TEXT DEFAULT 'announcement',
+                title TEXT NOT NULL,
+                body TEXT DEFAULT '',
+                meta TEXT DEFAULT '{}',
+                done INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(group_id) REFERENCES lobbies(id),
+                FOREIGN KEY(author_id) REFERENCES users(id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS group_post_reactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                reaction TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(post_id, user_id),
+                FOREIGN KEY(post_id) REFERENCES group_posts(id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
         # Add type + is_public + quartier columns to events (migration)
         for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1"), ("is_quartier", "INTEGER DEFAULT 0")]:
             try:
@@ -516,6 +582,7 @@ def init_db():
             ("is_hangout",    "INTEGER DEFAULT 0"),
             ("max_attendees", "INTEGER DEFAULT 0"),
             ("location_blur", "INTEGER DEFAULT 0"),
+            ("altitude",      "REAL DEFAULT NULL"),
         ]:
             try:
                 c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
@@ -1171,7 +1238,7 @@ def logout_api():
 @app.get("/api/auth/google")
 def google_auth_start():
     if not GOOGLE_CLIENT_ID:
-        return redirect("/?error=google_not_configured")
+        return redirect("/?sso_error=google_not_configured")
     redirect_uri = request.host_url.rstrip('/') + "/api/auth/google/callback"
     state = secrets.token_urlsafe(16)
     params = urlencode({
@@ -1243,7 +1310,8 @@ def request_magic():
     print(f"[MAGIC LINK] {email} → {magic_url}", flush=True)
     # Also try to send a basic email if SMTP is configured
     _try_send_magic_email(email, magic_url)
-    return jsonify({"ok": True, "dev_url": magic_url if os.getenv("FLASK_ENV") == "development" else None})
+    has_email = bool(os.getenv("MAILGUN_API_KEY") or os.getenv("SENDGRID_API_KEY"))
+    return jsonify({"ok": True, "dev_url": None if has_email else magic_url})
 
 def _try_send_magic_email(email, url):
     """Send magic link via email if MAILGUN_API_KEY is set."""
@@ -2450,7 +2518,7 @@ def get_bubbles():
         if token:
             sess = c.execute("SELECT user_id FROM sessions WHERE token=? AND expires_at>datetime('now')", (token,)).fetchone()
             if sess: uid = sess["user_id"]
-        q = """SELECT b.id, b.title, b.emoji, b.description, b.lat, b.lng,
+        q = """SELECT b.id, b.title, b.emoji, b.description, b.lat, b.lng, b.altitude,
                       b.address, b.city, b.expires_at, b.created_at,
                       b.is_hangout, b.max_attendees, b.location_blur, b.user_id as owner_id,
                       u.display_name, u.avatar_url
@@ -2510,13 +2578,15 @@ def drop_bubble():
         is_hangout   = 1 if d.get("is_hangout") else 0
         max_att      = max(0, int(d.get("max_attendees") or 0))
         location_blur = 1 if (is_hangout and d.get("location_blur")) else 0
+        altitude = d.get("altitude")
+        altitude = float(altitude) if altitude is not None else None
         c.execute("""
-            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, address, city,
+            INSERT INTO life_bubbles (user_id, title, emoji, description, lat, lng, altitude, address, city,
                                       expires_at, photo_data, audio_data, is_hangout, max_attendees, location_blur)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (g.user_id, d["title"][:100], d.get("emoji", "✨"),
               d.get("description", "")[:300],
-              lat, lng, d.get("address", ""), d.get("city", ""), expires,
+              lat, lng, altitude, d.get("address", ""), d.get("city", ""), expires,
               photo_data, audio_data, is_hangout, max_att, location_blur))
         bid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
     return jsonify({"id": bid, "ok": True, "lat": lat, "lng": lng}), 201
@@ -4601,6 +4671,180 @@ def leave_lobby(lid):
                 return jsonify({"ok": True, "deleted": True})
         c.execute("DELETE FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id))
     return jsonify({"ok": True})
+
+@app.get("/api/lobbies/<int:lid>/posts")
+@require_auth
+def get_group_posts(lid):
+    with get_db() as c:
+        if not c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone():
+            return jsonify({"error": "Kein Zugriff"}), 403
+        posts = c.execute("""
+            SELECT p.id, p.post_type, p.title, p.body, p.meta, p.done, p.created_at,
+                   u.display_name AS author_name, u.id AS author_id,
+                   (SELECT reaction FROM group_post_reactions WHERE post_id=p.id AND user_id=?) AS my_reaction,
+                   (SELECT COUNT(*) FROM group_post_reactions WHERE post_id=p.id AND reaction='yes') AS yes_count,
+                   (SELECT COUNT(*) FROM group_post_reactions WHERE post_id=p.id AND reaction='no')  AS no_count
+            FROM group_posts p JOIN users u ON u.id=p.author_id
+            WHERE p.group_id=? ORDER BY p.created_at DESC
+        """, (g.user_id, lid)).fetchall()
+    return jsonify([dict(p) for p in posts])
+
+@app.post("/api/lobbies/<int:lid>/posts")
+@require_auth
+def create_group_post(lid):
+    with get_db() as c:
+        if not c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone():
+            return jsonify({"error": "Kein Zugriff"}), 403
+        d = request.json or {}
+        title = (d.get("title") or "").strip()
+        if not title:
+            return jsonify({"error": "Titel erforderlich"}), 400
+        c.execute("""
+            INSERT INTO group_posts (group_id, author_id, post_type, title, body, meta)
+            VALUES (?,?,?,?,?,?)
+        """, (lid, g.user_id, d.get("post_type","announcement"), title,
+              (d.get("body") or "").strip(), json.dumps(d.get("meta") or {})))
+        pid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"id": pid}), 201
+
+@app.patch("/api/lobbies/<int:lid>/posts/<int:pid>")
+@require_auth
+def update_group_post(lid, pid):
+    with get_db() as c:
+        post = c.execute("SELECT author_id FROM group_posts WHERE id=? AND group_id=?", (pid, lid)).fetchone()
+        if not post:
+            return jsonify({"error": "Nicht gefunden"}), 404
+        role = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if post["author_id"] != g.user_id and (not role or role["role"] != "owner"):
+            return jsonify({"error": "Kein Zugriff"}), 403
+        d = request.json or {}
+        if "done" in d:
+            c.execute("UPDATE group_posts SET done=? WHERE id=?", (1 if d["done"] else 0, pid))
+    return jsonify({"ok": True})
+
+@app.delete("/api/lobbies/<int:lid>/posts/<int:pid>")
+@require_auth
+def delete_group_post(lid, pid):
+    with get_db() as c:
+        post = c.execute("SELECT author_id FROM group_posts WHERE id=? AND group_id=?", (pid, lid)).fetchone()
+        if not post:
+            return jsonify({"error": "Nicht gefunden"}), 404
+        role = c.execute("SELECT role FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone()
+        if post["author_id"] != g.user_id and (not role or role["role"] != "owner"):
+            return jsonify({"error": "Kein Zugriff"}), 403
+        c.execute("DELETE FROM group_post_reactions WHERE post_id=?", (pid,))
+        c.execute("DELETE FROM group_posts WHERE id=?", (pid,))
+    return jsonify({"ok": True})
+
+@app.post("/api/lobbies/<int:lid>/posts/<int:pid>/react")
+@require_auth
+def react_group_post(lid, pid):
+    with get_db() as c:
+        if not c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone():
+            return jsonify({"error": "Kein Zugriff"}), 403
+        reaction = (request.json or {}).get("reaction", "")
+        if reaction not in ("yes", "no", "done"):
+            return jsonify({"error": "Ungültige Reaktion"}), 400
+        existing = c.execute("SELECT reaction FROM group_post_reactions WHERE post_id=? AND user_id=?", (pid, g.user_id)).fetchone()
+        if existing and existing["reaction"] == reaction:
+            c.execute("DELETE FROM group_post_reactions WHERE post_id=? AND user_id=?", (pid, g.user_id))
+            my_reaction = None
+        else:
+            c.execute("INSERT OR REPLACE INTO group_post_reactions (post_id, user_id, reaction) VALUES (?,?,?)", (pid, g.user_id, reaction))
+            my_reaction = reaction
+        yes = c.execute("SELECT COUNT(*) FROM group_post_reactions WHERE post_id=? AND reaction='yes'", (pid,)).fetchone()[0]
+        no  = c.execute("SELECT COUNT(*) FROM group_post_reactions WHERE post_id=? AND reaction='no'",  (pid,)).fetchone()[0]
+    return jsonify({"ok": True, "my_reaction": my_reaction, "yes_count": yes, "no_count": no})
+
+@app.get("/api/lobbies/<int:lid>/stories")
+@require_auth
+def get_group_stories(lid):
+    with get_db() as c:
+        if not c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone():
+            return jsonify({"error": "Kein Zugriff"}), 403
+        now = datetime.utcnow().isoformat()
+        stories = c.execute("""
+            SELECT s.id, s.media_type, s.media_data, s.caption, s.expires_at, s.created_at,
+                   u.display_name AS author_name, u.id AS author_id,
+                   (SELECT GROUP_CONCAT(emoji) FROM group_story_reactions WHERE story_id=s.id) AS reactions_raw,
+                   (SELECT COUNT(*) FROM group_story_comments WHERE story_id=s.id) AS comment_count,
+                   (SELECT emoji FROM group_story_reactions WHERE story_id=s.id AND user_id=?) AS my_reaction
+            FROM group_stories s JOIN users u ON u.id=s.author_id
+            WHERE s.group_id=? AND s.expires_at > ?
+            ORDER BY s.created_at DESC
+        """, (g.user_id, lid, now)).fetchall()
+    return jsonify([dict(s) for s in stories])
+
+@app.post("/api/lobbies/<int:lid>/stories")
+@require_auth
+def create_group_story(lid):
+    with get_db() as c:
+        if not c.execute("SELECT 1 FROM lobby_members WHERE lobby_id=? AND user_id=?", (lid, g.user_id)).fetchone():
+            return jsonify({"error": "Kein Zugriff"}), 403
+        d = request.json or {}
+        media_data = (d.get("media_data") or "").strip()
+        if not media_data:
+            return jsonify({"error": "Keine Mediendaten"}), 400
+        expires = (datetime.utcnow() + timedelta(minutes=15)).isoformat()
+        c.execute("""
+            INSERT INTO group_stories (group_id, author_id, media_type, media_data, caption, expires_at)
+            VALUES (?,?,?,?,?,?)
+        """, (lid, g.user_id, d.get("media_type","photo"), media_data,
+              (d.get("caption") or "").strip()[:120], expires))
+        sid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    award_points(g.user_id, 10, "Story geteilt", "story", sid)
+    return jsonify({"id": sid}), 201
+
+@app.delete("/api/stories/<int:sid>")
+@require_auth
+def delete_group_story(sid):
+    with get_db() as c:
+        story = c.execute("SELECT author_id FROM group_stories WHERE id=?", (sid,)).fetchone()
+        if not story or story["author_id"] != g.user_id:
+            return jsonify({"error": "Kein Zugriff"}), 403
+        c.execute("DELETE FROM group_story_reactions WHERE story_id=?", (sid,))
+        c.execute("DELETE FROM group_story_comments WHERE story_id=?", (sid,))
+        c.execute("DELETE FROM group_stories WHERE id=?", (sid,))
+    return jsonify({"ok": True})
+
+@app.post("/api/stories/<int:sid>/react")
+@require_auth
+def react_story(sid):
+    emoji = (request.json or {}).get("emoji","")
+    if emoji not in ("🥳","🎉","🌋","🔆"):
+        return jsonify({"error": "Ungültige Reaktion"}), 400
+    with get_db() as c:
+        existing = c.execute("SELECT emoji FROM group_story_reactions WHERE story_id=? AND user_id=?", (sid, g.user_id)).fetchone()
+        if existing and existing["emoji"] == emoji:
+            c.execute("DELETE FROM group_story_reactions WHERE story_id=? AND user_id=?", (sid, g.user_id))
+        else:
+            c.execute("INSERT OR REPLACE INTO group_story_reactions (story_id,user_id,emoji) VALUES (?,?,?)", (sid, g.user_id, emoji))
+        reactions = c.execute("SELECT emoji FROM group_story_reactions WHERE story_id=?", (sid,)).fetchall()
+    from collections import Counter
+    counts = Counter(r["emoji"] for r in reactions)
+    return jsonify({"ok": True, "counts": dict(counts)})
+
+@app.get("/api/stories/<int:sid>/comments")
+@require_auth
+def get_story_comments(sid):
+    with get_db() as c:
+        comments = c.execute("""
+            SELECT c.id, c.text, c.created_at, u.display_name AS author_name
+            FROM group_story_comments c JOIN users u ON u.id=c.user_id
+            WHERE c.story_id=? ORDER BY c.created_at ASC
+        """, (sid,)).fetchall()
+    return jsonify([dict(c) for c in comments])
+
+@app.post("/api/stories/<int:sid>/comments")
+@require_auth
+def post_story_comment(sid):
+    text = ((request.json or {}).get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Text erforderlich"}), 400
+    with get_db() as c:
+        c.execute("INSERT INTO group_story_comments (story_id,user_id,text) VALUES (?,?,?)", (sid, g.user_id, text))
+        cid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"id": cid}), 201
 
 @app.post("/api/lobbies/<int:lid>/new-invite")
 @require_auth
