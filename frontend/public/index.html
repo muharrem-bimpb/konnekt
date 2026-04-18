@@ -1270,7 +1270,7 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
       <!-- position:absolute+inset:0 is the only reliable way to make Leaflet fill a flex child -->
       <div id="events-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
       <!-- Map mode toolbar -->
-      <div id="map-toolbar" style="position:absolute;top:.75rem;left:0;right:0;z-index:500;display:flex;gap:.5rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 .75rem;scrollbar-width:none">
+      <div id="map-toolbar" style="position:absolute;top:.75rem;left:0;right:0;z-index:500;display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;padding:0 .6rem">
         <button id="map-show-events-btn"     onclick="setMapMode('events')"     class="map-filter-btn active-filter">🌱 Events</button>
         <button id="map-show-bubbles-btn"    onclick="setMapMode('bubbles')"    class="map-filter-btn">🫧 Bubbles</button>
         <button id="map-show-shops-btn"      onclick="setMapMode('shops')"      class="map-filter-btn">🏪 Shops</button>
@@ -5661,18 +5661,21 @@ async function submitStory() {
 let _arStream = null;
 let _arAnimFrame = null;
 let _arHeading = 0;
-let _arBeta = 90;          // device pitch: 90=upright/horizon, >90=looking up
+let _arBeta = 90;
 let _arPos = null;
 let _arBubbles = [];
 let _arSelected = null;
-let _arOrientSource = null; // 'absolute' | 'relative' — locked on first valid reading
+let _arOrientSource = null;
 let _arEmptyFrames = 0;
-let _arPinEls = new Map();  // bubble id → DOM element (avoid full innerHTML rebuild)
+let _arPinEls = new Map();
 let _arRefreshTimer = null;
+let _arLastRenderHeading = -999;
+let _arLastRenderBeta = 90;
 
 async function openARView() {
   _arHeading = 0; _arBeta = 90; _arOrientSource = null;
   _arEmptyFrames = 0; _arSelected = null;
+  _arLastRenderHeading = -999; _arLastRenderBeta = 90;
   _arPinEls.forEach(el => el.remove()); _arPinEls = new Map();
   openModal('modal-ar');
   const video = document.getElementById('ar-camera');
@@ -5720,16 +5723,19 @@ function _arOrient(e) {
   if (_arOrientSource === 'absolute' && !isAbsolute) return;
   if (_arOrientSource === 'relative' && isAbsolute) return;
 
+  // Prefer webkitCompassHeading (iOS, already OS-calibrated) over raw alpha
   const alpha = e.webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) : null);
   if (alpha !== null) {
     const diff = ((alpha - _arHeading + 540) % 360) - 180;
-    // Dead-zone: ignore sub-degree noise; stronger smoothing (0.1) for stability
-    if (Math.abs(diff) > 0.8)
-      _arHeading = (_arHeading + diff * 0.1 + 360) % 360;
+    // Hard dead-zone — ignore anything the OS considers sensor noise
+    if (Math.abs(diff) < 1.5) return;
+    // Adaptive factor: snap fast on big turns, creep slowly on small drift
+    const factor = Math.abs(diff) > 20 ? 0.35 : Math.abs(diff) > 8 ? 0.12 : 0.04;
+    _arHeading = (_arHeading + diff * factor + 360) % 360;
   }
   if (e.beta != null) {
     const bd = e.beta - _arBeta;
-    if (Math.abs(bd) > 0.5) _arBeta = _arBeta + bd * 0.15;
+    if (Math.abs(bd) > 1.0) _arBeta += bd * 0.1;
   }
 }
 
@@ -5783,6 +5789,13 @@ function _arRenderCard() {
 function _arLoop(overlay) {
   if (!document.getElementById('modal-ar')?.classList.contains('active')) return;
   if (!_arPos || !_arBubbles.length) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
+
+  // Skip render entirely if heading/tilt haven't moved enough to shift any pin
+  const hDelta = Math.abs((((_arHeading - _arLastRenderHeading) + 540) % 360) - 180);
+  const bDelta = Math.abs(_arBeta - _arLastRenderBeta);
+  if (hDelta < 0.15 && bDelta < 0.3) { _arAnimFrame = requestAnimationFrame(() => _arLoop(overlay)); return; }
+  _arLastRenderHeading = _arHeading;
+  _arLastRenderBeta = _arBeta;
 
   const FOV_H = 70, FOV_V = 52;
   const W = overlay.offsetWidth, H = overlay.offsetHeight;
