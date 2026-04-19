@@ -3860,261 +3860,151 @@ LANDING_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0a0f1e">
-<meta name="description" content="Konnekt — Ehrenamt, Nachbarschaft und Zusammenhalt. Besser als Instagram, weil es der Welt nützt.">
-<meta property="og:title" content="Konnekt — Verbinde dich mit deiner Nachbarschaft">
-<meta property="og:description" content="Mach Ehrenamt, besuche Senioren, verdiene Punkte und löse lokale Coupons ein. Kostenlos & beta.">
+<meta name="theme-color" content="#141414">
+<meta name="description" content="Konnekt — Echte Verbindungen. Lokale Events, Nachbarschaft & AR-Bubbles. Kostenlos, kein Algorithmus.">
+<meta property="og:title" content="Konnekt 🌐">
+<meta property="og:description" content="Echte Verbindungen. Kein Algorithmus. Jetzt beitreten — Bonuspunkte in der Beta.">
 <meta property="og:image" content="/icons/icon-512.png">
-<title>Konnekt — Ehrenamt & Nachbarschaft · v1.0</title>
+<title>Konnekt — Connect for real.</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#05050d;color:#e2e8f0;min-height:100vh}
+body{font-family:'Inter',sans-serif;background:#141414;color:#FAFAF8;min-height:100vh}
 a{color:inherit;text-decoration:none}
 
-/* hero */
-.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:2rem 1.5rem;text-align:center;
-  background:radial-gradient(ellipse 80% 60% at 50% 0%,#1e1b4b,transparent),
-             radial-gradient(ellipse 60% 40% at 80% 100%,#06b6d410,transparent)}
-.beta-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(139,92,246,.15);
-  border:1px solid rgba(139,92,246,.35);border-radius:99px;padding:.3rem 1rem;
-  font-size:.75rem;font-weight:700;color:#a78bfa;letter-spacing:.05em;margin-bottom:1.5rem}
-.hero-emoji{font-size:3.5rem;margin-bottom:.75rem}
-h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:900;letter-spacing:-.03em;
-   background:linear-gradient(135deg,#a78bfa,#60a5fa,#34d399);
-   -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.75rem}
-.hero-sub{font-size:clamp(.95rem,2.5vw,1.15rem);color:#94a3b8;max-width:520px;line-height:1.6;margin-bottom:2rem}
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:48px 24px;gap:36px;text-align:center}
 
-/* stats */
-.stats{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem}
-.stat{text-align:center}
-.stat-num{font-size:1.8rem;font-weight:900;color:#a78bfa}
-.stat-lbl{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.logo-mark{margin-bottom:4px}
+.wordmark{font-size:11px;font-weight:600;letter-spacing:.28em;color:#E63946;
+  text-transform:uppercase;margin-bottom:12px}
+h1{font-size:clamp(1.6rem,5vw,2.4rem);font-weight:300;letter-spacing:.02em;
+   color:#FAFAF8;margin-bottom:10px}
+.sub{font-size:13px;color:#555;line-height:1.8;max-width:300px}
 
-/* CTA */
-.cta-group{display:flex;flex-direction:column;gap:.75rem;align-items:center;width:100%;max-width:360px}
-.btn-main{display:block;width:100%;background:linear-gradient(135deg,#7c3aed,#3b82f6);color:white;
-  border:none;border-radius:14px;padding:1rem;font-size:1rem;font-weight:800;
-  cursor:pointer;font-family:inherit;box-shadow:0 8px 30px rgba(124,58,237,.35);transition:transform .15s}
-.btn-main:active{transform:scale(.97)}
-.btn-app{display:block;width:100%;background:#0f0f23;color:#94a3b8;border:1px solid #1c1c38;
-  border-radius:14px;padding:.85rem;font-size:.9rem;font-weight:600;
-  cursor:pointer;font-family:inherit;transition:border-color .2s}
-.btn-app:hover{border-color:#7c3aed}
-.btn-app span{font-size:.75rem;display:block;color:#475569;margin-top:.1rem}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.stat-num{font-size:22px;font-weight:600;color:#FAFAF8}
+.stat-lbl{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
 
-/* waitlist form */
-.waitlist-form{display:flex;flex-direction:column;gap:.6rem;width:100%;max-width:360px;margin-top:.5rem}
-.wl-input{background:#0c0c18;border:1px solid #1c1c38;border-radius:10px;
-  padding:.75rem 1rem;color:#e2e8f0;font-size:.92rem;font-family:inherit;outline:none;
-  transition:border-color .2s}
-.wl-input:focus{border-color:#7c3aed}
-.wl-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);
-  border-radius:10px;padding:.75rem 1rem;font-size:.85rem;color:#34d399;display:none;text-align:center}
-.notice{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);
-  border-radius:10px;padding:.65rem 1rem;font-size:.82rem;color:#fbbf24;margin-bottom:1rem;max-width:420px}
+.btn-open{display:inline-block;padding:13px 36px;background:#E63946;color:#fff;
+  border:none;border-radius:3px;font-size:11px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;cursor:pointer;font-family:inherit;
+  transition:opacity .15s}
+.btn-open:active{opacity:.85}
 
-/* features */
-.features{padding:4rem 1.5rem;max-width:900px;margin:0 auto}
-.features h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:.5rem}
-.features-sub{text-align:center;color:#64748b;font-size:.88rem;margin-bottom:2.5rem}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}
-.feat-card{background:#0c0c18;border:1px solid #1c1c38;border-radius:16px;padding:1.25rem;
-  position:relative;overflow:hidden}
-.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c)}
-.feat-icon{font-size:1.75rem;margin-bottom:.6rem}
-.feat-title{font-weight:700;font-size:.95rem;margin-bottom:.3rem}
-.feat-desc{font-size:.78rem;color:#64748b;line-height:1.5}
+.features{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:340px}
+.feat{font-size:10px;color:#444;padding:4px 10px;
+  border:1px solid #222;border-radius:99px}
 
-/* how it works */
-.how{background:#080815;padding:3rem 1.5rem;text-align:center}
-.how h2{font-size:1.4rem;font-weight:800;margin-bottom:2rem}
-.steps{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;max-width:700px;margin:0 auto}
-.step{flex:1;min-width:160px}
-.step-num{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);
-  color:white;font-weight:800;display:flex;align-items:center;justify-content:center;
-  margin:0 auto .75rem}
-.step-title{font-weight:700;font-size:.88rem;margin-bottom:.3rem}
-.step-desc{font-size:.75rem;color:#64748b;line-height:1.4}
+.notice-bar{background:#E63946;color:#fff;padding:8px 16px;border-radius:3px;
+  font-size:11px;max-width:340px}
 
-/* footer */
-.site-footer{border-top:1px solid #0f0f23;padding:1.5rem;text-align:center;font-size:.73rem;color:#334155}
-.site-footer a{color:#475569;margin:0 .5rem}
-.site-footer a:hover{color:#a78bfa}
+.wl-form{display:none;flex-direction:column;gap:8px;width:100%;max-width:300px}
+.wl-input{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:3px;
+  padding:10px 14px;color:#FAFAF8;font-size:13px;font-family:inherit;outline:none}
+.wl-input:focus{border-color:#E63946}
+.wl-ok{font-size:11px;color:#22c55e;text-align:center;display:none;padding:8px}
+
+.btn-wl{background:transparent;color:#555;border:none;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:inherit;
+  margin-top:-20px}
+.btn-wl:hover{color:#888}
+
+footer{border-top:1px solid #1e1e1e;padding:20px;font-size:9px;color:#333;
+  letter-spacing:.1em;text-transform:uppercase;text-align:center;width:100%}
+footer a{color:#333;margin:0 8px}
+footer a:hover{color:#555}
 </style>
 </head>
 <body>
 
-<div class="hero">
+<div class="page">
   {% if notice %}
-  <div class="notice">⚠️ {{ notice }}</div>
+  <div class="notice-bar">⚠️ {{ notice }}</div>
   {% endif %}
 
-  <div class="beta-badge">✦ v1.0 · Jetzt live · Handgebaut in Bern</div>
-  <div class="hero-emoji">🌐</div>
-  <h1>Konnekt</h1>
-  <p class="hero-sub">
-    Ehrenamt. Nachbarschaft. Zusammenhalt.<br>
-    Verdiene Punkte für gute Taten — löse sie bei lokalen Geschäften ein.
-    Kein Algorithmus. Keine Werbung. Einfach echte Menschen.
-  </p>
+  <!-- Logo -->
+  <div>
+    <svg class="logo-mark" width="48" height="48" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="18" stroke="#E63946" stroke-width="1.5"/>
+      <circle cx="36" cy="36" r="28" stroke="#FAFAF8" stroke-width="0.75" stroke-dasharray="2 3" opacity=".2"/>
+      <circle cx="36" cy="8"  r="3.5" stroke="#E63946" stroke-width="1.2"/>
+      <circle cx="61" cy="50" r="2.5" stroke="#FAFAF8" stroke-width="1" opacity=".3"/>
+      <circle cx="11" cy="50" r="2"   stroke="#FAFAF8" stroke-width="1" opacity=".3"/>
+      <circle cx="36" cy="36" r="2.5" fill="#E63946"/>
+      <line x1="36" y1="11.5" x2="36" y2="18" stroke="#E63946" stroke-width="0.75" opacity=".4"/>
+      <line x1="58" y1="48"  x2="52" y2="44" stroke="#FAFAF8" stroke-width="0.75" opacity=".15"/>
+      <line x1="14" y1="48"  x2="20" y2="44" stroke="#FAFAF8" stroke-width="0.75" opacity=".15"/>
+    </svg>
+    <div class="wordmark">Konnekt</div>
+    <h1>Connect for real.</h1>
+    <p class="sub">Lokale Events · Nachbarschaft · AR-Bubbles<br>Kein Algorithmus. Kostenlos. Beta.</p>
+  </div>
 
+  <!-- Stats -->
   <div class="stats">
-    <div class="stat"><div class="stat-num">{{ users }}</div><div class="stat-lbl">Mitglieder</div></div>
-    <div class="stat"><div class="stat-num">{{ deeds }}</div><div class="stat-lbl">Gute Taten</div></div>
-    <div class="stat"><div class="stat-num">{{ events }}</div><div class="stat-lbl">Events</div></div>
-    <div class="stat"><div class="stat-num">{{ waitlist }}</div><div class="stat-lbl">auf Warteliste</div></div>
+    <div><div class="stat-num">{{ users }}</div><div class="stat-lbl">Mitglieder</div></div>
+    <div><div class="stat-num">{{ events }}</div><div class="stat-lbl">Events</div></div>
+    <div><div class="stat-num">{{ deeds }}</div><div class="stat-lbl">Gute Taten</div></div>
   </div>
 
-  <div class="cta-group">
-    <button class="btn-main" onclick="window.location='/' + (invCode ? '?ref=' + invCode : '')">
-      🚀 Jetzt ausprobieren — kostenlos
-    </button>
-    <button class="btn-app" onclick="showWaitlist()">
-      📩 Beta-Zugang per E-Mail
-      <span>Erhalte Benachrichtigungen & Updates</span>
-    </button>
+  <!-- CTA -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%">
+    <button class="btn-open" onclick="openApp()">App öffnen →</button>
+    <button class="btn-wl" onclick="showWaitlist()">📩 Per E-Mail benachrichtigen</button>
+    <div class="wl-form" id="wl-form">
+      <input class="wl-input" id="wl-email" type="email" placeholder="deine@email.com" autocomplete="email">
+      <input class="wl-input" id="wl-city" type="text" placeholder="Stadt (z.B. Bern)">
+      <button class="btn-open" onclick="submitWaitlist()" style="width:100%">Eintragen</button>
+      <div class="wl-ok" id="wl-ok"></div>
+    </div>
   </div>
 
-  <div class="waitlist-form" id="wl-form" style="display:none">
-    <input class="wl-input" id="wl-email" type="email" placeholder="deine@email.com">
-    <input class="wl-input" id="wl-city" type="text" placeholder="Stadt (z.B. Bern)">
-    <button class="btn-main" onclick="submitWaitlist()" style="padding:.8rem">Eintragen</button>
-    <div class="wl-success" id="wl-success"></div>
+  <!-- Feature pills -->
+  <div class="features">
+    <span class="feat">🌍 Lokale Events</span>
+    <span class="feat">👥 Gruppen</span>
+    <span class="feat">📍 AR-Modus</span>
+    <span class="feat">🎁 Bonuspunkte</span>
+    <span class="feat">🔒 Keine Werbung</span>
+    <span class="feat">📲 Kein App Store</span>
   </div>
-</div>
 
-<div class="features">
-  <h2>Was ist Konnekt?</h2>
-  <p class="features-sub">Eine Plattform die Menschen verbindet — nicht Follower zählt</p>
-  <div class="feat-grid">
-    <div class="feat-card" style="--c:#10b981">
-      <div class="feat-icon">🌱</div>
-      <div class="feat-title">VolunteerHub</div>
-      <div class="feat-desc">Melde dich für Ehrenamt-Events an und verdiene Punkte. Stadtputz, Seniorenbegleitung, Blutspende — alles in deiner Umgebung.</div>
+  <footer>
+    <div style="margin-bottom:6px">
+      <a href="/impressum">Impressum</a>
+      <a href="/datenschutz">Datenschutz</a>
+      <a href="mailto:contract@architect-dna.ch">Kontakt</a>
     </div>
-    <div class="feat-card" style="--c:#ec4899">
-      <div class="feat-icon">💛</div>
-      <div class="feat-title">Nahbar</div>
-      <div class="feat-desc">Kein Nachbar bleibt allein. Besuche Senioren, verbinde dich mit Nachbarn, trage gute Taten ein — jede Verbindung bringt Punkte.</div>
-    </div>
-    <div class="feat-card" style="--c:#f59e0b">
-      <div class="feat-icon">🎟️</div>
-      <div class="feat-title">Coupons & Belohnungen</div>
-      <div class="feat-desc">Deine Punkte sind real — einlösbar bei lokalen Bäckereien, Kinos, Sportcentern. Ehrenamt wird sichtbar belohnt.</div>
-    </div>
-    <div class="feat-card" style="--c:#00ff88">
-      <div class="feat-icon">⏱️</div>
-      <div class="feat-title">Zeitbank</div>
-      <div class="feat-desc">Tausche Fähigkeiten ohne Geld. Ich biete Deutsch-Nachhilfe — du bringst mir Yoga bei. Eine Stunde = eine Stunde.</div>
-    </div>
-    <div class="feat-card" style="--c:#8b5cf6">
-      <div class="feat-icon">📲</div>
-      <div class="feat-title">PWA — kein App Store</div>
-      <div class="feat-desc">Installiere Konnekt direkt im Browser. Kein Download nötig. Funktioniert auf Android & iPhone genau wie eine App.</div>
-    </div>
-    <div class="feat-card" style="--c:#3b82f6">
-      <div class="feat-icon">🔒</div>
-      <div class="feat-title">Keine Werbung. Nie.</div>
-      <div class="feat-desc">Kein Algorithmus der dich süchtig hält. Keine verkauften Daten. Konnekt finanziert sich durch NGO-Accounts und Community-Partnerschaften.</div>
-    </div>
-    <div class="feat-card" style="--c:#8b5cf6">
-      <div class="feat-icon">🎮</div>
-      <div class="feat-title">Hangouts &amp; Spontan-Events</div>
-      <div class="feat-desc">UNO im Park, Sprachcafé, Brettspiele — sieh offene Hangouts auf der Karte und frag einfach ob du mitmachen kannst. Offen für alle.</div>
-    </div>
-  </div>
-</div>
-
-<div class="how">
-  <h2>So funktioniert's</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-title">Registrieren</div>
-      <div class="step-desc">Kostenlos, keine App nötig — einfach im Browser öffnen</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-title">Mitmachen</div>
-      <div class="step-desc">Events besuchen, Senioren begleiten, gute Taten eintragen</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-title">Punkte sammeln</div>
-      <div class="step-desc">Jede gute Tat = Punkte. Automatisch, transparent</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-title">Einlösen</div>
-      <div class="step-desc">Gratis Kaffee, Kinokarte, Fitness — bei lokalen Partnern</div>
-    </div>
-  </div>
-</div>
-
-<!-- Personal note from the founder -->
-<div style="background:#07071a;border-top:1px solid #1c1c38;padding:3rem 1.5rem">
-  <div style="max-width:600px;margin:0 auto">
-    <div style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;color:#e2e8f0">Eine persönliche Note 👋</div>
-    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1rem">
-      Ich bin Muharrem. Ich hab Konnekt gebaut weil ich glaube, dass Technologie Menschen zusammenbringen
-      sollte — nicht auseinander. Nicht durch Algorithmen die dich süchtig halten, sondern durch echte
-      Aktionen in der echten Welt.
-    </p>
-    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1rem">
-      Das hier ist <strong style="color:#a78bfa">Version 1.0</strong> — live, wachsend, und mit Herz gebaut.
-      Manches ist noch roh. Manches wird noch besser. Ich baue das nicht für Investoren oder
-      Exit-Strategie — ich bau es weil ich in Bern wohne und mir wünsche, dass wir uns mehr kennen.
-    </p>
-    <p style="font-size:.9rem;color:#94a3b8;line-height:1.75;margin-bottom:1.5rem">
-      Wenn du eine NGO vertrittst, einen Verein leitest, oder einfach Feedback hast —
-      schreib mir direkt. Kein Ticketsystem, kein Chatbot.
-    </p>
-    <a href="mailto:contract@architect-dna.ch" style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:10px;padding:.65rem 1.2rem;font-size:.85rem;font-weight:700;color:#a78bfa;text-decoration:none">
-      ✉️ contract@architect-dna.ch
-    </a>
-    <div style="margin-top:1.5rem;font-size:.78rem;color:#334155">
-      Built with care · Bern, Schweiz · 2026
-    </div>
-  </div>
-</div>
-
-<div class="site-footer">
-  <div style="margin-bottom:.5rem">
-    <a href="/impressum">Impressum</a>
-    <a href="/datenschutz">Datenschutz</a>
-    <a href="/">App öffnen</a>
-  </div>
-  <div>© 2026 Konnekt · v1.0 · Mit ❤️ für Bern und die Welt</div>
+    © 2026 Konnekt · Bern
+  </footer>
 </div>
 
 <script>
+const invCode = '{{ invite_code }}';
+function openApp() {
+  window.location = '/' + (invCode ? '?ref=' + invCode : '');
+}
 function showWaitlist() {
-  document.getElementById('wl-form').style.display='flex';
+  const f = document.getElementById('wl-form');
+  f.style.display = 'flex';
   document.getElementById('wl-email').focus();
 }
 async function submitWaitlist() {
   const email = document.getElementById('wl-email').value.trim();
   const city  = document.getElementById('wl-city').value.trim();
-  const code  = new URLSearchParams(location.search).get('ref') || '';
+  const code  = new URLSearchParams(location.search).get('ref') || invCode || '';
   if (!email) return;
   const r = await fetch('/api/waitlist', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email, city, ref_code:code})
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email, city, ref_code: code})
   });
   const d = await r.json();
-  const el = document.getElementById('wl-success');
-  el.style.display='block';
-  el.textContent = d.already
-    ? '✓ Du bist bereits dabei!'
-    : `✓ Du bist #${d.position} auf der Liste — danke! Wir melden uns.`;
+  const el = document.getElementById('wl-ok');
+  el.style.display = 'block';
+  el.textContent = d.already ? '✓ Du bist bereits dabei!' : `✓ #${d.position} auf der Liste — danke!`;
 }
-// Auto-open waitlist if invite code present
-const params = new URLSearchParams(location.search);
-const invCode = '{{ invite_code }}';
-if (params.get('ref')) showWaitlist();
+if (new URLSearchParams(location.search).get('ref')) showWaitlist();
 </script>
 </body>
 </html>"""
