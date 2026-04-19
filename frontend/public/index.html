@@ -2558,6 +2558,10 @@ textarea.ta:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(154,
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 const API = '';
+// Use production URL for share links — avoids localhost leaking into invites
+const APP_ORIGIN = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'https://konnekt-production-e2c9.up.railway.app'
+  : location.origin;
 let token = localStorage.getItem('konnekt_token') || '';
 let currentUser = null;
 // Capture referral code from URL (?ref=CODE) and store for registration
@@ -5883,7 +5887,7 @@ function closeARView() {
 }
 
 function _setLobbyInviteUrl(code) {
-  const url = `${location.origin}?invite=${code}`;
+  const url = `${APP_ORIGIN}?invite=${code}`;
   const inp = document.getElementById('lobby-invite-url');
   const display = document.getElementById('lobby-invite-url-display');
   if (inp) inp.value = url;
@@ -6036,7 +6040,7 @@ async function saveProfile() {
 async function copyInviteLink() {
   try {
     const r = await apiFetch('/api/invite/generate', 'POST');
-    const link = `${location.origin}/join/${r.code}`;
+    const link = `${APP_ORIGIN}/join/${r.code}`;
     await navigator.clipboard.writeText(link);
     showToast('✓ Einladungslink kopiert!');
   } catch {
@@ -6475,13 +6479,18 @@ function _tourArrowHTML(step) {
 }
 
 function _tourQRHTML() {
-  const url = location.origin;
-  // Render a tiny dot-matrix QR approximation using unicode blocks + show URL text
-  // We use the existing .qr-box / .qr-code CSS classes
-  return `<div class="qr-box" style="margin:.8rem 0 .4rem;background:#fff">
-    <div style="font-size:.72rem;color:#475569;margin-bottom:.4rem">App teilen oder zur Startseite hinzufügen</div>
-    <div style="font-size:3.5rem;line-height:1;letter-spacing:-.05em">▛▀▜<br>▌ ▐<br>▙▄▟</div>
-    <div class="tour-qr-url">${url}</div>
+  const url = APP_ORIGIN;
+  const qrId = 'tour-qr-canvas-' + Date.now();
+  // Generate real QR after DOM insertion
+  setTimeout(() => {
+    const el = document.getElementById(qrId);
+    if (!el || typeof QRCode === 'undefined') return;
+    new QRCode(el, { text: url, width: 120, height: 120, colorDark: '#0a0f1e', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  }, 80);
+  return `<div style="margin:.8rem 0 .4rem;text-align:center">
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem">App teilen oder zur Startseite hinzufügen</div>
+    <div id="${qrId}" style="display:inline-block;background:#fff;padding:6px;border-radius:8px"></div>
+    <div style="font-size:.62rem;color:var(--muted);margin-top:.4rem;word-break:break-all">${url}</div>
   </div>
   <div style="font-size:.7rem;color:var(--muted);text-align:center">Halte die Adresse im Browser gedrückt → "Zum Startbildschirm"</div>`;
 }
@@ -6779,7 +6788,7 @@ async function postEventComment() {
 }
 
 function shareEvent(id, title, city) {
-  const url = location.origin + `/?event=${id}`;
+  const url = APP_ORIGIN + `/?event=${id}`;
   const text = `${title}${city ? ' in ' + city : ''} — auf Konnekt`;
   if (navigator.share) {
     navigator.share({title, text, url}).catch(()=>{});
@@ -8194,5 +8203,6 @@ function _initMapQuickDrop() {
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </body>
 </html>
