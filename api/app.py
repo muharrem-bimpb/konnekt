@@ -4,7 +4,7 @@ Konnekt — Social Impact Platform API
 Two pillars: VolunteerHub + Nahbar (anti-loneliness)
 Production-ready Flask REST API
 """
-import os, json, sqlite3, hashlib, secrets, time, random, math, uuid, base64
+import os, json, sqlite3, hashlib, secrets, time, random, math, uuid, base64, re
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
@@ -18,6 +18,93 @@ from flask_cors import CORS
 import requests as req
 
 load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+if DATABASE_URL:
+    import psycopg2, psycopg2.extras, psycopg2.errors
+    _OperationalError = psycopg2.Error
+    _IntegrityError   = psycopg2.Error
+
+    def _adapt_ddl(sql):
+        sql = re.sub(r'INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY', sql)
+        sql = re.sub(r"\(datetime\('now'\)\)", "(NOW())", sql)
+        sql = re.sub(r"\(CAST\(strftime\('%Y','now'\) AS INTEGER\)\)", "(EXTRACT(YEAR FROM NOW())::INTEGER)", sql)
+        return sql
+
+    class _CursorProxy:
+        def __init__(self, cur, lastrowid=None):
+            self._cur = cur
+            self.lastrowid = lastrowid
+        def fetchone(self):  return self._cur.fetchone()
+        def fetchall(self):  return self._cur.fetchall()
+        def __iter__(self):  return iter(self._cur.fetchall())
+        def __getitem__(self, i): return self._cur.fetchall()[i]
+
+    class _PGConn:
+        def __init__(self, conn):
+            self._conn = conn
+        def _cur(self):
+            return self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        def execute(self, sql, params=()):
+            sql = _adapt_ddl(sql.replace('?', '%s'))
+            cur = self._cur()
+            cur.execute(sql, params or ())
+            lastrowid = None
+            if sql.strip().upper().startswith('INSERT'):
+                try:
+                    lr = self._cur(); lr.execute("SELECT lastval()"); lastrowid = lr.fetchone()['lastval']; lr.close()
+                except Exception: pass
+            return _CursorProxy(cur, lastrowid)
+        def executemany(self, sql, seq):
+            sql = _adapt_ddl(sql.replace('?', '%s'))
+            cur = self._cur(); cur.executemany(sql, seq); return _CursorProxy(cur)
+        def executescript(self, script):
+            cur = self._cur()
+            for stmt in _adapt_ddl(script).split(';'):
+                s = stmt.strip()
+                if s:
+                    try:
+                        cur.execute("SAVEPOINT _sp")
+                        cur.execute(s)
+                        cur.execute("RELEASE SAVEPOINT _sp")
+                    except Exception:
+                        cur.execute("ROLLBACK TO SAVEPOINT _sp")
+        def commit(self):   self._conn.commit()
+        def rollback(self): self._conn.rollback()
+        def close(self):    self._conn.close()
+
+    @contextmanager
+    def get_db():
+        conn = psycopg2.connect(DATABASE_URL)
+        wrapper = _PGConn(conn)
+        try:
+            yield wrapper
+            wrapper.commit()
+        except Exception:
+            wrapper.rollback()
+            raise
+        finally:
+            wrapper.close()
+
+else:
+    _OperationalError = sqlite3.OperationalError
+    _IntegrityError   = sqlite3.IntegrityError
+
+    @contextmanager
+    def get_db():
+        data_dir = Path(os.getenv("DATA_DIR", "")) or Path(__file__).parent.parent / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        db_path = data_dir / "konnekt.db"
+        conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=15)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            yield conn
+            conn.commit()
+        finally:
+            conn.close()
 
 app = Flask(__name__, static_folder="../frontend/public", static_url_path="")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -54,21 +141,6 @@ STRIPE_BUSINESS_PRICE_ID = os.getenv("STRIPE_BUSINESS_PRICE_ID", "")
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 
-@contextmanager
-def get_db():
-    # Support Railway volume mount at /data or local ../data
-    data_dir = Path(os.getenv("DATA_DIR", "")) or Path(__file__).parent.parent / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    db_path = data_dir / "konnekt.db"
-    conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=15)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
 
 def init_db():
     with get_db() as c:
@@ -472,17 +544,17 @@ def init_db():
         # Add subscription_tier column to users if not exists (migration)
         try:
             c.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
-        except sqlite3.OperationalError:
+        except _OperationalError:
             pass  # column already exists
         # Add group type to lobbies (migration)
         try:
             c.execute("ALTER TABLE lobbies ADD COLUMN type TEXT DEFAULT 'other'")
-        except sqlite3.OperationalError:
+        except _OperationalError:
             pass
         # Add group_id to events so events can be scoped to a group (migration)
         try:
             c.execute("ALTER TABLE events ADD COLUMN group_id INTEGER REFERENCES lobbies(id)")
-        except sqlite3.OperationalError:
+        except _OperationalError:
             pass
         # Group stories (15-min ephemeral)
         c.execute("""
@@ -554,24 +626,24 @@ def init_db():
         for col, defn in [("type", "TEXT DEFAULT 'volunteer'"), ("is_public", "INTEGER DEFAULT 1"), ("is_quartier", "INTEGER DEFAULT 0")]:
             try:
                 c.execute(f"ALTER TABLE events ADD COLUMN {col} {defn}")
-            except sqlite3.OperationalError:
+            except _OperationalError:
                 pass
         # Add is_admin / is_moderator to users (migration)
         for col, defn in [("is_admin", "INTEGER DEFAULT 0"), ("is_moderator", "INTEGER DEFAULT 0")]:
             try:
                 c.execute(f"ALTER TABLE users ADD COLUMN {col} {defn}")
-            except sqlite3.OperationalError:
+            except _OperationalError:
                 pass
         # Add loneliness map opt-in to users (migration)
         try:
             c.execute("ALTER TABLE users ADD COLUMN show_on_lonely_map INTEGER DEFAULT 0")
-        except sqlite3.OperationalError:
+        except _OperationalError:
             pass
         # Add two-phase confirmation to senior_visits (migration)
         for col, defn in [("visitor_confirmed", "INTEGER DEFAULT 0"), ("senior_confirmed", "INTEGER DEFAULT 0")]:
             try:
                 c.execute(f"ALTER TABLE senior_visits ADD COLUMN {col} {defn}")
-            except sqlite3.OperationalError:
+            except _OperationalError:
                 pass
         # Back-fill: any already-completed visits count as both confirmed
         c.execute("UPDATE senior_visits SET visitor_confirmed=1, senior_confirmed=1 WHERE completed=1")
@@ -586,7 +658,7 @@ def init_db():
         ]:
             try:
                 c.execute(f"ALTER TABLE life_bubbles ADD COLUMN {col} {defn}")
-            except sqlite3.OperationalError:
+            except _OperationalError:
                 pass
         # Create settings table for migration flags
         c.execute("CREATE TABLE IF NOT EXISTS konnekt_settings (key TEXT PRIMARY KEY, val TEXT)")
@@ -1169,7 +1241,7 @@ def register():
                               (referrer_id, "referral",
                                "Einladung angenommen! 🎉",
                                f"{name} hat deine Einladung angenommen — du erhältst +50 Punkte!"))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Username oder E-Mail bereits vergeben"}), 409
     return jsonify({"token": token, "user_id": user_id, "points": 50}), 201
 
@@ -1948,7 +2020,7 @@ def send_join_request(eid):
         try:
             c.execute("INSERT INTO event_join_requests (event_id,user_id,queue_position,message) VALUES (?,?,?,?)",
                       (eid, g.user_id, pos, (d.get("message") or "").strip()[:200]))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Anfrage bereits gesendet"}), 409
     return jsonify({"ok": True, "queue_position": pos})
 
@@ -1990,7 +2062,7 @@ def respond_join_request(eid, rid):
             try:
                 c.execute("INSERT INTO event_registrations (event_id,user_id) VALUES (?,?)", (eid, jq["user_id"]))
                 c.execute("UPDATE events SET participants_count=participants_count+1 WHERE id=?", (eid,))
-            except sqlite3.IntegrityError:
+            except _IntegrityError:
                 pass
             jq_user_id = jq["user_id"]
     if jq_user_id:
@@ -2011,7 +2083,7 @@ def flag_event(eid):
             return jsonify({"error": "Eigene Events können nicht gemeldet werden"}), 409
         try:
             c.execute("INSERT INTO event_flags (event_id,user_id,reason) VALUES (?,?,?)", (eid, g.user_id, reason))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Bereits gemeldet"}), 409
         # Also route to moderation queue
         try:
@@ -2817,7 +2889,7 @@ def trail_checkin(tid, sid):
                 return jsonify({"error": f"Zu weit entfernt ({int(dist)}m). Max. 200m."}), 400
         try:
             c.execute("INSERT INTO trail_progress (trail_id,user_id,stop_id) VALUES (?,?,?)", (tid, g.user_id, sid))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"ok": True, "already_checked": True})
         # Check if trail is now complete
         checked = c.execute("SELECT COUNT(*) FROM trail_progress WHERE trail_id=? AND user_id=?", (tid, g.user_id)).fetchone()[0]
@@ -3013,7 +3085,7 @@ def connect_neighbor():
         try:
             c.execute("INSERT INTO neighbor_connections (user_a,user_b,connection_type) VALUES (?,?,?)",
                       (user_a, user_b, conn_type))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Verbindung existiert bereits"}), 409
     award_points(g.user_id, 15, "Neue Nachbar-Verbindung", "connection", target_id)
     return jsonify({"ok": True})
@@ -3689,7 +3761,7 @@ def send_klopf():
                 c.execute("INSERT INTO neighbor_connections (user_a,user_b,status,connection_type) VALUES (?,?,'active','klopf')",
                           (a, b))
                 matched = True
-            except sqlite3.IntegrityError:
+            except _IntegrityError:
                 matched = True  # already connected
             if matched:
                 # Notify both users about the new connection
@@ -3827,7 +3899,7 @@ def join_waitlist():
     with get_db() as c:
         try:
             c.execute("INSERT INTO waitlist (email,city,ref_code) VALUES (?,?,?)", (email, city, ref_code))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"ok": True, "already": True})
         count = c.execute("SELECT COUNT(*) FROM waitlist").fetchone()[0]
     return jsonify({"ok": True, "position": count})
@@ -3840,9 +3912,9 @@ def waitlist_count():
 
 # ── Landing page & legal pages ────────────────────────────────────────────────
 
-OWNER_NAME    = "Muharrem Akdemir"
-OWNER_EMAIL   = "contract@architect-dna.ch"
-OWNER_ADDRESS = "Schaalweg 6, 3053 Münchenbuchsee, Schweiz"
+OWNER_NAME    = "Impressum auf Anfrage"
+OWNER_EMAIL   = "kontakt@architect-dna.ch"
+OWNER_ADDRESS = "Kanton Bern, Schweiz"
 OWNER_UID     = ""                             # leave blank — no company needed for beta
 
 def _landing_page(notice="", invite_code=""):
@@ -4263,7 +4335,7 @@ def mark_surprise_sent(uid):
         try:
             year = datetime.utcnow().year
             c.execute("INSERT INTO surprise_rewards (user_id, year) VALUES (?,?)", (uid, year))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Bereits gesendet dieses Jahr"}), 409
         # Notify the user
         c.execute("""
@@ -4320,7 +4392,7 @@ def bubble_join_request(bid):
             return jsonify({"error": "Hangout ist voll"}), 409
         try:
             c.execute("INSERT INTO bubble_join_requests (bubble_id, user_id) VALUES (?,?)", (bid, g.user_id))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             return jsonify({"error": "Anfrage bereits gesendet"}), 409
         # Notify owner
         requester = c.execute("SELECT display_name FROM users WHERE id=?", (g.user_id,)).fetchone()
@@ -4528,7 +4600,7 @@ def join_lobby(code):
         lid = lobby["id"]
         try:
             c.execute("INSERT INTO lobby_members (lobby_id, user_id) VALUES (?,?)", (lid, g.user_id))
-        except sqlite3.IntegrityError:
+        except _IntegrityError:
             pass  # already member
     return jsonify({"id": lid})
 
